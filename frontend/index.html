@@ -7,6 +7,7 @@
   <link rel="stylesheet" href="./css/home.css" />
   <link rel="stylesheet" href="./css/create_lobby.css" />
   <link rel="stylesheet" href="./css/join_lobby.css" />
+  <link rel="stylesheet" href="./css/player_waiting_room.css" />
 </head>
 <body>
     <!-- Universal grid -->
@@ -142,8 +143,129 @@
             Camera permissions required for player mode
         </div>
     </div>
-    <!-- screen -->
-    <!-- screen -->
+    <!-- Player waiting room -->
+   <div class="container">
+        <button class="leave-button">← Leave</button>
+        
+        <div class="header">
+            <h1 class="logo">CV LASER TAG</h1>
+            <p class="subtitle">Combat Preparation</p>
+        </div>
+
+        <h2 class="status-header">Preparing for Battle</h2>
+
+        <div class="lobby-info">
+            <div class="lobby-code-display">
+                <div class="code-label">Lobby Code</div>
+                <div class="lobby-code" id="lobbyCode">A7X9K2</div>
+            </div>
+            
+            <div class="game-info">
+                <div class="info-item">
+                    <div class="info-label">Duration</div>
+                    <div class="info-value">15 min</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Max Players</div>
+                    <div class="info-value">6</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="players-section">
+            <div class="players-title">Combat Squad</div>
+            <div class="players-count">4 of 6 Players Connected</div>
+            
+            <div class="player-list">
+                <div class="player-item host">
+                    <div class="player-avatar">SH</div>
+                    <div class="player-info">
+                        <div class="player-name">SHADOW_STRIKER</div>
+                        <div class="player-role host">Host</div>
+                    </div>
+                    <div class="player-status status-ready">
+                        <div class="status-dot"></div>
+                        <span>READY</span>
+                    </div>
+                </div>
+
+                <div class="player-item current-player">
+                    <div class="player-avatar">QS</div>
+                    <div class="player-info">
+                        <div class="player-name">QUANTUM_SNIPER</div>
+                        <div class="player-role you">You</div>
+                    </div>
+                    <div class="player-status status-waiting">
+                        <div class="status-dot"></div>
+                        <span>WAITING</span>
+                    </div>
+                </div>
+
+                <div class="player-item">
+                    <div class="player-avatar">LW</div>
+                    <div class="player-info">
+                        <div class="player-name">LASER_WOLF</div>
+                        <div class="player-role">Player</div>
+                    </div>
+                    <div class="player-status status-ready">
+                        <div class="status-dot"></div>
+                        <span>READY</span>
+                    </div>
+                </div>
+
+                <div class="player-item">
+                    <div class="player-avatar">VM</div>
+                    <div class="player-info">
+                        <div class="player-name">VOLT_MASTER</div>
+                        <div class="player-role">Player</div>
+                    </div>
+                    <div class="player-status status-waiting">
+                        <div class="status-dot"></div>
+                        <span>WAITING</span>
+                    </div>
+                </div>
+
+                <div class="player-item empty-slot">
+                    <div class="player-avatar">?</div>
+                    <div class="player-info">
+                        <div class="player-name">Waiting for player...</div>
+                        <div class="player-role">Empty Slot</div>
+                    </div>
+                    <div class="player-status">
+                        <span>---</span>
+                    </div>
+                </div>
+
+                <div class="player-item empty-slot">
+                    <div class="player-avatar">?</div>
+                    <div class="player-info">
+                        <div class="player-name">Waiting for player...</div>
+                        <div class="player-role">Empty Slot</div>
+                    </div>
+                    <div class="player-status">
+                        <span>---</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="ready-section">
+            <button class="ready-button not-ready" id="readyButton">
+                🎯 Mark as Ready
+            </button>
+        </div>
+
+        <div class="game-start-section" id="gameStartSection">
+            <div class="start-message">All Players Ready! Starting Game...</div>
+            <div class="countdown" id="countdown">5</div>
+        </div>
+
+        <div class="footer-hint">
+            Game will start when all players are ready<br>
+            Make sure your camera is working properly
+        </div>
+    </div>
+    <!-- Join as spectator -->
     <!-- screen -->
     <!-- screen -->
     <!-- screen -->
