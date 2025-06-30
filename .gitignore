@@ -1,0 +1,4 @@
+/backend/tfjs-object-detection/node_modules
+backend/tfjs-object-detection/package-lock.json
+backend/tfjs-object-detection/package.json
+.vscode/launch.json

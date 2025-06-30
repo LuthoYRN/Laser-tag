@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TF.js Object Detection</title>
+    <link rel="stylesheet" href="Styles.css">
+</head>
+<body>
+    <h1>Object Detection with TensorFlow.js</h1>
+    
+    <div class="camera-container">
+        <video id="webcam" autoplay playsinline></video>
+        <canvas id="canvas"></canvas>
+    </div>
+    
+    <div class="controls">
+        <button id="startButton">Start Detection</button>
+        <button id="stopButton" disabled>Stop Detection</button>
+    </div>
+    
+    <div id="detections"></div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd"></script>
+    <script src="Script.js"></script>
+</body>
+</html>

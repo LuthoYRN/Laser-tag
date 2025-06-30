@@ -1,0 +1,45 @@
+body {
+    font-family: Arial, sans-serif;
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px;
+    text-align: center;
+}
+
+.camera-container {
+    position: relative;
+    margin: 20px auto;
+    width: 100%;
+}
+
+video {
+    display: block; /* Ensure video is visible */
+    transform: scaleX(-1); /* Optional: mirror the video if desired */
+}
+
+canvas {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+.controls {
+    margin: 20px 0;
+}
+
+button {
+    padding: 10px 20px;
+    margin: 0 10px;
+    font-size: 16px;
+    cursor: pointer;
+}
+
+#detections {
+    margin-top: 20px;
+    text-align: left;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    min-height: 100px;
+}
