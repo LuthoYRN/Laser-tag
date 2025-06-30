@@ -13,9 +13,12 @@ let detectionInterval;
 
 // Load the model
 async function loadModel() {
-    console.log('Loading model...');
-    model = await cocoSsd.load();
-    console.log('Model loaded');
+    console.log('Loading shape detection model...');
+    
+    //MobileNet
+    model = await tf.loadLayersModel('https://storage.googleapis.com/tfjs-models/tfjs/mobilenet_v1_0.25_224/model.json');
+    
+    console.log('Shape detection model loaded');
 }
 
 // Start webcam
@@ -62,17 +65,36 @@ async function setupWebcam() {
 async function detectObjects() {
     if (!model || video.readyState !== 4) return;
     
-    // Draw video frame to canvas first
-    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    // Preprocess the image
+    const tensor = tf.browser.fromPixels(video)
+        .resizeNearestNeighbor([224, 224]) // Adjust based on model requirements
+        .toFloat()
+        .expandDims();
     
-    // Then perform detection
-    const predictions = await model.detect(video);
+    // Perform prediction
+    const predictions = await model.predict(tensor).data();
     
-    // Draw detections on top of the video
-    drawDetections(predictions);
+    // Process predictions (this will vary based on your model)
+    const detectedShapes = processShapePredictions(predictions);
     
-    // Display detection info
-    displayDetectionInfo(predictions);
+    // Draw detections
+    drawDetections(detectedShapes);
+    
+    // Clean up
+    tensor.dispose();
+}
+
+function processShapePredictions(predictions) {
+    // This will vary based on your model's output format
+    // Example for a simple model that returns [circleProb, squareProb, triangleProb]
+    const shapeClasses = ['circle', 'square', 'triangle'];
+    const maxIndex = predictions.indexOf(Math.max(...predictions));
+    
+    return [{
+        class: shapeClasses[maxIndex],
+        score: predictions[maxIndex],
+        bbox: [50, 50, 100, 100] // Example bounding box
+    }];
 }
 
 // Draw bounding boxes and labels
