@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Camera App</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Camera App</h1>
+        
+        <div class="camera-section">
+            <video id="videoElement" autoplay muted></video>
+        </div>
+        
+        <div class="controls">
+            <button id="toggleButton">Start Camera</button>
+        </div>
+        
+        <div class="text-display">
+            <h3>Text Display:</h3>
+            <div id="textArea">
+                <p>Camera status and messages will appear here...</p>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
