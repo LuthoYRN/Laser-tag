@@ -9,6 +9,7 @@
   <link rel="stylesheet" href="./css/join_lobby.css" />
   <link rel="stylesheet" href="./css/player_waiting_room.css" />
   <link rel="stylesheet" href="./css/game_session.css" />
+  <link rel="stylesheet" href="./css/leaderboard.css" />
 </head>
 <body>
     <!-- Universal grid -->
@@ -245,7 +246,7 @@
         </div>
     </div>
     <!-- Game session -->
-    <div class="game-container">
+    <div class="game-container hidden">
         <!-- Camera View -->
         <div class="camera-view">
             <div class="camera-placeholder">
@@ -297,10 +298,162 @@
             <div class="status-text" id="statusText">Hunt for treasures and eliminate opponents</div>
         </div>
     </div>
+    <!-- Leaderboard -->
+    <div class="results-container">
+        <div class="header">
+            <h1 class="logo">CV LASER TAG</h1>
+            <p class="subtitle">Battle Results</p>
+        </div>
 
-    <!-- screen -->
-    <!-- screen -->
-    <!-- screen -->
+        <div class="winner-section">
+            <div class="winner-crown">👑</div>
+            <h3 class="winner-title">Champion Emerges!</h3>
+            <div class="winner-name">SHADOW_STRIKER</div>
+            <div class="winner-score">Final Score: 3,450</div>
+        </div>
+
+        <div class="leaderboard-section">
+            <h3 class="leaderboard-title">Final Leaderboard</h3>
+            
+            <div class="player-stats">
+                <div class="player-stat-item winner">
+                    <div class="rank-badge rank-1">1</div>
+                    <div class="player-info">
+                        <div class="player-name winner">SHADOW_STRIKER</div>
+                        <div class="player-details">
+                            <div class="detail-item">
+                                <div class="detail-label">Score</div>
+                                <div class="detail-value">3,450</div>
+                            </div>
+                            <div class="detail-item">
+                                <div class="detail-label">Eliminations</div>
+                                <div class="detail-value">5</div>
+                            </div>
+                            <div class="detail-item">
+                                <div class="detail-label">Survival</div>
+                                <div class="detail-value">12:45</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="player-stat-item you">
+                    <div class="rank-badge rank-2">2</div>
+                    <div class="player-info">
+                        <div class="player-name you">QUANTUM_SNIPER (You)</div>
+                        <div class="player-details">
+                            <div class="detail-item">
+                                <div class="detail-label">Score</div>
+                                <div class="detail-value">2,890</div>
+                            </div>
+                            <div class="detail-item">
+                                <div class="detail-label">Eliminations</div>
+                                <div class="detail-value">4</div>
+                            </div>
+                            <div class="detail-item">
+                                <div class="detail-label">Survival</div>
+                                <div class="detail-value">11:20</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="player-stat-item">
+                    <div class="rank-badge rank-3">3</div>
+                    <div class="player-info">
+                        <div class="player-name">LASER_WOLF</div>
+                        <div class="player-details">
+                            <div class="detail-item">
+                                <div class="detail-label">Score</div>
+                                <div class="detail-value">2,340</div>
+                            </div>
+                            <div class="detail-item">
+                                <div class="detail-label">Eliminations</div>
+                                <div class="detail-value">3</div>
+                            </div>
+                            <div class="detail-item">
+                                <div class="detail-label">Survival</div>
+                                <div class="detail-value">8:15</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="player-stat-item">
+                    <div class="rank-badge rank-other">4</div>
+                    <div class="player-info">
+                        <div class="player-name">VOLT_MASTER</div>
+                        <div class="player-details">
+                            <div class="detail-item">
+                                <div class="detail-label">Score</div>
+                                <div class="detail-value">1,780</div>
+                            </div>
+                            <div class="detail-item">
+                                <div class="detail-label">Eliminations</div>
+                                <div class="detail-value">2</div>
+                            </div>
+                            <div class="detail-item">
+                                <div class="detail-label">Survival</div>
+                                <div class="detail-value">6:30</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="player-stat-item">
+                    <div class="rank-badge rank-other">5</div>
+                    <div class="player-info">
+                        <div class="player-name">CYBER_HUNTER</div>
+                        <div class="player-details">
+                            <div class="detail-item">
+                                <div class="detail-label">Score</div>
+                                <div class="detail-value">1,420</div>
+                            </div>
+                            <div class="detail-item">
+                                <div class="detail-label">Eliminations</div>
+                                <div class="detail-value">1</div>
+                            </div>
+                            <div class="detail-item">
+                                <div class="detail-label">Survival</div>
+                                <div class="detail-value">4:45</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="player-stat-item">
+                    <div class="rank-badge rank-other">6</div>
+                    <div class="player-info">
+                        <div class="player-name">NEON_STRIKER</div>
+                        <div class="player-details">
+                            <div class="detail-item">
+                                <div class="detail-label">Score</div>
+                                <div class="detail-value">980</div>
+                            </div>
+                            <div class="detail-item">
+                                <div class="detail-label">Eliminations</div>
+                                <div class="detail-value">0</div>
+                            </div>
+                            <div class="detail-item">
+                                <div class="detail-label">Survival</div>
+                                <div class="detail-value">2:10</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="actions-section">
+            <button class="action-button play-again-button">
+                🎯 Play Again
+            </button>
+            <button class="action-button lobby-button">
+                🏠 Return to Home
+            </button>
+        </div>
+    </div>
+    <!-- Current lobbies -->
+    <!-- Spectator view -->
     <!-- screen -->
     <!-- screen -->
     <!-- screen -->
