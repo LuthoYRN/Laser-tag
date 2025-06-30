@@ -11,6 +11,7 @@
   <link rel="stylesheet" href="./css/game_session.css" />
   <link rel="stylesheet" href="./css/leaderboard.css" />
   <link rel="stylesheet" href="./css/live_lobbies.css" />
+  <link rel="stylesheet" href="css/spectator_mode.css">
 </head>
 <body>
     <!-- Universal grid -->
@@ -445,16 +446,13 @@
             </div>
         </div>
         <div class="actions-section">
-            <button class="action-button play-again-button">
-                🎯 Play Again
-            </button>
             <button class="action-button lobby-button">
                 🏠 Return to Home
             </button>
         </div>
     </div>
     <!-- Current lobbies -->
-    <div class="container">
+    <div class="container hidden">
         <button class="back-button">←</button>
         
         <div class="header">
@@ -571,11 +569,167 @@
         </div>
     </div>   
     <!-- Spectator view -->
-    <!-- screen -->
-    <!-- screen -->
-    <!-- screen -->
-    <!-- screen -->
-    <!-- screen -->
-    <!-- screen -->
+    <div class="spectator-container hidden">
+        <!-- Top HUD -->
+        <div class="top-hud">
+            <button class="back-button">←</button>
+            
+            <div class="game-info">
+                <div class="lobby-code">B3M7N1</div>
+                <div class="viewer-badge spectator" id="viewerBadge">👁️ SPECTATING</div> <!-- 💀 ELIMINATED -->
+            </div>
+
+            <div class="game-timer" id="gameTimer">
+                <div class="timer-label" id="timerLabel">Time Left</div>
+                <div class="timer-value" id="timerValue">1:30</div>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- Leaderboard View -->
+            <div class="leaderboard-view hidden" id="leaderboardView">
+                <div class="leaderboard" id="leaderboard">
+                    <div class="leaderboard-header" id="leaderboardHeader">
+                        <div class="leaderboard-title" id="leaderboardTitle">Live Leaderboard</div>
+                        <div class="leaderboard-subtitle" id="leaderboardSubtitle">Tap alive players to view camera</div>
+                    </div>
+
+                    <!-- Your Stats (only shown for eliminated players) -->
+                    <div class="your-stats spectator-mode " id="yourStats">
+                        <div class="your-stats-title">💀 Your Final Stats</div>
+                        <div class="your-final-stats">
+                            <div class="final-stat">
+                                <div class="final-stat-label">Final Rank</div>
+                                <div class="final-stat-value">#5</div>
+                            </div>
+                            <div class="final-stat">
+                                <div class="final-stat-label">Score</div>
+                                <div class="final-stat-value">1,780</div>
+                            </div>
+                            <div class="final-stat">
+                                <div class="final-stat-label">Eliminations</div>
+                                <div class="final-stat-value">1</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="leaderboard-list" id="leaderboardList">
+                        <!-- Alive Players -->
+                        <div class="leaderboard-item alive">
+                            <div class="rank-badge rank-1">1</div>
+                            <div class="player-info">
+                                <div class="leaderboard-name alive">SHADOW_STRIKER</div>
+                                <div class="player-details">
+                                    <span>Score: <span class="score-value">2,450</span></span>
+                                    <span>Eliminations: <span class="eliminations-value">3</span></span>
+                                </div>
+                            </div>
+                            <div class="status-indicator status-alive"></div>
+                        </div>
+
+                        <div class="leaderboard-item alive">
+                            <div class="rank-badge rank-2">2</div>
+                            <div class="player-info">
+                                <div class="leaderboard-name alive">QUANTUM_SNIPER</div>
+                                <div class="player-details">
+                                    <span>Score: <span class="score-value">2,120</span></span>
+                                    <span>Eliminations: <span class="eliminations-value">2</span></span>
+                                </div>
+                            </div>
+                            <div class="status-indicator status-alive"></div>
+                        </div>
+
+                        <div class="leaderboard-item alive">
+                            <div class="rank-badge rank-3">3</div>
+                            <div class="player-info">
+                                <div class="leaderboard-name alive">LASER_WOLF</div>
+                                <div class="player-details">
+                                    <span>Score: <span class="score-value">1,890</span></span>
+                                    <span>Eliminations: <span class="eliminations-value">2</span></span>
+                                </div>
+                            </div>
+                            <div class="status-indicator status-alive"></div>
+                        </div>
+
+                        <div class="leaderboard-item alive">
+                            <div class="rank-badge rank-other">4</div>
+                            <div class="player-info">
+                                <div class="leaderboard-name alive">CYBER_HUNTER</div>
+                                <div class="player-details">
+                                    <span>Score: <span class="score-value">1,340</span></span>
+                                    <span>Eliminations: <span class="eliminations-value">1</span></span>
+                                </div>
+                            </div>
+                            <div class="status-indicator status-alive"></div>
+                        </div>
+
+                        <!-- Eliminated Players -->
+                        <div class="leaderboard-item eliminated you">
+                            <div class="rank-badge rank-eliminated">5</div>
+                            <div class="player-info">
+                                <div class="leaderboard-name you">VOLT_MASTER (You)</div>
+                                <div class="player-details">
+                                    <span>Final: <span class="score-value">1,780</span></span>
+                                    <span>Eliminations: <span class="eliminations-value">1</span></span>
+                                </div>
+                            </div>
+                            <div class="status-indicator status-eliminated"></div>
+                        </div>
+
+                        <div class="leaderboard-item eliminated">
+                            <div class="rank-badge rank-eliminated">6</div>
+                            <div class="player-info">
+                                <div class="leaderboard-name eliminated">NEON_STRIKER</div>
+                                <div class="player-details">
+                                    <span>Final: <span class="score-value">980</span></span>
+                                    <span>Eliminations: <span class="eliminations-value">0</span></span>
+                                </div>
+                            </div>
+                            <div class="status-indicator status-eliminated"></div>
+                        </div>
+                    </div>
+
+                    <div class="view-hint" id="viewHint">
+                        📱 Tap on alive players to view their camera
+                    </div>
+                </div>
+            </div>
+
+            <!-- Camera View -->
+            <div class="camera-view active" id="cameraView">
+                <div class="camera-header-bar">
+                    <button class="camera-back-btn">← Back to Leaderboard</button>
+                    <div class="viewing-info">
+                        <div class="viewing-label">Now Viewing</div>
+                        <div class="viewing-player" id="viewingPlayer">SHADOW_STRIKER</div>
+                    </div>
+                </div>
+
+                <div class="camera-container">
+                    <div class="camera-feed">
+                        <div class="camera-player-header">
+                            <div class="camera-player-name" id="cameraPlayerName">SHADOW_STRIKER</div>
+                            <div class="player-health">
+                                <span class="health-label">Health</span>
+                                <div class="health-bar-container">
+                                    <div class="health-bar health-high" id="cameraPlayerHealth"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="camera-display">
+                            📹<br>
+                            <small id="cameraLabel">Player Camera View</small>
+                        </div>
+                        <div class="camera-stats">
+                            <div class="stat-item">Score: <span class="stat-value" id="cameraPlayerScore">2,450</span></div>
+                            <div class="stat-item">Eliminations: <span class="stat-value" id="cameraPlayerElims">3</span></div>
+                            <div class="stat-item">Rank: <span class="stat-value" id="cameraPlayerRank">#1</span></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 </body>
 </html>
