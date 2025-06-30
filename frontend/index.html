@@ -4,8 +4,90 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Laser Tag</title>
-  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="./css/home.css" />
+  <link rel="stylesheet" href="./css/create_lobby.css" />
 </head>
 <body>
+    <!-- Universal grid -->
+    <div class="cyber-grid"></div>
+    <!-- Home / Lobby screen -->
+    <div class="container hidden">
+        <div class="header">
+            <h1 class="logo">CV LASER TAG</h1>
+            <p class="subtitle">Treasure Hunt Arena</p>
+        </div>
+
+        <div class="main-content">
+            <div class="game-modes">
+                <button class="mode-button create-mode">
+                    🎯 Create Lobby
+                </button>
+                <button class="mode-button">
+                    🔍 Join Lobby
+                </button>
+            </div>
+        </div>
+
+        <div class="footer">
+            <p>Ensure camera permissions are enabled</p>
+        </div>
+    </div> 
+    <!-- Create Lobby -->
+    <div class="container">
+        <button class="back-button" onclick="goBack()">←</button>
+        
+        <div class="header">
+            <h1 class="logo">CV LASER TAG</h1>
+            <p class="subtitle">Treasure Hunt Arena</p>
+        </div>
+
+        <h2 class="create-title">Create Lobby</h2>
+
+        <div class="lobby-code-section">
+            <div class="code-label">Lobby Code</div>
+            <div class="lobby-code" id="lobbyCode">A7X9K2</div>
+            <div class="code-hint">Share this code with other players</div>
+        </div>
+
+        <div class="settings-section">
+            <div class="setting-group">
+                <label class="setting-label">Max Players</label>
+                <div class="setting-options">
+                    <button class="option-button active">4</button>
+                    <button class="option-button">6</button>
+                    <button class="option-button">8</button>
+                </div>
+            </div>
+
+            <div class="setting-group">
+                <label class="setting-label">Game Duration</label>
+                <div class="slider-container">
+                    <input type="range" min="5" max="30" value="15" class="slider" id="durationSlider">
+                    <span class="slider-value" id="durationValue">15 min</span>
+                </div>
+            </div>
+        </div>
+
+        <button class="create-button">
+            🎯 Create Game Arena
+        </button>
+
+        <div class="footer-hint">
+            Players can join using the lobby code<br>
+            Game will start when all players are ready
+        </div>
+    </div>
+    <!-- screen -->
+    <!-- screen -->
+    <!-- screen -->
+    <!-- screen -->
+    <!-- screen -->
+    <!-- screen -->
+    <!-- screen -->
+    <!-- screen -->
+    <!-- screen -->
+    <!-- screen -->
+    <!-- screen -->
+    <!-- screen -->
 </body>
 </html>
