@@ -1,0 +1,381 @@
+.game-container {
+    position: relative;
+    width: 100%;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Camera View */
+.camera-view {
+    flex: 1;
+    position: relative;
+    background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 50%, #16213e 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+.camera-placeholder {
+    width: 100%;
+    height: 100%;
+    background: radial-gradient(circle at center, rgba(0, 255, 255, 0.1) 0%, rgba(0, 0, 0, 0.8) 70%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    color: #00ffff;
+    text-align: center;
+    border: 2px dashed rgba(0, 255, 255, 0.3);
+    margin: 10px;
+    border-radius: 10px;
+}
+
+/* Crosshair */
+.crosshair {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 40px;
+    height: 40px;
+    pointer-events: none;
+    z-index: 10;
+}
+
+.crosshair::before,
+.crosshair::after {
+    content: '';
+    position: absolute;
+    background: #ff0000;
+    box-shadow: 0 0 10px #ff0000;
+}
+
+.crosshair::before {
+    top: 50%;
+    left: 18px;
+    width: 4px;
+    height: 4px;
+    transform: translateY(-50%);
+}
+
+.crosshair::after {
+    left: 50%;
+    top: 18px;
+    width: 4px;
+    height: 4px;
+    transform: translateX(-50%);
+}
+
+/* Top HUD */
+.top-hud {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    padding: 15px;
+    background: linear-gradient(180deg, rgba(0, 0, 0, 0.8) 0%, transparent 100%);
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 15px;
+    align-items: flex-start;
+    z-index: 20;
+}
+
+.timer-section {
+    justify-self: start;
+    text-align: center;
+    background: rgba(0, 0, 0, 0.7);
+    border: 2px solid #ffff00;
+    border-radius: 10px;
+    padding: 8px 15px;
+    backdrop-filter: blur(10px);
+}
+
+.players-section {
+    justify-self: center;
+    text-align: center;
+    background: rgba(0, 0, 0, 0.7);
+    border: 2px solid #ff00ff;
+    border-radius: 10px;
+    padding: 8px 15px;
+    backdrop-filter: blur(10px);
+}
+
+.score-section {
+    justify-self: end;
+    text-align: center;
+    background: rgba(0, 0, 0, 0.7);
+    border: 2px solid #00ff00;
+    border-radius: 10px;
+    padding: 8px 15px;
+    backdrop-filter: blur(10px);
+}
+
+.timer-label {
+    font-size: 0.7rem;
+    color: #ffff00;
+    text-transform: uppercase;
+    margin-bottom: 2px;
+}
+
+.timer-value {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: #ffffff;
+    font-family: 'Courier New', monospace;
+    text-shadow: 0 0 10px #ffff00;
+}
+
+.players-label {
+    font-size: 0.7rem;
+    color: #ff00ff;
+    text-transform: uppercase;
+    margin-bottom: 2px;
+}
+
+.players-value {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: #ffffff;
+    font-family: 'Courier New', monospace;
+    text-shadow: 0 0 10px #ff00ff;
+}
+.score-label {
+    font-size: 0.7rem;
+    color: #00ff00;
+    text-transform: uppercase;
+    margin-bottom: 2px;
+}
+
+.score-value {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: #ffffff;
+    font-family: 'Courier New', monospace;
+    text-shadow: 0 0 10px #00ff00;
+}
+
+/* Bottom HUD */
+.bottom-hud {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 15px;
+    background: linear-gradient(0deg, rgba(0, 0, 0, 0.8) 0%, transparent 100%);
+    display: flex;
+    justify-content: center;
+    align-items: flex-end;
+    z-index: 20;
+}
+
+.health-section {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+}
+
+.health-label {
+    font-size: 0.8rem;
+    color: #ff0000;
+    text-transform: uppercase;
+    font-weight: bold;
+}
+
+.health-bar-container {
+    width: 200px;
+    height: 20px;
+    background: rgba(0, 0, 0, 0.7);
+    border: 2px solid #ff0000;
+    border-radius: 12px;
+    overflow: hidden;
+    position: relative;
+}
+
+.health-bar {
+    height: 100%;
+    background: linear-gradient(90deg, #ff0000 0%, #ff6600 50%, #00ff00 100%);
+    width: 100%;
+    transition: width 0.3s ease;
+    box-shadow: 0 0 15px rgba(255, 0, 0, 0.5);
+}
+
+.health-bar.low {
+    width: 30%;
+    background: #ff0000;
+    animation: healthPulse 1s infinite;
+}
+
+.health-bar.medium {
+    width: 60%;
+    background: linear-gradient(90deg, #ff6600 0%, #ffff00 100%);
+}
+
+.health-bar.high {
+    width: 100%;
+    background: linear-gradient(90deg, #ffff00 0%, #00ff00 100%);
+}
+
+@keyframes healthPulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+
+.health-text {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 0.7rem;
+    font-weight: bold;
+    color: #ffffff;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+}
+
+/* Shooting Indicator */
+.shoot-indicator {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 100px;
+    height: 100px;
+    border: 3px solid #ff0000;
+    border-radius: 50%;
+    opacity: 0;
+    animation: shootPulse 0.3s ease-out;
+    pointer-events: none;
+    z-index: 15;
+}
+
+.shoot-indicator.active {
+    opacity: 1;
+}
+
+@keyframes shootPulse {
+    0% {
+        transform: translate(-50%, -50%) scale(0.5);
+        opacity: 1;
+    }
+    100% {
+        transform: translate(-50%, -50%) scale(1.5);
+        opacity: 0;
+    }
+}
+
+/* Hit Indicator */
+.hit-indicator {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(255, 0, 0, 0.3);
+    opacity: 0;
+    pointer-events: none;
+    z-index: 25;
+}
+
+.hit-indicator.active {
+    opacity: 1;
+    animation: hitFlash 0.5s ease-out;
+}
+
+@keyframes hitFlash {
+    0%, 100% { opacity: 0; }
+    50% { opacity: 0.6; }
+}
+
+/* Game Status Messages */
+.status-message {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(0, 0, 0, 0.9);
+    border: 2px solid #00ffff;
+    border-radius: 15px;
+    padding: 20px 30px;
+    text-align: center;
+    z-index: 30;
+    display: none;
+}
+
+.status-message.show {
+    display: block;
+    animation: messageSlide 0.5s ease-out;
+}
+
+@keyframes messageSlide {
+    0% {
+        transform: translate(-50%, -50%) scale(0.8);
+        opacity: 0;
+    }
+    100% {
+        transform: translate(-50%, -50%) scale(1);
+        opacity: 1;
+    }
+}
+
+.status-title {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: #00ffff;
+    margin-bottom: 10px;
+}
+
+.status-text {
+    font-size: 1rem;
+    color: #ffffff;
+}
+
+/* Mobile optimizations */
+@media (max-width: 768px) {
+    .top-hud {
+        padding: 10px;
+    }
+    
+    .timer-section, .score-section, .players-section {
+        padding: 6px 12px;
+    }
+    
+    .timer-value, .score-value, .players-value {
+        font-size: 1.2rem;
+    }
+    
+    .health-bar-container {
+        width: 150px;
+        height: 18px;
+    }
+    
+    .crosshair {
+        width: 30px;
+        height: 30px;
+    }
+}
+
+@media (max-width: 480px) {
+    .top-hud {
+        padding: 8px;
+    }
+    
+    .timer-section, .score-section, .players-section {
+        padding: 5px 10px;
+    }
+    
+    .timer-value, .score-value, .players-value {
+        font-size: 1rem;
+    }
+    
+    .health-bar-container {
+        width: 120px;
+        height: 16px;
+    }
+    
+    .bottom-hud {
+        padding: 10px;
+    }
+}
