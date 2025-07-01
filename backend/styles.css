@@ -22,6 +22,7 @@ h1 {
 .camera-section {
     text-align: center;
     margin-bottom: 30px;
+    position: relative; /* For canvas overlay */
 }
 
 #videoElement {
@@ -33,12 +34,27 @@ h1 {
     background-color: #000;
 }
 
+#canvas {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 100%;
+    max-width: 500px;
+    height: 300px;
+    pointer-events: none; /* Allow clicks to pass through to video */
+}
+
 .controls {
     margin: 20px 0;
     text-align: center;
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+    flex-wrap: wrap;
 }
 
-#toggleButton {
+#toggleButton, #detectButton {
     background-color: #007bff;
     color: white;
     border: none;
@@ -47,9 +63,10 @@ h1 {
     border-radius: 6px;
     cursor: pointer;
     transition: background-color 0.3s;
+    min-width: 120px;
 }
 
-#toggleButton:hover {
+#toggleButton:hover, #detectButton:hover {
     background-color: #0056b3;
 }
 
@@ -59,6 +76,50 @@ h1 {
 
 #toggleButton.stop:hover {
     background-color: #c82333;
+}
+
+#detectButton:disabled {
+    background-color: #6c757d;
+    cursor: not-allowed;
+}
+
+#detectButton.detecting {
+    background-color: #28a745;
+}
+
+#detectButton.detecting:hover {
+    background-color: #218838;
+}
+
+.loading-indicator {
+    text-align: center;
+    margin: 20px 0;
+}
+
+#loadingText {
+    margin-bottom: 10px;
+    color: #666;
+    font-weight: bold;
+}
+
+#progressBar {
+    width: 100%;
+    height: 10px;
+    background-color: #e9ecef;
+    border-radius: 5px;
+    overflow: hidden;
+    margin-bottom: 20px;
+}
+
+#progressFill {
+    height: 100%;
+    background-color: #007bff;
+    width: 0%;
+    transition: width 0.3s ease;
+}
+
+.loading-indicator.hidden {
+    display: none;
 }
 
 .text-display {
@@ -86,6 +147,63 @@ h1 {
     color: #666;
 }
 
+.objects-display {
+    margin-top: 30px;
+}
+
+.objects-display h3 {
+    color: #333;
+    margin-bottom: 15px;
+}
+
+#objectsArea {
+    background-color: #e8f5e8;
+    border: 1px solid #c3e6c3;
+    border-radius: 6px;
+    padding: 15px;
+    min-height: 120px;
+    font-family: 'Courier New', monospace;
+    white-space: pre-wrap;
+    overflow-wrap: break-word;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+#objectsArea p {
+    margin: 0;
+    color: #666;
+}
+
+.object-item {
+    background-color: #d4edda;
+    border: 1px solid #c3e6cb;
+    border-radius: 4px;
+    padding: 8px 12px;
+    margin: 5px 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    color: #155724;
+}
+
+.confidence {
+    font-size: 0.9em;
+    color: #6c757d;
+    font-weight: bold;
+}
+
+.high-confidence {
+    color: #28a745;
+}
+
+.medium-confidence {
+    color: #ffc107;
+}
+
+.low-confidence {
+    color: #dc3545;
+}
+
 /* Responsive design */
 @media (max-width: 600px) {
     body {
@@ -96,7 +214,7 @@ h1 {
         padding: 15px;
     }
     
-    #videoElement {
+    #videoElement, #canvas {
         height: 200px;
     }
 }
