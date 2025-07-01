@@ -823,18 +823,10 @@ function startQRScanner() {
 }
 
 function startMainGameCamera() {
-    const mainQrReader = document.getElementById('qrReader');
     const placeholder = document.getElementById('qrCameraPlaceholder');
     
-    if (!mainQrReader) return;
-    
-    // Hide placeholder
-    if (placeholder) {
-        placeholder.style.display = 'none';
-    }
-    
-    // Initialize main game QR scanner - SIMPLE APPROACH
-    const mainScanner = new Html5Qrcode("qrReader");
+   // Initialize main game QR scanner - SIMPLE APPROACH
+    const mainScanner = new Html5Qrcode("qrCameraPlaceholder");
     
     const config = {
         fps: 10,
@@ -851,13 +843,13 @@ function startMainGameCamera() {
             // Silently handle scanning errors
         }
     ).then(() => {
-        mainQrReader.style.display = 'block';
+        mainScanner.style.display = 'block';
         console.log('Main game camera started');
     }).catch(err => {
         console.error("Main game camera failed to start", err);
-        if (placeholder) {
-            placeholder.style.display = 'flex';
-            placeholder.innerHTML = '❌<br>Camera Access Required';
+        if (mainScanner) {
+            mainScanner.style.display = 'flex';
+            mainScanner.innerHTML = '❌<br>Camera Access Required';
         }
     });
 }
