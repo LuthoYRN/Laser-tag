@@ -1,0 +1,19 @@
+body {
+  font-family: Arial, sans-serif;
+  text-align: center;
+  padding: 20px;
+  background-color: #f0f8ff;
+}
+
+h1 {
+  color: #0077cc;
+}
+
+#scan-results {
+  margin-top: 20px;
+}
+
+ul {
+  list-style: none;
+  padding: 0;
+}
