@@ -25,6 +25,11 @@ const screens = {
 
 // Utility Functions
 function showScreen(screenName) {
+    // Clean up live lobbies updates when leaving that screen
+    if (gameState.currentScreen === 'liveLobbies' && screenName !== 'liveLobbies') {
+        stopLiveLobbiesUpdates();
+    }
+    
     // Hide all screens
     Object.values(screens).forEach(screen => {
         if (screen) screen.classList.add('hidden');
@@ -35,6 +40,12 @@ function showScreen(screenName) {
         screens[screenName].classList.remove('hidden');
         gameState.currentScreen = screenName;
         console.log(`Switched to screen: ${screenName}`);
+        
+        // Start live lobbies updates when entering that screen
+        if (screenName === 'liveLobbies') {
+            loadActiveLiveLobbies();
+            startLiveLobbiesUpdates();
+        }
     }
 }
 
@@ -61,6 +72,11 @@ function formatTime(seconds) {
 
 // Navigation Functions
 function goBack() {
+    // Clean up live lobbies updates when leaving
+    if (gameState.currentScreen === 'liveLobbies') {
+        stopLiveLobbiesUpdates();
+    }
+    
     switch(gameState.currentScreen) {
         case 'createLobby':
         case 'joinLobby':
@@ -73,6 +89,11 @@ function goBack() {
             break;
         case 'spectatorMode':
             showScreen('liveLobbies');
+            // Restart live lobbies updates when returning
+            if (gameState.currentScreen === 'liveLobbies') {
+                loadActiveLiveLobbies();
+                startLiveLobbiesUpdates();
+            }
             break;
         case 'results':
             showScreen('home');
@@ -127,11 +148,27 @@ socket.on('spectator-joined', (data) => {
 socket.on('game-starting', () => {
     console.log('Game starting countdown...');
     showGameStartCountdown();
+    setReadyButtonState('countdown');
 });
 
 socket.on('countdown', (count) => {
     console.log('Countdown:', count);
     updateCountdown(count);
+});
+
+socket.on('countdown-canceled', () => {
+    console.log('Countdown canceled');
+    
+    hideGameStartCountdown();
+    
+    if (gameState.lobbyData) {
+        const currentPlayer = gameState.lobbyData.players.find(p => p.id === socket.id);
+        if (currentPlayer) {
+            updateReadyButton(currentPlayer.isReady);
+        }
+    }   
+    setReadyButtonState('normal');
+    showNotification('Countdown canceled - player not ready', 'info');
 });
 
 socket.on('game-started', (gameData) => {
@@ -203,7 +240,7 @@ function initializeHome() {
 function initializeCreateLobby() {
     const createButton = document.querySelector('.create-button');
     const backButton = document.querySelector('.container.create .back-button');
-    const maxPlayersButtons = document.querySelectorAll('.container.create .option-button');
+    const numPlayersButtons = document.querySelectorAll('.container.create .option-button');
     const durationSlider = document.getElementById('durationSlider');
     const durationValue = document.getElementById('durationValue');
     
@@ -212,10 +249,10 @@ function initializeCreateLobby() {
         backButton.addEventListener('click', goBack);
     }
     
-    // Max players selection
-    maxPlayersButtons.forEach(button => {
+    // Number of players selection
+    numPlayersButtons.forEach(button => {
         button.addEventListener('click', () => {
-            maxPlayersButtons.forEach(b => b.classList.remove('active'));
+            numPlayersButtons.forEach(b => b.classList.remove('active'));
             button.classList.add('active');
         });
     });
@@ -238,7 +275,7 @@ function createLobby() {
     const durationSlider = document.getElementById('durationSlider');
     
     const settings = {
-        maxPlayers: parseInt(activeMaxButton?.textContent || '4'),
+        numPlayers: parseInt(activeMaxButton?.textContent || '4'),
         duration: parseInt(durationSlider?.value || '15'),
         playerName: 'Host'
     };
@@ -312,22 +349,120 @@ function joinLobby() {
 }
 
 // Live Lobbies Screen
+let liveLobbiesInterval = null;
+let liveGameTimers = new Map(); // Store timer data for each lobby
+
 function initializeLiveLobbies() {
     const backButton = document.querySelector('.container.live .back-button');
-    const refreshButton = document.querySelector('.refresh-button');
+     const refreshButton = document.querySelector('.refresh-button');
+    const container = document.getElementById('gamesContainer');
+    
+    // Immediately clear dummy data and show loading state
+    if (container) {
+        container.innerHTML = `
+            <div class="loading-state">
+                <div class="loading-spinner"></div>
+                <div class="loading-text">Loading live games...</div>
+            </div>
+        `;
+    }
     
     if (backButton) {
         backButton.addEventListener('click', goBack);
     }
     
-    if (refreshButton) {
+      if (refreshButton) {
         refreshButton.addEventListener('click', loadActiveLiveLobbies);
     }
+    // Start real-time updates
+    loadActiveLiveLobbies();
+    startLiveLobbiesUpdates();
+}
+
+function startLiveLobbiesUpdates() {
+    // Clear any existing interval
+    if (liveLobbiesInterval) {
+        clearInterval(liveLobbiesInterval);
+    }
+    
+    // Update lobby data every 10 seconds
+    liveLobbiesInterval = setInterval(() => {
+        if (gameState.currentScreen === 'liveLobbies') {
+            loadActiveLiveLobbies();
+        } else {
+            // Stop updates if user left the screen
+            stopLiveLobbiesUpdates();
+        }
+    }, 10000);
+    
+    // Update timers every second for smooth countdown
+    setInterval(() => {
+        if (gameState.currentScreen === 'liveLobbies') {
+            updateLiveGameTimers();
+        }
+    }, 1000);
+}
+
+function stopLiveLobbiesUpdates() {
+    if (liveLobbiesInterval) {
+        clearInterval(liveLobbiesInterval);
+        liveLobbiesInterval = null;
+    }
+    liveGameTimers.clear();
 }
 
 function loadActiveLiveLobbies() {
+    const container = document.getElementById('gamesContainer');
+    
+    // Only show loading if container is empty or has loading state
+    if (container && (!container.children.length || container.querySelector('.loading-state'))) {
+        container.innerHTML = `
+            <div class="loading-state">
+                <div class="loading-spinner"></div>
+                <div class="loading-text">Loading live games...</div>
+            </div>
+        `;
+    }
+    
     socket.emit('get-active-lobbies', (lobbies) => {
+        // Store timer data for real-time updates
+        liveGameTimers.clear();
+        lobbies.forEach(lobby => {
+            liveGameTimers.set(lobby.code, {
+                timeLeft: lobby.timeLeft,
+                lastUpdate: Date.now()
+            });
+        });
+        
         displayActiveLiveLobbies(lobbies);
+    });
+}
+
+function updateLiveGameTimers() {
+    const now = Date.now();
+    
+    liveGameTimers.forEach((timerData, lobbyCode) => {
+        const timeElement = document.querySelector(`[data-lobby-code="${lobbyCode}"] .time-value`);
+        if (timeElement) {
+            // Calculate time elapsed since last server update
+            const elapsed = now - timerData.lastUpdate;
+            const currentTimeLeft = Math.max(0, timerData.timeLeft - elapsed);
+            
+            // Update display
+            timeElement.textContent = formatTime(Math.floor(currentTimeLeft / 1000));
+            
+            // Remove game if time expired
+            if (currentTimeLeft <= 0) {
+                const gameCard = document.querySelector(`[data-lobby-code="${lobbyCode}"]`);
+                if (gameCard) {
+                    gameCard.style.opacity = '0.5';
+                    gameCard.style.pointerEvents = 'none';
+                    setTimeout(() => {
+                        loadActiveLiveLobbies(); // Refresh to get updated data
+                    }, 2000);
+                }
+            }
+        }
     });
 }
 
@@ -364,7 +499,7 @@ function displayActiveLiveLobbies(lobbies) {
             <div class="game-info">
                 <div class="info-item">
                     <div class="info-label">Players Left</div>
-                    <div class="info-value players-value">${lobby.playersLeft}/${lobby.maxPlayers}</div>
+                    <div class="info-value players-value">${lobby.playersLeft}/${lobby.numPlayers}</div>
                 </div>
                 <div class="info-item">
                     <div class="info-label">Time Left</div>
@@ -407,12 +542,19 @@ function updateWaitingRoom(lobbyState) {
         durationElement.textContent = `${lobbyState.settings.duration} min`;
     }
     
-    const maxPlayersElement = document.querySelector('.container.wait .info-item:last-child .info-value');
-    if (maxPlayersElement) {
-        maxPlayersElement.textContent = lobbyState.settings.maxPlayers;
+    const numPlayersElement = document.querySelector('.container.wait .info-item:last-child .info-value');
+    if (numPlayersElement) {
+        numPlayersElement.textContent = lobbyState.settings.numPlayers;
     }
     
     updatePlayerList(lobbyState);
+    
+    // Update ready button state based on current player's ready status
+    const currentPlayer = lobbyState.players.find(p => p.id === socket.id);
+    if (currentPlayer && lobbyState.status === 'waiting') {
+        updateReadyButton(currentPlayer.isReady);
+        setReadyButtonState('normal');
+    }
 }
 
 function updatePlayerList(lobbyState = gameState.lobbyData) {
@@ -422,7 +564,7 @@ function updatePlayerList(lobbyState = gameState.lobbyData) {
     const playersCount = document.querySelector('.players-count');
     
     if (playersCount) {
-        playersCount.textContent = `${lobbyState.players.length} of ${lobbyState.settings.maxPlayers} Players Connected`;
+        playersCount.textContent = `${lobbyState.players.length} of ${lobbyState.settings.numPlayers} Players Connected`;
     }
     
     if (!playerList) return;
@@ -449,7 +591,7 @@ function updatePlayerList(lobbyState = gameState.lobbyData) {
     });
     
     // Add empty slots
-    const emptySlots = lobbyState.settings.maxPlayers - lobbyState.players.length;
+    const emptySlots = lobbyState.settings.numPlayers - lobbyState.players.length;
     for (let i = 0; i < emptySlots; i++) {
         const emptyHtml = `
             <div class="player-item empty-slot">
@@ -489,12 +631,23 @@ function toggleReady() {
     const readyButton = document.getElementById('readyButton');
     if (!readyButton) return;
     
+    // Don't allow toggling if button is disabled or game is starting
+    if (readyButton.disabled) return;
+    
     const isReady = readyButton.classList.contains('ready');
     const newReadyState = !isReady;
     
     socket.emit('player-ready', newReadyState);
     
-    if (newReadyState) {
+    // Update button immediately for better UX
+    updateReadyButton(newReadyState);
+}
+
+function updateReadyButton(isReady) {
+    const readyButton = document.getElementById('readyButton');
+    if (!readyButton) return;
+    
+    if (isReady) {
         readyButton.textContent = '⏳ Cancel Ready';
         readyButton.classList.remove('not-ready');
         readyButton.classList.add('ready');
@@ -505,16 +658,58 @@ function toggleReady() {
     }
 }
 
+function setReadyButtonState(state) {
+    const readyButton = document.getElementById('readyButton');
+    if (!readyButton) return;
+    
+    switch(state) {
+        case 'countdown':
+            readyButton.textContent = '⏸️ Cancel Countdown';
+            readyButton.disabled = false; // Allow canceling countdown
+            break;
+        case 'normal':
+            readyButton.disabled = false;
+            // Button text will be updated by lobby state
+            break;
+        case 'disabled':
+            readyButton.disabled = true;
+            break;
+    }
+}
+
 function showGameStartCountdown() {
     const countdownSection = document.getElementById('gameStartSection');
+    const countdownElement = document.getElementById('countdown');
+    
     if (countdownSection) {
         countdownSection.classList.add('show');
+    }
+    
+    // Reset countdown display to 5 when showing
+    if (countdownElement) {
+        countdownElement.textContent = '5';
+    }
+}
+
+function hideGameStartCountdown() {
+    const countdownSection = document.getElementById('gameStartSection');
+    if (countdownSection) {
+        countdownSection.classList.remove('show');
+        
+        // Clear the countdown number to prevent showing stale data
+        const countdownElement = document.getElementById('countdown');
+        if (countdownElement) {
+            countdownElement.textContent = '5'; // Reset to default
+        }
     }
 }
 
 function updateCountdown(count) {
     const countdownElement = document.getElementById('countdown');
-    if (countdownElement) {
+    const countdownSection = document.getElementById('gameStartSection');
+    
+    // Only update if countdown section is visible
+    if (countdownElement && countdownSection && countdownSection.classList.contains('show')) {
         countdownElement.textContent = count;
     }
 }
@@ -534,7 +729,7 @@ function updateGameTimer(timeLeft, playersAlive) {
     }
     
     if (playersElement && gameState.lobbyData) {
-        playersElement.textContent = `${playersAlive}/${gameState.lobbyData.settings.maxPlayers}`;
+        playersElement.textContent = `${playersAlive}/${gameState.lobbyData.settings.numPlayers}`;
     }
 }
 
@@ -577,13 +772,6 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Start on home screen
     showScreen('home');
-    
-    // Load active lobbies every 30 seconds if on live lobbies screen
-    setInterval(() => {
-        if (gameState.currentScreen === 'liveLobbies') {
-            loadActiveLiveLobbies();
-        }
-    }, 30000);
 });
 
 // Global functions for HTML onclick handlers
