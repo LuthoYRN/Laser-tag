@@ -6,14 +6,18 @@
   <title>Laser Tag</title>
   <link rel="stylesheet" href="./css/home.css" />
   <link rel="stylesheet" href="./css/create_lobby.css" />
+  <link rel="stylesheet" href="css/live_lobbies.css">
   <link rel="stylesheet" href="./css/join_lobby.css" />
   <link rel="stylesheet" href="./css/player_waiting_room.css" />
+  <link rel="stylesheet" href="./css/game_session.css" />
+  <link rel="stylesheet" href="./css/leaderboard.css" />
+  <link rel="stylesheet" href="css/spectator_mode.css">
 </head>
 <body>
     <!-- Universal grid -->
     <div class="cyber-grid"></div>
     <!-- Home / Lobby screen -->
-    <div class="container hidden">
+    <div class="container">
         <div class="header">
             <h1 class="logo">CV LASER TAG</h1>
             <p class="subtitle">Treasure Hunt Arena</p>
@@ -27,6 +31,9 @@
                 <button class="mode-button">
                     🔍 Join Lobby
                 </button>
+                <button class="mode-button spectate-mode">
+                    👁️ Spectetate
+                </button>
             </div>
         </div>
 
@@ -35,7 +42,7 @@
         </div>
     </div> 
     <!-- Create Lobby -->
-    <div class="container hidden">
+    <div class="container create">
         <button class="back-button" onclick="goBack()">←</button>
         
         <div class="header">
@@ -80,7 +87,7 @@
         </div>
     </div>
     <!-- Join Lobby -->
-    <div class="container hidden">
+    <div class="container join">
         <button class="back-button">←</button>
         
         <div class="header">
@@ -102,31 +109,6 @@
             <div class="input-hint">Enter the 6-character code from lobby host</div>
         </div>
 
-        <div class="join-type-section">
-            <label class="section-label">Select Join Type</label>
-            <div class="join-options">
-                <div class="join-option player-option">
-                    <div class="option-header">
-                        <div class="option-icon">🎯</div>
-                        <div class="option-title">Join as Player</div>
-                    </div>
-                    <div class="option-description">
-                        Participate in the game with full combat abilities and scoring
-                    </div>
-                </div>
-                
-                <div class="join-option spectator-option">
-                    <div class="option-header">
-                        <div class="option-icon">👁️</div>
-                        <div class="option-title">Join as Spectator</div>
-                    </div>
-                    <div class="option-description">
-                        Watch the game live with real-time leaderboard and player stats
-                    </div>
-                </div>
-            </div>
-        </div>
-
         <div class="status-section" id="statusSection">
             <div class="status-indicator">
                 <div class="status-dot"></div>
@@ -144,7 +126,7 @@
         </div>
     </div>
     <!-- Player waiting room -->
-   <div class="container">
+   <div class="container wait">
         <button class="leave-button">← Leave</button>
         
         <div class="header">
@@ -265,15 +247,515 @@
             Make sure your camera is working properly
         </div>
     </div>
-    <!-- Join as spectator -->
-    <!-- screen -->
-    <!-- screen -->
-    <!-- screen -->
-    <!-- screen -->
-    <!-- screen -->
-    <!-- screen -->
-    <!-- screen -->
-    <!-- screen -->
-    <!-- screen -->
+    <!-- Game session -->
+    <div class="game-container">
+        <!-- Camera View -->
+        <div class="camera-view">
+            <div class="camera-placeholder">
+                📷<br>
+            </div>
+            
+            <!-- Crosshair -->
+            <div class="crosshair"></div>
+            
+            <!-- Shooting Indicator -->
+            <div class="shoot-indicator" id="shootIndicator"></div>
+        </div>
+
+        <!-- Top HUD -->
+        <div class="top-hud">
+            <div class="timer-section">
+                <div class="timer-label">Time Left</div>
+                <div class="timer-value" id="gameTimer">14:32</div>
+            </div>
+
+            <div class="players-section">
+                <div class="players-label">Players Left</div>
+                <div class="players-value" id="playersLeft">4/6</div>
+            </div>
+
+            <div class="score-section">
+                <div class="score-label">Score</div>
+                <div class="score-value" id="playerScore">1,250</div>
+            </div>
+        </div>
+
+        <!-- Bottom HUD -->
+       <div class="bottom-hud">
+            <div class="health-section">
+                <div class="health-label">Health</div>
+                <div class="health-bar-container">
+                    <div class="health-bar high" id="healthBar"></div>
+                    <div class="health-text" id="healthText">100%</div>
+                </div>
+            </div>
+
+            <!-- Forfeit Button directly below health -->
+            <button class="forfeit-button" onclick="showForfeitConfirm()">
+                <span class="forfeit-icon">🏳️</span>
+                <span class="forfeit-text">Forfeit</span>
+            </button>
+        </div>
+
+        <!-- Hit Indicator -->
+        <div class="hit-indicator" id="hitIndicator"></div>
+
+        <!-- Status Messages -->
+        <div class="status-message" id="statusMessage">
+            <div class="status-title" id="statusTitle">Game Started!</div>
+            <div class="status-text" id="statusText">Hunt for treasures and eliminate opponents</div>
+        </div>
+    </div>
+      <!-- Forfeit Confirmation Modal -->
+    <div class="forfeit-modal" id="forfeitModal">
+        <div class="forfeit-dialog">
+            <div class="forfeit-title">⚠️ Forfeit Game?</div>
+            <div class="forfeit-message">
+                Are you sure you want to forfeit this game?
+            </div>
+            <div class="forfeit-warning">
+                You will be eliminated and cannot rejoin this match.
+            </div>
+            <div class="forfeit-buttons">
+                <button class="forfeit-confirm-btn">
+                    Yes, Forfeit
+                </button>
+                <button class="forfeit-cancel-btn">
+                    Cancel
+                </button>
+            </div>
+        </div>
+    </div>
+    <!-- Leaderboard -->
+    <div class="results-container">
+        <div class="header">
+            <h1 class="logo">CV LASER TAG</h1>
+            <p class="subtitle">Battle Results</p>
+        </div>
+
+        <div class="winner-section">
+            <div class="winner-crown">👑</div>
+            <h3 class="winner-title">Champion Emerges!</h3>
+            <div class="winner-name">SHADOW_STRIKER</div>
+            <div class="winner-score">Final Score: 3,450</div>
+        </div>
+
+        <div class="leaderboard-section">
+            <h3 class="leaderboard-title">Final Leaderboard</h3>
+            
+            <div class="player-stats">
+                <div class="player-stat-item winner">
+                    <div class="rank-badge rank-1">1</div>
+                    <div class="player-info">
+                        <div class="player-name winner">SHADOW_STRIKER</div>
+                        <div class="player-details">
+                            <div class="detail-item">
+                                <div class="detail-label">Score</div>
+                                <div class="detail-value">3,450</div>
+                            </div>
+                            <div class="detail-item">
+                                <div class="detail-label">Eliminations</div>
+                                <div class="detail-value">5</div>
+                            </div>
+                            <div class="detail-item">
+                                <div class="detail-label">Survival</div>
+                                <div class="detail-value">12:45</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="player-stat-item you">
+                    <div class="rank-badge rank-2">2</div>
+                    <div class="player-info">
+                        <div class="player-name you">QUANTUM_SNIPER (You)</div>
+                        <div class="player-details">
+                            <div class="detail-item">
+                                <div class="detail-label">Score</div>
+                                <div class="detail-value">2,890</div>
+                            </div>
+                            <div class="detail-item">
+                                <div class="detail-label">Eliminations</div>
+                                <div class="detail-value">4</div>
+                            </div>
+                            <div class="detail-item">
+                                <div class="detail-label">Survival</div>
+                                <div class="detail-value">11:20</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="player-stat-item">
+                    <div class="rank-badge rank-3">3</div>
+                    <div class="player-info">
+                        <div class="player-name">LASER_WOLF</div>
+                        <div class="player-details">
+                            <div class="detail-item">
+                                <div class="detail-label">Score</div>
+                                <div class="detail-value">2,340</div>
+                            </div>
+                            <div class="detail-item">
+                                <div class="detail-label">Eliminations</div>
+                                <div class="detail-value">3</div>
+                            </div>
+                            <div class="detail-item">
+                                <div class="detail-label">Survival</div>
+                                <div class="detail-value">8:15</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="player-stat-item">
+                    <div class="rank-badge rank-other">4</div>
+                    <div class="player-info">
+                        <div class="player-name">VOLT_MASTER</div>
+                        <div class="player-details">
+                            <div class="detail-item">
+                                <div class="detail-label">Score</div>
+                                <div class="detail-value">1,780</div>
+                            </div>
+                            <div class="detail-item">
+                                <div class="detail-label">Eliminations</div>
+                                <div class="detail-value">2</div>
+                            </div>
+                            <div class="detail-item">
+                                <div class="detail-label">Survival</div>
+                                <div class="detail-value">6:30</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="player-stat-item">
+                    <div class="rank-badge rank-other">5</div>
+                    <div class="player-info">
+                        <div class="player-name">CYBER_HUNTER</div>
+                        <div class="player-details">
+                            <div class="detail-item">
+                                <div class="detail-label">Score</div>
+                                <div class="detail-value">1,420</div>
+                            </div>
+                            <div class="detail-item">
+                                <div class="detail-label">Eliminations</div>
+                                <div class="detail-value">1</div>
+                            </div>
+                            <div class="detail-item">
+                                <div class="detail-label">Survival</div>
+                                <div class="detail-value">4:45</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="player-stat-item">
+                    <div class="rank-badge rank-other">6</div>
+                    <div class="player-info">
+                        <div class="player-name">NEON_STRIKER</div>
+                        <div class="player-details">
+                            <div class="detail-item">
+                                <div class="detail-label">Score</div>
+                                <div class="detail-value">980</div>
+                            </div>
+                            <div class="detail-item">
+                                <div class="detail-label">Eliminations</div>
+                                <div class="detail-value">0</div>
+                            </div>
+                            <div class="detail-item">
+                                <div class="detail-label">Survival</div>
+                                <div class="detail-value">2:10</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="actions-section">
+            <button class="action-button lobby-button">
+                🏠 Return to Home
+            </button>
+        </div>
+    </div>
+    <!-- Current lobbies -->
+    <div class="container live">
+        <button class="back-button">←</button>
+        
+        <div class="header">
+            <h1 class="logo">CV LASER TAG</h1>
+            <p class="subtitle">Treasure Hunt Arena</p>
+        </div>
+
+        <div class="refresh-section">
+            <div class="games-count" id="gamesCount">4 games in progress</div>
+            <div class="live-indicator">
+                <div class="live-dot"></div>
+                LIVE
+            </div>
+            <button class="refresh-button">
+                <span id="refreshIcon">🔄</span> Refresh
+            </button>
+        </div>
+
+        <div class="games-container" id="gamesContainer">
+            <!-- Live Game 1 -->
+            <div class="game-card">
+                <div class="game-header">
+                    <div class="lobby-code">B3M7N1</div>
+                    <div class="live-badge">
+                        <div class="live-dot"></div>
+                        LIVE
+                    </div>
+                </div>
+                <div class="game-info">
+                    <div class="info-item">
+                        <div class="info-label">Players Left</div>
+                        <div class="info-value players-value">3/8</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Time Left</div>
+                        <div class="info-value time-value">8:45</div>
+                    </div>
+                </div>
+                <button class="spectate-button">👁️ Spectate Live</button>
+            </div>
+
+            <!-- Live Game 2 -->
+            <div class="game-card">
+                <div class="game-header">
+                    <div class="lobby-code">E8K3L9</div>
+                    <div class="live-badge">
+                        <div class="live-dot"></div>
+                        LIVE
+                    </div>
+                </div>
+                <div class="game-info">
+                    <div class="info-item">
+                        <div class="info-label">Players Left</div>
+                        <div class="info-value players-value">5/6</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Time Left</div>
+                        <div class="info-value time-value">12:30</div>
+                    </div>
+                </div>
+                <button class="spectate-button">👁️ Spectate Live</button>
+            </div>
+
+            <!-- Live Game 3 -->
+            <div class="game-card">
+                <div class="game-header">
+                    <div class="lobby-code">F7R2Q5</div>
+                    <div class="live-badge">
+                        <div class="live-dot"></div>
+                        LIVE
+                    </div>
+                </div>
+                <div class="game-info">
+                    <div class="info-item">
+                        <div class="info-label">Players Left</div>
+                        <div class="info-value players-value">2/4</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Time Left</div>
+                        <div class="info-value time-value">4:15</div>
+                    </div>
+                </div>
+                <button class="spectate-button">👁️ Spectate Live</button>
+            </div>
+
+            <!-- Live Game 4 -->
+            <div class="game-card">
+                <div class="game-header">
+                    <div class="lobby-code">G1H8M4</div>
+                    <div class="live-badge">
+                        <div class="live-dot"></div>
+                        LIVE
+                    </div>
+                </div>
+                <div class="game-info">
+                    <div class="info-item">
+                        <div class="info-label">Players Left</div>
+                        <div class="info-value players-value">1/3</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Time Left</div>
+                        <div class="info-value time-value">1:22</div>
+                    </div>
+                </div>
+                <button class="spectate-button">👁️ Spectate Live</button>
+            </div>
+
+            <!-- Empty State (hidden by default, shown when no games) -->
+            <!-- <div class="empty-state">
+                <div class="empty-icon">🎯</div>
+                <div class="empty-title">No Live Games</div>
+                <div class="empty-subtitle">There are currently no games in progress. Check back in a few minutes or create your own lobby!</div>
+            </div> -->
+        </div>
+    </div>   
+    <!-- Spectator view -->
+    <div class="spectator-container">
+        <!-- Top HUD -->
+        <div class="top-hud">
+            <button class="back-button">←</button>
+            
+            <div class="game-info">
+                <div class="lobby-code">B3M7N1</div>
+                <div class="viewer-badge spectator" id="viewerBadge">👁️ SPECTATING</div> <!-- 💀 ELIMINATED -->
+            </div>
+
+            <div class="game-timer" id="gameTimer">
+                <div class="timer-label" id="timerLabel">Time Left</div>
+                <div class="timer-value" id="timerValue">1:30</div>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- Leaderboard View -->
+            <div class="leaderboard-view" id="leaderboardView">
+                <div class="leaderboard" id="leaderboard">
+                    <div class="leaderboard-header" id="leaderboardHeader">
+                        <div class="leaderboard-title" id="leaderboardTitle">Live Leaderboard</div>
+                        <div class="leaderboard-subtitle" id="leaderboardSubtitle">Tap alive players to view camera</div>
+                    </div>
+
+                    <!-- Your Stats (only shown for eliminated players) -->
+                    <div class="your-stats spectator-mode" id="yourStats">
+                        <div class="your-stats-title">💀 Your Final Stats</div>
+                        <div class="your-final-stats">
+                            <div class="final-stat">
+                                <div class="final-stat-label">Final Rank</div>
+                                <div class="final-stat-value">#5</div>
+                            </div>
+                            <div class="final-stat">
+                                <div class="final-stat-label">Score</div>
+                                <div class="final-stat-value">1,780</div>
+                            </div>
+                            <div class="final-stat">
+                                <div class="final-stat-label">Eliminations</div>
+                                <div class="final-stat-value">1</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="leaderboard-list" id="leaderboardList">
+                        <!-- Alive Players -->
+                        <div class="leaderboard-item alive">
+                            <div class="rank-badge rank-1">1</div>
+                            <div class="player-info">
+                                <div class="leaderboard-name alive">SHADOW_STRIKER</div>
+                                <div class="player-details">
+                                    <span>Score: <span class="score-value">2,450</span></span>
+                                    <span>Eliminations: <span class="eliminations-value">3</span></span>
+                                </div>
+                            </div>
+                            <div class="status-indicator status-alive"></div>
+                        </div>
+
+                        <div class="leaderboard-item alive">
+                            <div class="rank-badge rank-2">2</div>
+                            <div class="player-info">
+                                <div class="leaderboard-name alive">QUANTUM_SNIPER</div>
+                                <div class="player-details">
+                                    <span>Score: <span class="score-value">2,120</span></span>
+                                    <span>Eliminations: <span class="eliminations-value">2</span></span>
+                                </div>
+                            </div>
+                            <div class="status-indicator status-alive"></div>
+                        </div>
+
+                        <div class="leaderboard-item alive">
+                            <div class="rank-badge rank-3">3</div>
+                            <div class="player-info">
+                                <div class="leaderboard-name alive">LASER_WOLF</div>
+                                <div class="player-details">
+                                    <span>Score: <span class="score-value">1,890</span></span>
+                                    <span>Eliminations: <span class="eliminations-value">2</span></span>
+                                </div>
+                            </div>
+                            <div class="status-indicator status-alive"></div>
+                        </div>
+
+                        <div class="leaderboard-item alive">
+                            <div class="rank-badge rank-other">4</div>
+                            <div class="player-info">
+                                <div class="leaderboard-name alive">CYBER_HUNTER</div>
+                                <div class="player-details">
+                                    <span>Score: <span class="score-value">1,340</span></span>
+                                    <span>Eliminations: <span class="eliminations-value">1</span></span>
+                                </div>
+                            </div>
+                            <div class="status-indicator status-alive"></div>
+                        </div>
+
+                        <!-- Eliminated Players -->
+                        <div class="leaderboard-item eliminated you">
+                            <div class="rank-badge rank-eliminated">5</div>
+                            <div class="player-info">
+                                <div class="leaderboard-name you">VOLT_MASTER (You)</div>
+                                <div class="player-details">
+                                    <span>Final: <span class="score-value">1,780</span></span>
+                                    <span>Eliminations: <span class="eliminations-value">1</span></span>
+                                </div>
+                            </div>
+                            <div class="status-indicator status-eliminated"></div>
+                        </div>
+
+                        <div class="leaderboard-item eliminated">
+                            <div class="rank-badge rank-eliminated">6</div>
+                            <div class="player-info">
+                                <div class="leaderboard-name eliminated">NEON_STRIKER</div>
+                                <div class="player-details">
+                                    <span>Final: <span class="score-value">980</span></span>
+                                    <span>Eliminations: <span class="eliminations-value">0</span></span>
+                                </div>
+                            </div>
+                            <div class="status-indicator status-eliminated"></div>
+                        </div>
+                    </div>
+
+                    <div class="view-hint" id="viewHint">
+                        📱 Tap on alive players to view their camera
+                    </div>
+                </div>
+            </div>
+
+            <!-- Camera View -->
+            <div class="camera-view" id="cameraView">
+                <div class="camera-header-bar">
+                    <button class="camera-back-btn">← Back to Leaderboard</button>
+                    <div class="viewing-info">
+                        <div class="viewing-label">Now Viewing</div>
+                        <div class="viewing-player" id="viewingPlayer">SHADOW_STRIKER</div>
+                    </div>
+                </div>
+
+                <div class="camera-container">
+                    <div class="camera-feed">
+                        <div class="camera-player-header">
+                            <div class="camera-player-name" id="cameraPlayerName">SHADOW_STRIKER</div>
+                            <div class="player-health">
+                                <span class="health-label">Health</span>
+                                <div class="health-bar-container">
+                                    <div class="health-bar health-high" id="cameraPlayerHealth"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="camera-display">
+                            📹<br>
+                            <small id="cameraLabel">Player Camera View</small>
+                        </div>
+                        <div class="camera-stats">
+                            <div class="stat-item">Score: <span class="stat-value" id="cameraPlayerScore">2,450</span></div>
+                            <div class="stat-item">Eliminations: <span class="stat-value" id="cameraPlayerElims">3</span></div>
+                            <div class="stat-item">Rank: <span class="stat-value" id="cameraPlayerRank">#1</span></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 </body>
 </html>

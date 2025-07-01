@@ -1,4 +1,4 @@
-.leave-button {
+.container.wait .leave-button {
     position: absolute;
     top: 20px;
     left: 20px;
@@ -13,7 +13,7 @@
     backdrop-filter: blur(10px);
 }
 
-.leave-button:hover {
+.container.wait .leave-button:hover {
     background: rgba(255, 0, 0, 0.3);
     box-shadow: 0 0 15px rgba(255, 0, 0, 0.3);
 }
@@ -26,15 +26,15 @@
     letter-spacing: 2px;
     margin-bottom: 25px;
     text-shadow: 0 0 15px #00ff00;
-    animation: pulse 2s infinite;
+    animation: waitingRoomPulse 2s infinite;
 }
 
-@keyframes pulse {
+@keyframes waitingRoomPulse {
     0%, 100% { opacity: 1; }
     50% { opacity: 0.7; }
 }
 
-.lobby-info {
+.container.wait .lobby-info {
     background: rgba(0, 0, 0, 0.8);
     border: 2px solid #ffff00;
     border-radius: 15px;
@@ -48,7 +48,7 @@
     margin-bottom: 15px;
 }
 
-.code-label {
+.container.wait .code-label {
     font-size: 0.8rem;
     color: #ffff00;
     text-transform: uppercase;
@@ -56,7 +56,7 @@
     margin-bottom: 5px;
 }
 
-.lobby-code {
+.container.wait .lobby-code {
     font-size: 1.8rem;
     font-weight: bold;
     color: #ffffff;
@@ -65,34 +65,34 @@
     text-shadow: 0 0 10px #ffffff;
 }
 
-.game-info {
+.container.wait .game-info {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 15px;
     margin-top: 15px;
 }
 
-.info-item {
+.container.wait .info-item {
     text-align: center;
     padding: 8px;
     background: rgba(255, 255, 255, 0.05);
     border-radius: 8px;
 }
 
-.info-label {
+.container.wait .info-label {
     font-size: 0.7rem;
     color: #999;
     text-transform: uppercase;
     margin-bottom: 3px;
 }
 
-.info-value {
+.container.wait .info-value {
     font-size: 0.9rem;
     font-weight: bold;
     color: #00ffff;
 }
 
-.players-section {
+.container.wait .players-section {
     background: rgba(0, 0, 0, 0.6);
     border: 2px solid #333;
     border-radius: 15px;
@@ -161,7 +161,7 @@
     font-size: 0.9rem;
 }
 
-.player-info {
+.container.wait .player-info {
     flex: 1;
 }
 
@@ -185,7 +185,7 @@
     color: #00ff00;
 }
 
-.player-status {
+.container.wait .player-status {
     display: flex;
     align-items: center;
     gap: 5px;
@@ -193,27 +193,32 @@
     font-weight: bold;
 }
 
-.status-dot {
+.container.wait .status-dot {
     width: 8px;
     height: 8px;
     border-radius: 50%;
 }
 
-.status-ready {
+.container.wait .status-ready {
     color: #00ff00;
 }
 
-.status-ready .status-dot {
+.container.wait .status-ready .status-dot {
     background: #00ff00;
-    animation: pulse 1.5s infinite;
+    animation: waitingRoomStatusPulse 1.5s infinite;
 }
 
-.status-waiting {
+.container.wait .status-waiting {
     color: #ffff00;
 }
 
-.status-waiting .status-dot {
+.container.wait .status-waiting .status-dot {
     background: #ffff00;
+}
+
+@keyframes waitingRoomStatusPulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(1.2); }
 }
 
 .empty-slot {
@@ -278,10 +283,10 @@
 
 .game-start-section.show {
     display: block;
-    animation: startPulse 1s infinite;
+    animation: waitingRoomStartPulse 1s infinite;
 }
 
-@keyframes startPulse {
+@keyframes waitingRoomStartPulse {
     0%, 100% { box-shadow: 0 0 20px rgba(0, 255, 0, 0.3); }
     50% { box-shadow: 0 0 40px rgba(0, 255, 0, 0.6); }
 }
@@ -311,25 +316,25 @@
 
 /* Mobile optimizations */
 @media (max-width: 480px) {
-    .container {
+    .container.wait {
         padding: 15px;
         max-width: 100%;
     }
     
-    .header {
+    .container.wait .header {
         padding-top: 15px;
         margin-bottom: 20px;
     }
     
-    .logo {
+    .container.wait .logo {
         font-size: 1.8rem;
     }
     
-    .subtitle {
+    .container.wait .subtitle {
         font-size: 0.8rem;
     }
     
-    .leave-button {
+    .container.wait .leave-button {
         top: 15px;
         left: 15px;
         padding: 10px 15px;
@@ -341,35 +346,35 @@
         margin-bottom: 20px;
     }
     
-    .lobby-info {
+    .container.wait .lobby-info {
         padding: 15px;
         margin-bottom: 20px;
     }
     
-    .lobby-code {
+    .container.wait .lobby-code {
         font-size: 1.5rem;
         letter-spacing: 2px;
     }
     
-    .game-info {
+    .container.wait .game-info {
         grid-template-columns: 1fr 1fr;
         gap: 10px;
         margin-top: 12px;
     }
     
-    .info-item {
+    .container.wait .info-item {
         padding: 10px 8px;
     }
     
-    .info-label {
+    .container.wait .info-label {
         font-size: 0.65rem;
     }
     
-    .info-value {
+    .container.wait .info-value {
         font-size: 0.85rem;
     }
     
-    .players-section {
+    .container.wait .players-section {
         padding: 15px;
         margin-bottom: 20px;
     }
@@ -404,11 +409,11 @@
         font-size: 0.65rem;
     }
     
-    .player-status {
+    .container.wait .player-status {
         font-size: 0.75rem;
     }
     
-    .status-dot {
+    .container.wait .status-dot {
         width: 6px;
         height: 6px;
     }
@@ -439,24 +444,24 @@
 }
 
 @media (max-width: 480px) {
-    .container {
+    .container.wait {
         padding: 12px;
     }
     
-    .logo {
+    .container.wait .logo {
         font-size: 1.6rem;
     }
     
-    .lobby-code {
+    .container.wait .lobby-code {
         font-size: 1.3rem;
         letter-spacing: 1px;
     }
     
-    .game-info {
+    .container.wait .game-info {
         gap: 8px;
     }
     
-    .info-item {
+    .container.wait .info-item {
         padding: 8px 6px;
     }
     

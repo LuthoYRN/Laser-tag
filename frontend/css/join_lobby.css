@@ -1,3 +1,22 @@
+.container.join .back-button {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    background: rgba(0, 0, 0, 0.6);
+    border: 2px solid #666;
+    border-radius: 10px;
+    padding: 10px;
+    color: #ffffff;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-size: 1.2rem;
+    backdrop-filter: blur(10px);
+}
+
+.container.join .back-button:hover {
+    border-color: #00ffff;
+    box-shadow: 0 0 15px rgba(0, 255, 255, 0.3);
+}
 
 .join-title {
     text-align: center;
@@ -194,7 +213,7 @@
     cursor: not-allowed;
 }
 
-.status-section {
+.container.join .status-section {
     background: rgba(0, 0, 0, 0.6);
     border: 2px solid #333;
     border-radius: 12px;
@@ -204,11 +223,11 @@
     display: none;
 }
 
-.status-section.show {
+.container.join .status-section.show {
     display: block;
 }
 
-.status-indicator {
+.container.join .status-indicator {
     display: flex;
     align-items: center;
     justify-content: center;
@@ -217,15 +236,15 @@
     color: #00ff00;
 }
 
-.status-dot {
+.container.join .status-dot {
     width: 8px;
     height: 8px;
     background: #00ff00;
     border-radius: 50%;
-    animation: pulse 1.5s infinite;
+    animation: joinLobbyPulse 1.5s infinite;
 }
 
-@keyframes pulse {
+@keyframes joinLobbyPulse {
     0%, 100% { opacity: 1; transform: scale(1); }
     50% { opacity: 0.5; transform: scale(1.2); }
 }
@@ -239,11 +258,11 @@
 
 /* Mobile optimizations */
 @media (max-width: 480px) {
-    .container {
+    .container.join {
         padding: 15px;
     }
     
-    .logo {
+     .container.join .logo {
         font-size: 2rem;
     }
     

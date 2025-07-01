@@ -1,4 +1,4 @@
-.back-button {
+.container.create .back-button {
 	position: absolute;
   top: 20px;
   left: 20px;
@@ -13,7 +13,7 @@
   backdrop-filter: blur(10px);
 }
 
-.back-button:hover {
+.container.create .back-button:hover {
 	border-color: #00ffff;
   box-shadow: 0 0 15px rgba(0, 255, 255, 0.3);
 }
@@ -38,7 +38,7 @@
   backdrop-filter: blur(10px);
 }
 
-.code-label {
+.container.create .code-label {
 	font-size: 0.9rem;
   color: #ffff00;
   text-transform: uppercase;
@@ -46,7 +46,7 @@
   margin-bottom: 10px;
 }
 
-.lobby-code {
+.container.create .lobby-code {
 	font-size: 2rem;
   font-weight: bold;
   color: #ffffff;
@@ -251,15 +251,15 @@ input:checked+.toggle-slider:before {
 
 /* Mobile optimizations */
 @media (max-width: 480px) {
-	.container {
+	.container.create {
   	padding: 15px;
   }
 
-  .logo {
+  .container.create.logo {
   	font-size: 2rem;
   }
 
-  .lobby-code {
+  .container.create .lobby-code {
   	font-size: 1.7rem;
     letter-spacing: 3px;
   }
