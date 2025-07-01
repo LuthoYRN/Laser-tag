@@ -175,6 +175,131 @@
     z-index: 20;
 }
 
+.forfeit-button {
+    background: rgba(139, 0, 0, 0.9);
+    border: 2px solid #8b0000;
+    border-radius: 8px;
+    padding: 10px 15px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(10px);
+    color: #ffffff;
+    font-size: 0.6rem;
+    font-weight: bold;
+    text-transform: uppercase;
+}
+
+.forfeit-button:hover {
+    border-color: #ff0000;
+    background: rgba(255, 0, 0, 0.9);
+    box-shadow: 0 0 15px rgba(255, 0, 0, 0.4);
+    transform: translateY(-2px);
+}
+
+.forfeit-icon {
+    font-size: 1.1rem;
+}
+
+.forfeit-text {
+    font-size: 0.8rem;
+    letter-spacing: 0.5px;
+}
+
+/* Forfeit Confirmation Modal */
+.forfeit-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.8);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    backdrop-filter: blur(10px);
+}
+
+.forfeit-modal.show {
+    display: flex;
+}
+
+.forfeit-dialog {
+    background: linear-gradient(135deg, rgba(20, 20, 20, 0.95), rgba(40, 40, 40, 0.95));
+    border: 2px solid #ff0000;
+    border-radius: 15px;
+    padding: 30px;
+    max-width: 400px;
+    width: 90%;
+    text-align: center;
+    box-shadow: 0 0 30px rgba(255, 0, 0, 0.5);
+}
+
+.forfeit-title {
+    font-size: 1.5rem;
+    color: #ff0000;
+    font-weight: bold;
+    margin-bottom: 15px;
+    text-transform: uppercase;
+}
+
+.forfeit-message {
+    color: #ffffff;
+    margin-bottom: 25px;
+    line-height: 1.5;
+}
+
+.forfeit-warning {
+    color: #ffaa00;
+    font-size: 0.9rem;
+    margin-bottom: 25px;
+    font-style: italic;
+}
+
+.forfeit-buttons {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+}
+
+.forfeit-confirm-btn {
+    background: linear-gradient(45deg, #ff0000, #cc0000);
+    border: 2px solid #ff0000;
+    border-radius: 8px;
+    padding: 12px 24px;
+    color: #ffffff;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-transform: uppercase;
+}
+
+.forfeit-confirm-btn:hover {
+    background: linear-gradient(45deg, #cc0000, #990000);
+    box-shadow: 0 0 15px rgba(255, 0, 0, 0.5);
+}
+
+.forfeit-cancel-btn {
+    background: rgba(100, 100, 100, 0.8);
+    border: 2px solid #666;
+    border-radius: 8px;
+    padding: 12px 24px;
+    color: #ffffff;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-transform: uppercase;
+}
+
+.forfeit-cancel-btn:hover {
+    border-color: #00ffff;
+    background: rgba(0, 255, 255, 0.2);
+    box-shadow: 0 0 15px rgba(0, 255, 255, 0.3);
+}
+
 .game-container .health-section {
     display: flex;
     flex-direction: column;
@@ -363,6 +488,37 @@
         width: 30px;
         height: 30px;
     }
+   
+    .bottom-hud {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        padding: 15px;
+        background: linear-gradient(0deg, rgba(0, 0, 0, 0.8) 0%, transparent 100%);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 12px;
+        z-index: 20;
+    }
+    .forfeit-button {
+        padding: 8px 12px;  
+    }
+
+    .forfeit-text {
+        font-size: 0.7rem;
+    }
+
+    .forfeit-dialog {
+        padding: 20px;
+        margin: 20px;
+    }
+
+    .forfeit-buttons {
+        flex-direction: column;
+        gap: 10px;
+    }
 }
 
 @media (max-width: 480px) {
@@ -388,6 +544,18 @@
     }
     
     .bottom-hud {
-        padding: 10px;
+        padding: 8px;
+    }
+
+    .forfeit-button {
+        padding: 6px 10px;
+    }
+
+    .forfeit-icon {
+        font-size: 1rem;
+    }
+
+    .forfeit-text {
+        font-size: 0.6rem;
     }
 }
