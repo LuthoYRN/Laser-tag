@@ -49,8 +49,8 @@ function showScreen(screenName) {
     }
 }
 
+// Keep the original simple showNotification function in client.js
 function showNotification(message, type = 'info') {
-    // Simple notification system - you can enhance this
     console.log(`[${type.toUpperCase()}] ${message}`);
     
     // You could add a proper notification UI element here
@@ -58,6 +58,40 @@ function showNotification(message, type = 'info') {
         alert(`Error: ${message}`);
     }
 }
+
+// Simplified socket event handlers - just use existing red flash indicator
+socket.on('scan-result', (data) => {
+    console.log('Scan result received:', data);
+    if (data.success) {
+        updatePlayerScore(data.newScore);
+        triggerShootIndicator();
+        showNotification(`Hit ${data.targetPlayerName} for ${data.pointsEarned} points!`, 'success');
+    } else {
+        showNotification(data.message, 'error');
+    }
+});
+
+socket.on('player-damaged', (data) => {
+    console.log('Player damaged:', data);
+    if (data.playerId === socket.id) {
+        updatePlayerHealth(data.health);
+        triggerHitIndicator(); // Use existing red flash indicator
+        showNotification(`Hit by ${data.shooterName}! -${data.damage} HP`, 'info');
+    }
+});
+
+socket.on('player-eliminated', (data) => {
+    console.log('Player eliminated:', data);
+    if (data.playerId === socket.id) {
+        // You were eliminated - trigger red flash
+        triggerHitIndicator();
+        showNotification('💀 YOU WERE ELIMINATED!', 'error');
+        showEliminationPopup();
+    } else {
+        // Someone else was eliminated
+        showNotification(`${data.playerName} was eliminated by ${data.shooterName}!`, 'info');
+    }
+});
 
 function updateLobbyCode(code) {
     const lobbyCodeElements = document.querySelectorAll('.lobby-code');
@@ -201,31 +235,6 @@ socket.on('qr-assigned', (data) => {
 
 socket.on('game-timer', (data) => {
     updateGameTimer(data.timeLeft, data.playersAlive);
-});
-
-socket.on('player-eliminated', (data) => {
-    console.log('Player eliminated:', data);
-    showNotification(`${data.playerName} was eliminated!`, 'info');
-    updatePlayerList();
-});
-
-socket.on('player-damaged', (data) => {
-    console.log('Player damaged:', data);
-    if (data.playerId === socket.id) {
-        updatePlayerHealth(data.health);
-        triggerHitIndicator();
-    }
-});
-
-socket.on('scan-result', (data) => {
-    console.log('Scan result:', data);
-    if (data.success) {
-        updatePlayerScore(data.newScore);
-        triggerShootIndicator();
-        showNotification(`Hit ${data.targetPlayerName} for ${data.pointsEarned} points!`, 'success');
-    } else {
-        showNotification(data.message, 'error');
-    }
 });
 
 socket.on('game-ended', (results) => {
@@ -789,16 +798,20 @@ function hideQRScannerModal() {
 
 function startQRScanner() {
     const qrReader = document.getElementById('qrModalPlaceholder');    
-    // Initialize html5-qrcode scanner - SIMPLE APPROACH
     qrScanner = new Html5Qrcode("qrModalPlaceholder");
+    
+    // Make qrbox responsive to screen size
+    const screenWidth = window.innerWidth;
+    const qrBoxSize = Math.min(screenWidth * 0.8, 300); // 80% of screen width, max 300px
     
     const config = {
         fps: 10,
-        qrbox: 200  // Simple number, not object
+        qrbox: qrBoxSize,
+        aspectRatio: 1.0 // Square scanning area
     };
     
     qrScanner.start(
-        { facingMode: "environment" },  // Simple camera constraint
+        { facingMode: "environment" },
         config,
         qrCodeMessage => {
             console.log('QR Code detected:', qrCodeMessage);
@@ -808,12 +821,10 @@ function startQRScanner() {
             // Silently handle scanning errors
         }
     ).then(() => {
-        // Camera started successfully
         console.log('QR Scanner camera started successfully');
         if (qrReader) {
-            qrReader.style.display = 'none';
+            qrReader.style.display = 'block';
         }
-        qrReader.style.display = 'block';
     }).catch(err => {
         console.error("QR Scanner failed to start:", err);
         if (qrReader) {
@@ -821,17 +832,36 @@ function startQRScanner() {
         }
     });
 }
-
 function startMainGameCamera() {
     const placeholder = document.getElementById('qrCameraPlaceholder');
     
-   // Initialize main game QR scanner - SIMPLE APPROACH
+    if (!placeholder) {
+        console.error('Camera placeholder not found');
+        return;
+    }
+    
+    // Clear any existing content
+    placeholder.innerHTML = '';
+    
     const mainScanner = new Html5Qrcode("qrCameraPlaceholder");
+    
+    // Make scanning area MUCH larger for mobile - almost full screen width
+    const screenWidth = window.innerWidth;
+    const screenHeight = window.innerHeight;
+    
+    // Use 90% of screen width, but cap at reasonable size for larger screens
+    const qrBoxSize = Math.min(screenWidth * 0.9, 400); // Much larger: 90% width, max 400px
     
     const config = {
         fps: 10,
-        qrbox: 150  // Smaller for gameplay
+        qrbox: qrBoxSize,
+        aspectRatio: 1.0
     };
+    
+    console.log(`Setting QR box size to: ${qrBoxSize}px for screen width: ${screenWidth}px`);
+    
+    // Show loading state
+    placeholder.innerHTML = '<div style="color: #00ffff; text-align: center;">📷<br>Starting Camera...</div>';
     
     mainScanner.start(
         { facingMode: "environment" },
@@ -840,29 +870,59 @@ function startMainGameCamera() {
             handleGameQRScan(qrCodeMessage);
         },
         error => {
-            // Silently handle scanning errors
+            // Silently handle scanning errors - don't log every frame
         }
     ).then(() => {
-        mainScanner.style.display = 'block';
-        console.log('Main game camera started');
-    }).catch(err => {
-        console.error("Main game camera failed to start", err);
-        if (mainScanner) {
-            mainScanner.style.display = 'flex';
-            mainScanner.innerHTML = '❌<br>Camera Access Required';
+        console.log('Main game camera started successfully with QR box size:', qrBoxSize);
+        
+        const crosshair = document.querySelector('.crosshair');
+        if (crosshair) {
+            crosshair.classList.add('scanning');
         }
+        
+    }).catch(err => {
+        console.error("Main game camera failed to start:", err);
+        
+        // Show error message if camera fails
+        placeholder.innerHTML = `
+            <div style="color: #ff0000; text-align: center; padding: 20px;">
+                ❌<br>
+                Camera Access Required<br>
+                <small>Please allow camera permissions and refresh</small>
+            </div>
+        `;
+        
+        // Also show alert to user
+        alert('Camera access is required to play. Please allow camera permissions and try again.');
     });
 }
+// Also add this helper function to stop the main camera when needed
+function stopMainGameCamera() {
+    const placeholder = document.getElementById('qrCameraPlaceholder');
+    if (placeholder) {
+        // Try to stop any existing Html5Qrcode instance
+        try {
+            const scannerElement = placeholder.querySelector('video');
+            if (scannerElement) {
+                Html5Qrcode.getCameras().then(() => {
+                    // Clear the placeholder
+                    placeholder.innerHTML = '<div style="color: #00ffff; text-align: center;">📷<br>Camera Stopped</div>';
+                });
+            }
+        } catch (err) {
+            console.log('Error stopping camera:', err);
+        }
+    }
+}
+
 function stopQRScanner() {
     if (qrScanner) {
         qrScanner.stop().then(() => {
             qrScanner.clear();
             qrScanner = null;
             
-            const qrReader = document.getElementById('qrModalReader');
             const placeholder = document.getElementById('qrModalPlaceholder');
             
-            if (qrReader) qrReader.style.display = 'none';
             if (placeholder) {
                 placeholder.style.display = 'flex';
                 placeholder.innerHTML = '📷<br>Camera View<br>';
@@ -907,7 +967,20 @@ function showPlayerAssignmentSuccess(data) {
     }
 }
 
+// Replace the handleGameQRScan function in client.js
+let lastGameScanTime = 0;
+
 function handleGameQRScan(qrData) {
+    const now = Date.now();
+    
+    // Prevent rapid scanning (2 second cooldown)
+    if (now - lastGameScanTime < 2000) {
+        console.log('Scan cooldown active, ignoring scan');
+        return;
+    }
+    
+    lastGameScanTime = now;
+    
     // Haptic feedback
     if (navigator.vibrate) {
         navigator.vibrate(100);
@@ -915,10 +988,9 @@ function handleGameQRScan(qrData) {
     
     console.log('Game QR Code scanned:', qrData);
     
-    // Send scan to server
+    // Send scan to server - only need the target QR code
     socket.emit('qr-scan', {
-        targetQrCode: qrData,
-        scannerId: socket.id
+        targetQrCode: qrData
     });
 }
 

@@ -340,13 +340,16 @@ io.on('connection', (socket) => {
         const lobby = lobbies.get(player.lobbyCode);
         if (!lobby || lobby.status !== 'active') return;
 
-        const { targetQrCode, scannerId } = data;
+        const { targetQrCode } = data;
         
         // Find target player by their assigned QR code
         const targetPlayer = Array.from(lobby.players.values()).find(p => p.assignedQR === targetQrCode);
-        const scannerPlayer = lobby.players.get(scannerId);
+        const scannerPlayer = lobby.players.get(socket.id); // Use socket.id, not scannerId from data
+        
+        console.log(`QR Scan attempt: Scanner=${scannerPlayer?.name}, Target QR=${targetQrCode}, Target found=${!!targetPlayer}`);
         
         if (!targetPlayer || !scannerPlayer) {
+            console.log(`Scan failed: targetPlayer=${!!targetPlayer}, scannerPlayer=${!!scannerPlayer}`);
             socket.emit('scan-result', { 
                 success: false, 
                 message: 'Invalid QR code or player not found' 
@@ -355,7 +358,7 @@ io.on('connection', (socket) => {
         }
         
         // Don't allow scanning yourself
-        if (targetPlayer.id === scannerId) {
+        if (targetPlayer.id === socket.id) {
             socket.emit('scan-result', { 
                 success: false, 
                 message: 'Cannot scan your own QR code' 
@@ -386,6 +389,8 @@ io.on('connection', (socket) => {
         targetPlayer.health = Math.max(0, targetPlayer.health - damage);
         scannerPlayer.score += pointsEarned;
         
+        console.log(`Hit registered: ${scannerPlayer.name} hit ${targetPlayer.name} for ${damage} damage. Target health: ${targetPlayer.health}`);
+        
         // Notify scanner of successful hit
         socket.emit('scan-result', {
             success: true,
@@ -394,7 +399,7 @@ io.on('connection', (socket) => {
             damage: damage,
             pointsEarned: pointsEarned,
             newScore: scannerPlayer.score,
-            scannerId: scannerId
+            scannerId: socket.id
         });
         
         // Check if target was eliminated
@@ -403,11 +408,13 @@ io.on('connection', (socket) => {
             scannerPlayer.eliminations += 1;
             scannerPlayer.score += 100; // Bonus for elimination
             
+            console.log(`Player eliminated: ${targetPlayer.name} by ${scannerPlayer.name}`);
+            
             // Notify all players of elimination
             io.to(player.lobbyCode).emit('player-eliminated', {
                 playerId: targetPlayer.id,
                 playerName: targetPlayer.name,
-                shooterId: scannerId,
+                shooterId: socket.id,
                 shooterName: scannerPlayer.name
             });
             
@@ -419,7 +426,7 @@ io.on('connection', (socket) => {
                 playerName: targetPlayer.name,
                 health: targetPlayer.health,
                 damage: damage,
-                shooterId: scannerId,
+                shooterId: socket.id,
                 shooterName: scannerPlayer.name
             });
         }
