@@ -127,11 +127,21 @@ socket.on('spectator-joined', (data) => {
 socket.on('game-starting', () => {
     console.log('Game starting countdown...');
     showGameStartCountdown();
+    setReadyButtonState('countdown');
 });
 
 socket.on('countdown', (count) => {
     console.log('Countdown:', count);
     updateCountdown(count);
+});
+
+socket.on('countdown-canceled', () => {
+    console.log('Countdown canceled');
+    setTimeout(() => {
+        hideGameStartCountdown();
+    }, 100);
+    setReadyButtonState('normal');
+    showNotification('Countdown canceled - player not ready', 'info');
 });
 
 socket.on('game-started', (gameData) => {
@@ -413,6 +423,13 @@ function updateWaitingRoom(lobbyState) {
     }
     
     updatePlayerList(lobbyState);
+    
+    // Update ready button state based on current player's ready status
+    const currentPlayer = lobbyState.players.find(p => p.id === socket.id);
+    if (currentPlayer && lobbyState.status === 'waiting') {
+        updateReadyButton(currentPlayer.isReady);
+        setReadyButtonState('normal');
+    }
 }
 
 function updatePlayerList(lobbyState = gameState.lobbyData) {
@@ -489,12 +506,23 @@ function toggleReady() {
     const readyButton = document.getElementById('readyButton');
     if (!readyButton) return;
     
+    // Don't allow toggling if button is disabled or game is starting
+    if (readyButton.disabled) return;
+    
     const isReady = readyButton.classList.contains('ready');
     const newReadyState = !isReady;
     
     socket.emit('player-ready', newReadyState);
     
-    if (newReadyState) {
+    // Update button immediately for better UX
+    updateReadyButton(newReadyState);
+}
+
+function updateReadyButton(isReady) {
+    const readyButton = document.getElementById('readyButton');
+    if (!readyButton) return;
+    
+    if (isReady) {
         readyButton.textContent = '⏳ Cancel Ready';
         readyButton.classList.remove('not-ready');
         readyButton.classList.add('ready');
@@ -505,16 +533,52 @@ function toggleReady() {
     }
 }
 
+function setReadyButtonState(state) {
+    const readyButton = document.getElementById('readyButton');
+    if (!readyButton) return;
+    
+    switch(state) {
+        case 'countdown':
+            readyButton.textContent = '⏸️ Cancel Countdown';
+            readyButton.disabled = false; // Allow canceling countdown
+            break;
+        case 'normal':
+            readyButton.disabled = false;
+            // Button text will be updated by lobby state
+            break;
+        case 'disabled':
+            readyButton.disabled = true;
+            break;
+    }
+}
+
 function showGameStartCountdown() {
     const countdownSection = document.getElementById('gameStartSection');
     if (countdownSection) {
         countdownSection.classList.add('show');
     }
+    if (countdownElement) {
+        countdownElement.textContent = '5';
+    }
+}
+
+function hideGameStartCountdown() {
+    const countdownSection = document.getElementById('gameStartSection');
+    if (countdownSection) {
+        countdownSection.classList.remove('show');
+    }
+    // Clear the countdown number to prevent showing stale data
+    const countdownElement = document.getElementById('countdown');
+    if (countdownElement) {
+        countdownElement.textContent = '5'; // Reset to default
+    }
 }
 
 function updateCountdown(count) {
     const countdownElement = document.getElementById('countdown');
-    if (countdownElement) {
+    const countdownSection = document.getElementById('gameStartSection');
+     // Only update if countdown section is visible
+    if (countdownElement && countdownSection && countdownSection.classList.contains('show')) {
         countdownElement.textContent = count;
     }
 }

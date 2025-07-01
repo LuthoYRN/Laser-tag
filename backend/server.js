@@ -18,6 +18,7 @@ app.use(express.static(path.join(__dirname, '../frontend')));
 // Game data structures
 const lobbies = new Map(); // lobbyCode -> lobby data
 const players = new Map(); // socketId -> player data
+const countdownTimers = new Map(); // lobbyCode -> countdown interval
 
 // Utility functions
 function generateLobbyCode() {
@@ -95,6 +96,16 @@ function removePlayerFromLobby(socketId) {
     lobby.spectators.delete(socketId);
     players.delete(socketId);
 
+    // Cancel countdown if it was in progress and check if all remaining players are ready
+    if (lobby.status === 'starting') {
+        const remainingPlayers = Array.from(lobby.players.values());
+        const allReady = remainingPlayers.every(p => p.isReady);
+        
+        if (!allReady || remainingPlayers.length < lobby.settings.numPlayers) {
+            cancelGameCountdown(player.lobbyCode);
+        }
+    }
+
     // If host left, assign new host or delete lobby
     if (lobby.host === socketId) {
         const remainingPlayers = Array.from(lobby.players.keys());
@@ -103,6 +114,12 @@ function removePlayerFromLobby(socketId) {
             const newHost = lobby.players.get(lobby.host);
             if (newHost) newHost.isHost = true;
         } else {
+            // Clean up countdown timer if lobby is being deleted
+            const countdownInterval = countdownTimers.get(player.lobbyCode);
+            if (countdownInterval) {
+                clearInterval(countdownInterval);
+                countdownTimers.delete(player.lobbyCode);
+            }
             lobbies.delete(player.lobbyCode);
         }
     }
@@ -219,6 +236,9 @@ io.on('connection', (socket) => {
         const lobby = lobbies.get(player.lobbyCode);
         if (!lobby) return;
 
+        // Don't allow ready changes if game is already active
+        if (lobby.status === 'active') return;
+
         const lobbyPlayer = lobby.players.get(socket.id);
         if (lobbyPlayer) {
             lobbyPlayer.isReady = isReady;
@@ -226,10 +246,15 @@ io.on('connection', (socket) => {
             const lobbyState = getLobbyState(player.lobbyCode);
             io.to(player.lobbyCode).emit('lobby-updated', lobbyState);
 
-            // Check if all players are ready
+            // Check if all players are ready and lobby is in waiting state
             const allReady = Array.from(lobby.players.values()).every(p => p.isReady);
-            if (allReady && lobby.players.size >= lobby.settings.numPlayers) {
+            
+            if (allReady && lobby.players.size >= lobby.settings.numPlayers && lobby.status === 'waiting') {
                 startGameCountdown(player.lobbyCode);
+            } 
+            // Cancel countdown if someone unreadies during countdown
+            else if (!allReady && lobby.status === 'starting') {
+                cancelGameCountdown(player.lobbyCode);
             }
         }
     });
@@ -315,9 +340,33 @@ function startGameCountdown(lobbyCode) {
 
         if (countdown < 0) {
             clearInterval(countdownInterval);
+            countdownTimers.delete(lobbyCode);
             startGame(lobbyCode);
         }
     }, 1000);
+
+    // Store the interval so we can cancel it if needed
+    countdownTimers.set(lobbyCode, countdownInterval);
+}
+
+function cancelGameCountdown(lobbyCode) {
+    const lobby = lobbies.get(lobbyCode);
+    if (!lobby) return;
+
+    // Clear the countdown timer
+    const countdownInterval = countdownTimers.get(lobbyCode);
+    if (countdownInterval) {
+        clearInterval(countdownInterval);
+        countdownTimers.delete(lobbyCode);
+    }
+
+    // Reset lobby status to waiting
+    lobby.status = 'waiting';
+    
+    // Notify all players that countdown was canceled
+    io.to(lobbyCode).emit('countdown-canceled');
+    
+    console.log(`Countdown canceled for lobby ${lobbyCode}`);
 }
 
 function startGame(lobbyCode) {
