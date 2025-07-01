@@ -295,7 +295,7 @@ io.on('connection', (socket) => {
         checkGameEnd(player.lobbyCode);
 
         console.log(`${lobbyPlayer.name} forfeited the game in lobby ${player.lobbyCode}`);
-    });
+        });
 
     socket.on('assign-qr-code', (data) => {
         const player = players.get(socket.id);
@@ -320,6 +320,7 @@ io.on('connection', (socket) => {
         const lobbyPlayer = lobby.players.get(socket.id);
         if (lobbyPlayer) {
             lobbyPlayer.assignedQR = qrCode;
+            lobbyPlayer.qrAssigned = true; // ADD THIS LINE
             
             socket.emit('qr-assigned', {
                 success: true,
@@ -328,7 +329,22 @@ io.on('connection', (socket) => {
                 playerId: socket.id
             });
             
-            console.log(`Player ${lobbyPlayer.name} assigned QR code: ${qrCode}`);
+            // ADD PROGRESS TRACKING
+            const totalPlayers = lobby.players.size;
+            const assignedPlayers = Array.from(lobby.players.values()).filter(p => p.qrAssigned).length;
+            
+            io.to(player.lobbyCode).emit('qr-assignment-progress', {
+                assigned: assignedPlayers,
+                total: totalPlayers,
+                playerName: lobbyPlayer.name
+            });
+            
+            console.log(`Player ${lobbyPlayer.name} assigned QR code: ${qrCode} (${assignedPlayers}/${totalPlayers})`);
+            
+            // CHECK IF ALL PLAYERS READY
+            if (assignedPlayers === totalPlayers) {
+                startActualGame(player.lobbyCode);
+            }
         }
     });
 
@@ -490,25 +506,49 @@ function startGame(lobbyCode) {
     const lobby = lobbies.get(lobbyCode);
     if (!lobby) return;
 
-    lobby.status = 'active';
-    lobby.gameData.startTime = Date.now();
-    lobby.gameData.endTime = Date.now() + (lobby.settings.duration * 60 * 1000);
+    // Change status to 'qr-assignment' instead of 'active'
+    lobby.status = 'qr-assignment';
+    
+    // DON'T set start time or end time yet
+    // lobby.gameData.startTime = Date.now();
+    // lobby.gameData.endTime = Date.now() + (lobby.settings.duration * 60 * 1000);
 
-    // Reset all players to alive state
+    // Reset all players to alive state and clear QR assignments
     for (const player of lobby.players.values()) {
         player.health = 100;
         player.isAlive = true;
         player.score = 0;
         player.eliminations = 0;
+        player.assignedQR = null; // Clear any previous QR assignments
+        player.qrAssigned = false; // Track QR assignment status
     }
 
-    io.to(lobbyCode).emit('game-started', {
-        startTime: lobby.gameData.startTime,
-        endTime: lobby.gameData.endTime,
-        duration: lobby.settings.duration
+    // Notify players to enter QR assignment phase
+    io.to(lobbyCode).emit('qr-assignment-phase', {
+        message: 'All players must scan their QR codes before the game begins'
     });
 
-    // Start game timer
+    console.log(`QR Assignment phase started for lobby ${lobbyCode}`);
+}
+
+// New function to start the actual game after QR assignment
+function startActualGame(lobbyCode) {
+    const lobby = lobbies.get(lobbyCode);
+    if (!lobby) return;
+
+    // NOW set the game as active and start timers
+    lobby.status = 'active';
+    lobby.gameData.startTime = Date.now();
+    lobby.gameData.endTime = Date.now() + (lobby.settings.duration * 60 * 1000);
+
+    io.to(lobbyCode).emit('game-actually-started', {
+        startTime: lobby.gameData.startTime,
+        endTime: lobby.gameData.endTime,
+        duration: lobby.settings.duration,
+        message: 'All QR codes assigned! Game begins now!'
+    });
+
+    // Start game timer ONLY after QR assignment is complete
     const gameTimer = setInterval(() => {
         const timeLeft = lobby.gameData.endTime - Date.now();
         
@@ -522,6 +562,8 @@ function startGame(lobbyCode) {
             });
         }
     }, 1000);
+
+    console.log(`Actual game started for lobby ${lobbyCode} - all QR codes assigned`);
 }
 
 function checkGameEnd(lobbyCode) {

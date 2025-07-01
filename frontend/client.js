@@ -93,6 +93,207 @@ socket.on('player-eliminated', (data) => {
     }
 });
 
+// New socket event for QR assignment phase
+socket.on('qr-assignment-phase', (data) => {
+    console.log('Entering QR assignment phase:', data);
+    gameState.gameActive = false; // Game not yet active
+    
+    if (gameState.playerType === 'player') {
+        showScreen('gameSession');
+        initializeQRAssignmentPhase(data);
+    } else if (gameState.playerType === 'spectator') {
+        showScreen('spectatorMode');
+        // Spectators just wait during QR assignment
+        showSpectatorQRWaiting();
+    }
+});
+
+// New socket event for QR assignment progress
+socket.on('qr-assignment-progress', (data) => {
+    console.log('QR assignment progress:', data);
+    updateQRAssignmentProgress(data.assigned, data.total, data.playerName);
+});
+
+// New socket event for actual game start (after QR assignment)
+socket.on('game-actually-started', (gameData) => {
+    console.log('Game actually started!', gameData);
+    gameState.gameActive = true;
+    
+    // Hide QR assignment UI and show actual game
+    hideQRAssignmentPhase();
+    
+    if (gameState.playerType === 'player') {
+        initializeActualGameSession(gameData);
+    } else if (gameState.playerType === 'spectator') {
+        initializeSpectatorMode(gameData);
+    }
+    
+    // Show game start message
+    showStatusMessage('🎯 GAME BEGINS!', 'All players ready - hunt begins now!');
+});
+
+// Modified game-started handler (now just for QR assignment phase)
+socket.on('game-started', (gameData) => {
+    console.log('Entering QR assignment phase');
+    // This now triggers QR assignment phase, not actual game start
+});
+
+// Initialize QR assignment phase
+function initializeQRAssignmentPhase(data) {
+    console.log('Initializing QR assignment phase');
+    
+    // Show QR assignment overlay instead of immediately starting game
+    showQRAssignmentOverlay(data.message);
+    
+    // Show QR scanner modal for assignment
+    setTimeout(() => {
+        showQRScannerModal();
+    }, 1000);
+}
+
+// Show QR assignment overlay
+function showQRAssignmentOverlay(message) {
+    const overlay = document.getElementById('qrAssignmentOverlay') || createQRAssignmentOverlay();
+    const messageEl = overlay.querySelector('.assignment-message');
+    const progressEl = overlay.querySelector('.assignment-progress');
+    
+    messageEl.textContent = message;
+    progressEl.textContent = 'Waiting for all players to scan QR codes...';
+    
+    overlay.classList.add('show');
+}
+
+// Create QR assignment overlay (add this to your HTML)
+function createQRAssignmentOverlay() {
+    const overlay = document.createElement('div');
+    overlay.id = 'qrAssignmentOverlay';
+    overlay.className = 'qr-assignment-overlay';
+    overlay.innerHTML = `
+        <div class="assignment-container">
+            <div class="assignment-icon">🎯</div>
+            <div class="assignment-title">QR Code Assignment Phase</div>
+            <div class="assignment-message">All players must scan their QR codes</div>
+            <div class="assignment-progress">Waiting for all players...</div>
+            <div class="assignment-players-status" id="playersStatus">
+                <div class="status-text">Players Ready: <span id="readyCount">0</span>/<span id="totalCount">0</span></div>
+                <div class="progress-bar-container">
+                    <div class="progress-bar" id="progressBar"></div>
+                </div>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(overlay);
+    return overlay;
+}
+
+// Update QR assignment progress
+function updateQRAssignmentProgress(assigned, total, playerName) {
+    const overlay = document.getElementById('qrAssignmentOverlay');
+    if (!overlay) return;
+    
+    const readyCount = overlay.querySelector('#readyCount');
+    const totalCount = overlay.querySelector('#totalCount');
+    const progressBar = overlay.querySelector('#progressBar');
+    const progressText = overlay.querySelector('.assignment-progress');
+    
+    if (readyCount) readyCount.textContent = assigned;
+    if (totalCount) totalCount.textContent = total;
+    
+    if (progressBar) {
+        const percentage = (assigned / total) * 100;
+        progressBar.style.width = percentage + '%';
+    }
+    
+    if (progressText) {
+        if (assigned === total) {
+            progressText.textContent = 'All players ready! Starting game...';
+            progressText.style.color = '#00ff00';
+        } else {
+            progressText.textContent = `${playerName} got their QR code! (${assigned}/${total})`;
+        }
+    }
+}
+
+// Hide QR assignment phase
+function hideQRAssignmentPhase() {
+    const overlay = document.getElementById('qrAssignmentOverlay');
+    if (overlay) {
+        overlay.classList.remove('show');
+    }
+    
+    // Hide QR scanner modal if still open
+    hideQRScannerModal();
+}
+
+// Initialize actual game session (after QR assignment)
+function initializeActualGameSession(gameData) {
+    console.log('Initializing actual game session with data:', gameData);
+    
+    // Initialize player stats
+    updatePlayerHealth(100);
+    updatePlayerScore(0);
+    updateGameTimer(gameData.duration * 60, gameState.lobbyData?.settings.numPlayers || 4);
+    
+    // Start main game camera
+    startMainGameCamera();
+    
+    // Initialize forfeit modal
+    initializeForfeitModal();
+}
+
+// Modified QR assignment success handler
+socket.on('qr-assigned', (data) => {
+    console.log('QR Code assigned:', data);
+    if (data.success) {
+        // Hide QR scanner immediately after successful scan
+        hideQRScannerModal();
+        
+        // Show assignment overlay (will be updated by progress event)
+        showQRAssignmentOverlay('Waiting for all players to scan...');
+        
+        // Show quick success message
+        showNotification(`✅ ${data.playerName} QR registered!`, 'success');
+    } else {
+        showNotification(data.message || 'Failed to assign QR code', 'error');
+    }
+});
+
+// Show assignment success but keep waiting
+function showPlayerAssignmentSuccess(data) {
+    // This function is called by the new flow - just hide scanner and show overlay
+    hideQRScannerModal();
+    showQRAssignmentOverlay('Waiting for all players to scan...');
+}
+
+function createSuccessMessage() {
+    const msg = document.createElement('div');
+    msg.id = 'qrSuccessMessage';
+    msg.className = 'qr-success-message';
+    msg.style.cssText = `
+        position: absolute;
+        top: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: rgba(0, 255, 0, 0.9);
+        color: #000;
+        padding: 10px 20px;
+        border-radius: 10px;
+        font-weight: bold;
+        z-index: 2200;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+    `;
+    msg.style.opacity = '0';
+    document.querySelector('.qr-scanner-container').appendChild(msg);
+    
+    // Add show class styling
+    const style = document.createElement('style');
+    style.textContent = '.qr-success-message.show { opacity: 1 !important; }';
+    document.head.appendChild(style);
+    
+    return msg;
+}
+
 function updateLobbyCode(code) {
     const lobbyCodeElements = document.querySelectorAll('.lobby-code');
     lobbyCodeElements.forEach(el => el.textContent = code);
@@ -203,34 +404,6 @@ socket.on('countdown-canceled', () => {
     }   
     setReadyButtonState('normal');
     showNotification('Countdown canceled - player not ready', 'info');
-});
-
-socket.on('game-started', (gameData) => {
-    console.log('Game started!', gameData);
-    gameState.gameActive = true;
-    
-    if (gameState.playerType === 'player') {
-        showScreen('gameSession');
-        initializeGameSession(gameData);
-        // Show QR scanner modal first, before starting the actual game
-        setTimeout(() => {
-            showQRScannerModal();
-        }, 500);
-    } else if (gameState.playerType === 'spectator') {
-        showScreen('spectatorMode');
-        initializeSpectatorMode(gameData);
-    }
-});
-
-// QR Code Assignment Events
-socket.on('qr-assigned', (data) => {
-    console.log('QR Code assigned:', data);
-    if (data.success) {
-        showPlayerAssignmentSuccess(data);
-        hideQRScannerModal();
-    } else {
-        showNotification(data.message || 'Failed to assign QR code', 'error');
-    }
 });
 
 socket.on('game-timer', (data) => {
@@ -914,7 +1087,10 @@ function stopMainGameCamera() {
         }
     }
 }
-
+function showSpectatorQRWaiting() {
+    // Simple placeholder for spectators during QR assignment
+    showStatusMessage('⏳ QR Assignment Phase', 'Waiting for all players to scan their QR codes...');
+}
 function stopQRScanner() {
     if (qrScanner) {
         qrScanner.stop().then(() => {
