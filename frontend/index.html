@@ -12,6 +12,8 @@
   <link rel="stylesheet" href="./css/game_session.css" />
   <link rel="stylesheet" href="./css/leaderboard.css" />
   <link rel="stylesheet" href="css/spectator_mode.css">
+  <!-- Socket.io Client -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.8.1/socket.io.js"></script>
 </head>
 <body>
     <!-- Universal grid -->
@@ -42,7 +44,7 @@
         </div>
     </div> 
     <!-- Create Lobby -->
-    <div class="container create">
+    <div class="container create hidden">
         <button class="back-button" onclick="goBack()">←</button>
         
         <div class="header">
@@ -87,7 +89,7 @@
         </div>
     </div>
     <!-- Join Lobby -->
-    <div class="container join">
+    <div class="container join hidden">
         <button class="back-button">←</button>
         
         <div class="header">
@@ -126,7 +128,7 @@
         </div>
     </div>
     <!-- Player waiting room -->
-   <div class="container wait">
+   <div class="container wait hidden">
         <button class="leave-button">← Leave</button>
         
         <div class="header">
@@ -248,7 +250,7 @@
         </div>
     </div>
     <!-- Game session -->
-    <div class="game-container">
+    <div class="game-container hidden">
         <!-- Camera View -->
         <div class="camera-view">
             <div class="camera-placeholder">
@@ -327,7 +329,7 @@
         </div>
     </div>
     <!-- Leaderboard -->
-    <div class="results-container">
+    <div class="results-container hidden">
         <div class="header">
             <h1 class="logo">CV LASER TAG</h1>
             <p class="subtitle">Battle Results</p>
@@ -478,7 +480,7 @@
         </div>
     </div>
     <!-- Current lobbies -->
-    <div class="container live">
+    <div class="container live hidden">
         <button class="back-button">←</button>
         
         <div class="header">
@@ -595,7 +597,7 @@
         </div>
     </div>   
     <!-- Spectator view -->
-    <div class="spectator-container">
+    <div class="spectator-container hidden">
         <!-- Top HUD -->
         <div class="top-hud">
             <button class="back-button">←</button>
@@ -757,5 +759,8 @@
             </div>
         </div>
     </div>
+    
+    <!-- Client JavaScript -->
+    <script src="client.js"></script>
 </body>
 </html>
