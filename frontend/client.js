@@ -159,11 +159,14 @@ socket.on('countdown', (count) => {
 socket.on('countdown-canceled', () => {
     console.log('Countdown canceled');
     
-    // Small delay to ensure any pending countdown updates are processed first
-    setTimeout(() => {
-        hideGameStartCountdown();
-    }, 100);
+    hideGameStartCountdown();
     
+    if (gameState.lobbyData) {
+        const currentPlayer = gameState.lobbyData.players.find(p => p.id === socket.id);
+        if (currentPlayer) {
+            updateReadyButton(currentPlayer.isReady);
+        }
+    }   
     setReadyButtonState('normal');
     showNotification('Countdown canceled - player not ready', 'info');
 });
