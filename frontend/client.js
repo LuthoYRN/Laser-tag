@@ -53,11 +53,16 @@ function showScreen(screenName) {
 function showNotification(message, type = 'info') {
     console.log(`[${type.toUpperCase()}] ${message}`);
     
-    // You could add a proper notification UI element here
+    // Use status message system instead of alert
     if (type === 'error') {
-        alert(`Error: ${message}`);
+        showStatusMessage('⚠️ Error', message);
+    } else if (type === 'success') {
+        showStatusMessage('✅ Success', message);
+    } else {
+        showStatusMessage('ℹ️ Info', message);
     }
 }
+
 
 // Simplified socket event handlers - just use existing red flash indicator
 socket.on('scan-result', (data) => {
@@ -75,21 +80,26 @@ socket.on('player-damaged', (data) => {
     console.log('Player damaged:', data);
     if (data.playerId === socket.id) {
         updatePlayerHealth(data.health);
-        triggerHitIndicator(); // Use existing red flash indicator
-        showNotification(`Hit by ${data.shooterName}! -${data.damage} HP`, 'info');
+        triggerHitIndicator();
+        showStatusMessage('💥 HIT!', `Hit by ${data.shooterName}! -${data.damage} HP (${data.health}% remaining)`);
+    } else {
+        // Show feedback when you hit someone else
+        showStatusMessage('🎯 Direct Hit!', `You hit ${data.playerName} for ${data.damage} damage!`);
     }
 });
 
 socket.on('player-eliminated', (data) => {
     console.log('Player eliminated:', data);
     if (data.playerId === socket.id) {
-        // You were eliminated - trigger red flash
+        // You were eliminated - use status message instead of alert
         triggerHitIndicator();
-        showNotification('💀 YOU WERE ELIMINATED!', 'error');
-        showEliminationPopup();
+        showStatusMessage('💀 ELIMINATED!', 'You have been eliminated from the game');
+        
+        // Show elimination overlay for longer duration
+        showEliminationOverlay();
     } else {
         // Someone else was eliminated
-        showNotification(`${data.playerName} was eliminated by ${data.shooterName}!`, 'info');
+        showStatusMessage('🎯 Player Eliminated', `${data.playerName} was eliminated by ${data.shooterName}!`);
     }
 });
 
@@ -161,6 +171,27 @@ function showQRAssignmentOverlay(message) {
     progressEl.textContent = 'Waiting for all players to scan QR codes...';
     
     overlay.classList.add('show');
+}
+
+function showEliminationOverlay() {
+    const statusMessage = document.getElementById('statusMessage');
+    const statusTitle = document.getElementById('statusTitle');
+    const statusText = document.getElementById('statusText');
+    
+    if (statusMessage && statusTitle && statusText) {
+        statusTitle.textContent = '💀 YOU WERE ELIMINATED!';
+        statusText.textContent = 'Game over - transitioning to spectator mode...';
+        statusMessage.classList.add('show');
+        statusMessage.style.borderColor = '#ff0000';
+        statusMessage.style.background = 'rgba(255, 0, 0, 0.9)';
+        
+        // Keep visible for longer (5 seconds instead of 3)
+        setTimeout(() => {
+            statusMessage.classList.remove('show');
+            statusMessage.style.borderColor = '#00ffff'; // Reset color
+            statusMessage.style.background = 'rgba(0, 0, 0, 0.9)'; // Reset background
+        }, 5000);
+    }
 }
 
 // Create QR assignment overlay (add this to your HTML)
@@ -341,19 +372,20 @@ function goBack() {
 // Socket Event Handlers
 socket.on('connect', () => {
     console.log('🔗 Connected to server:', socket.id);
-    showNotification('Connected to game server', 'success');
+    showStatusMessage('🔗 Connected', 'Connected to game server');
 });
 
 socket.on('disconnect', () => {
     console.log('❌ Disconnected from server');
-    showNotification('Disconnected from server', 'error');
+    showStatusMessage('❌ Disconnected', 'Lost connection to server');
     showScreen('home');
 });
 
 socket.on('connect_error', (error) => {
     console.error('Connection error:', error);
-    showNotification('Failed to connect to server', 'error');
+    showStatusMessage('❌ Connection Error', 'Failed to connect to server');
 });
+
 
 // Lobby Management Events
 socket.on('player-joined', (lobbyState) => {
@@ -946,10 +978,17 @@ function showStatusMessage(title, text) {
         statusText.textContent = text;
         statusMessage.classList.add('show');
         
-        // Auto hide after 3 seconds
+        // Auto hide based on message type (longer for important messages)
+        let duration = 3000; // default
+        if (title.includes('ELIMINATED') || title.includes('Error')) {
+            duration = 5000; // longer for critical messages
+        } else if (title.includes('Hit') || title.includes('Shot')) {
+            duration = 2000; // shorter for action feedback
+        }
+        
         setTimeout(() => {
             statusMessage.classList.remove('show');
-        }, 3000);
+        }, duration);
     }
 }
 
@@ -1005,6 +1044,7 @@ function startQRScanner() {
         }
     });
 }
+
 function startMainGameCamera() {
     const placeholder = document.getElementById('qrCameraPlaceholder');
     
@@ -1018,12 +1058,8 @@ function startMainGameCamera() {
     
     const mainScanner = new Html5Qrcode("qrCameraPlaceholder");
     
-    // Make scanning area MUCH larger for mobile - almost full screen width
     const screenWidth = window.innerWidth;
-    const screenHeight = window.innerHeight;
-    
-    // Use 90% of screen width, but cap at reasonable size for larger screens
-    const qrBoxSize = Math.min(screenWidth * 0.9, 400); // Much larger: 90% width, max 400px
+    const qrBoxSize = Math.min(screenWidth * 0.9, 400);
     
     const config = {
         fps: 10,
@@ -1033,7 +1069,6 @@ function startMainGameCamera() {
     
     console.log(`Setting QR box size to: ${qrBoxSize}px for screen width: ${screenWidth}px`);
     
-    // Show loading state
     placeholder.innerHTML = '<div style="color: #00ffff; text-align: center;">📷<br>Starting Camera...</div>';
     
     mainScanner.start(
@@ -1056,7 +1091,9 @@ function startMainGameCamera() {
     }).catch(err => {
         console.error("Main game camera failed to start:", err);
         
-        // Show error message if camera fails
+        // Show error message using status system instead of alert
+        showStatusMessage('📷 Camera Error', 'Camera access required - please allow permissions and refresh');
+        
         placeholder.innerHTML = `
             <div style="color: #ff0000; text-align: center; padding: 20px;">
                 ❌<br>
@@ -1064,11 +1101,9 @@ function startMainGameCamera() {
                 <small>Please allow camera permissions and refresh</small>
             </div>
         `;
-        
-        // Also show alert to user
-        alert('Camera access is required to play. Please allow camera permissions and try again.');
     });
 }
+
 // Also add this helper function to stop the main camera when needed
 function stopMainGameCamera() {
     const placeholder = document.getElementById('qrCameraPlaceholder');
