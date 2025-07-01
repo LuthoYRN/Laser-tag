@@ -5,7 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Webcam Capture</title>
     <link rel="stylesheet" href="styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/onnxjs/dist/onnx.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
     <script src="webcam-module.js" defer></script>
+    <script src="digit-recognition.js" defer></script>
 </head>
 <body>
     <div class="container">
@@ -22,6 +25,9 @@
             <div id="monitorLabel">Cropped View</div>
             <canvas id="monitorCanvas"></canvas>
         </div>
+        <div class="prediction-section">
+            <div id="predictionArea"></div>
+        </div>
     </div>
 </body>
-</html> 
+</html>

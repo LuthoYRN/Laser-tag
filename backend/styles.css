@@ -38,20 +38,6 @@ h1 {
     background-color: #000;
 }
 
-#boundingBox {
-    position: absolute;
-    width: 200px;
-    height: 200px;
-    border: 3px solid #00ff00;
-    border-radius: 8px;
-    background-color: rgba(0, 255, 0, 0.1);
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    pointer-events: none;
-    z-index: 10;
-}
-
 #centerMarker {
     position: absolute;
     width: 20px;
@@ -107,6 +93,23 @@ h1 {
     margin-bottom: 5px;
 }
 
+.prediction-section {
+    text-align: center;
+    margin-top: 20px;
+}
+
+#predictionArea {
+    background-color: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 6px;
+    padding: 15px;
+    min-height: 50px;
+    font-family: 'Courier New', monospace;
+    color: #333;
+    text-align: left;
+    overflow-wrap: break-word;
+}
+
 .controls {
     text-align: center;
 }
@@ -147,11 +150,6 @@ h1 {
         height: 200px;
     }
     
-    #boundingBox {
-        width: 150px;
-        height: 150px;
-    }
-    
     #centerMarker {
         width: 15px;
         height: 15px;
@@ -170,5 +168,10 @@ h1 {
     #monitorCanvas {
         width: 150px;
         height: 150px;
+    }
+    
+    #predictionArea {
+        min-height: 40px;
+        padding: 10px;
     }
 }

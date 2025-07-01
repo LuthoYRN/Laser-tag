@@ -20,15 +20,6 @@ class WebcamModule {
         });
     }
 
-    createBoundingBox() {
-        const boundingBox = document.createElement('div');
-        boundingBox.id = 'boundingBox';
-        const centerMarker = document.createElement('div');
-        centerMarker.id = 'centerMarker';
-        boundingBox.appendChild(centerMarker);
-        return boundingBox;
-    }
-
     createMonitor() {
         const canvas = document.createElement('canvas');
         canvas.id = 'monitorCanvas';
@@ -37,10 +28,10 @@ class WebcamModule {
         return canvas;
     }
 
-    addBoundingBoxAndMonitor() {
-        const existingBox = document.getElementById('boundingBox');
-        if (existingBox) {
-            existingBox.remove();
+    addCenterMarkerAndMonitor() {
+        const existingMarker = document.getElementById('centerMarker');
+        if (existingMarker) {
+            existingMarker.remove();
         }
         const existingCanvas = document.getElementById('monitorCanvas');
         if (existingCanvas) {
@@ -51,8 +42,9 @@ class WebcamModule {
         this.boundingBoxSize = window.innerWidth <= 600 ? 150 : 200;
 
         const videoContainer = this.video.parentElement;
-        const boundingBox = this.createBoundingBox();
-        videoContainer.appendChild(boundingBox);
+        const centerMarker = document.createElement('div');
+        centerMarker.id = 'centerMarker';
+        videoContainer.appendChild(centerMarker);
 
         const monitorSection = document.querySelector('.monitor-section');
         const monitorCanvas = this.createMonitor();
@@ -68,10 +60,11 @@ class WebcamModule {
             return;
         }
 
-        const videoWidth = this.video.videoWidth;
-        const videoHeight = this.video.videoHeight;
-        const cropX = (videoWidth - this.boundingBoxSize) / 2;
-        const cropY = (videoHeight - this.boundingBoxSize) / 2;
+        // Use displayed dimensions to match the video's rendered size
+        const videoDisplayWidth = this.video.videoWidth;
+        const videoDisplayHeight = this.video.videoHeight; // Fixed typo from videoWidth
+        const cropX = (videoDisplayWidth - this.boundingBoxSize) / 2;
+        const cropY = (videoDisplayHeight - this.boundingBoxSize) / 2;
 
         this.monitorCtx.drawImage(
             this.video,
@@ -81,26 +74,6 @@ class WebcamModule {
 
         this.animationFrameId = requestAnimationFrame(() => this.updateMonitor());
     }
-
-    /*updateMonitor() {
-        if (!this.stream || !this.monitorCtx || this.video.readyState !== 4) {
-            return;
-        }
-
-        const videoWidth = this.video.videoWidth;
-        const videoHeight = this.video.videoHeight;
-        const cropX = (videoWidth - this.boundingBoxSize) / 2;
-        const cropY = (videoHeight - this.boundingBoxSize) / 2;
-
-        console.log(`Crop coordinates: x=${cropX}, y=${cropY}, size=${this.boundingBoxSize}`);
-        this.monitorCtx.drawImage(
-            this.video,
-            cropX, cropY, this.boundingBoxSize, this.boundingBoxSize,
-            0, 0, this.boundingBoxSize, this.boundingBoxSize
-        );
-
-        this.animationFrameId = requestAnimationFrame(() => this.updateMonitor());
-    }*/
 
     async startCamera() {
         try {
@@ -119,8 +92,8 @@ class WebcamModule {
             this.toggleButton.textContent = 'Stop Camera';
             this.toggleButton.classList.add('stop');
 
-            this.video.addEventListener('loadedmetadata', () => {
-                this.addBoundingBoxAndMonitor();
+            this.video.addEventListener('canplay', () => {
+                this.addCenterMarkerAndMonitor();
             }, { once: true });
         } catch (error) {
             console.error('Error accessing webcam:', error);
@@ -141,9 +114,9 @@ class WebcamModule {
                 this.animationFrameId = null;
             }
 
-            const boundingBox = document.getElementById('boundingBox');
-            if (boundingBox) {
-                boundingBox.remove();
+            const centerMarker = document.getElementById('centerMarker');
+            if (centerMarker) {
+                centerMarker.remove();
             }
             const monitorCanvas = document.getElementById('monitorCanvas');
             if (monitorCanvas) {
