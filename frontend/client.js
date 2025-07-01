@@ -203,7 +203,7 @@ function initializeHome() {
 function initializeCreateLobby() {
     const createButton = document.querySelector('.create-button');
     const backButton = document.querySelector('.container.create .back-button');
-    const maxPlayersButtons = document.querySelectorAll('.container.create .option-button');
+    const numPlayersButtons = document.querySelectorAll('.container.create .option-button');
     const durationSlider = document.getElementById('durationSlider');
     const durationValue = document.getElementById('durationValue');
     
@@ -212,10 +212,10 @@ function initializeCreateLobby() {
         backButton.addEventListener('click', goBack);
     }
     
-    // Max players selection
-    maxPlayersButtons.forEach(button => {
+    // Number of players selection
+    numPlayersButtons.forEach(button => {
         button.addEventListener('click', () => {
-            maxPlayersButtons.forEach(b => b.classList.remove('active'));
+            numPlayersButtons.forEach(b => b.classList.remove('active'));
             button.classList.add('active');
         });
     });
@@ -238,7 +238,7 @@ function createLobby() {
     const durationSlider = document.getElementById('durationSlider');
     
     const settings = {
-        maxPlayers: parseInt(activeMaxButton?.textContent || '4'),
+        numPlayers: parseInt(activeMaxButton?.textContent || '4'),
         duration: parseInt(durationSlider?.value || '15'),
         playerName: 'Host'
     };
@@ -364,7 +364,7 @@ function displayActiveLiveLobbies(lobbies) {
             <div class="game-info">
                 <div class="info-item">
                     <div class="info-label">Players Left</div>
-                    <div class="info-value players-value">${lobby.playersLeft}/${lobby.maxPlayers}</div>
+                    <div class="info-value players-value">${lobby.playersLeft}/${lobby.numPlayers}</div>
                 </div>
                 <div class="info-item">
                     <div class="info-label">Time Left</div>
@@ -407,9 +407,9 @@ function updateWaitingRoom(lobbyState) {
         durationElement.textContent = `${lobbyState.settings.duration} min`;
     }
     
-    const maxPlayersElement = document.querySelector('.container.wait .info-item:last-child .info-value');
-    if (maxPlayersElement) {
-        maxPlayersElement.textContent = lobbyState.settings.maxPlayers;
+    const numPlayersElement = document.querySelector('.container.wait .info-item:last-child .info-value');
+    if (numPlayersElement) {
+        numPlayersElement.textContent = lobbyState.settings.numPlayers;
     }
     
     updatePlayerList(lobbyState);
@@ -422,7 +422,7 @@ function updatePlayerList(lobbyState = gameState.lobbyData) {
     const playersCount = document.querySelector('.players-count');
     
     if (playersCount) {
-        playersCount.textContent = `${lobbyState.players.length} of ${lobbyState.settings.maxPlayers} Players Connected`;
+        playersCount.textContent = `${lobbyState.players.length} of ${lobbyState.settings.numPlayers} Players Connected`;
     }
     
     if (!playerList) return;
@@ -449,7 +449,7 @@ function updatePlayerList(lobbyState = gameState.lobbyData) {
     });
     
     // Add empty slots
-    const emptySlots = lobbyState.settings.maxPlayers - lobbyState.players.length;
+    const emptySlots = lobbyState.settings.numPlayers - lobbyState.players.length;
     for (let i = 0; i < emptySlots; i++) {
         const emptyHtml = `
             <div class="player-item empty-slot">
@@ -534,7 +534,7 @@ function updateGameTimer(timeLeft, playersAlive) {
     }
     
     if (playersElement && gameState.lobbyData) {
-        playersElement.textContent = `${playersAlive}/${gameState.lobbyData.settings.maxPlayers}`;
+        playersElement.textContent = `${playersAlive}/${gameState.lobbyData.settings.numPlayers}`;
     }
 }
 

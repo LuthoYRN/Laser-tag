@@ -41,7 +41,7 @@ function createLobby(hostSocketId, settings = {}) {
         players: new Map(),
         spectators: new Set(),
         settings: {
-            maxPlayers: settings.maxPlayers || 4,
+            numPlayers: settings.numPlayers || 4,
             duration: settings.duration || 15,
             ...settings
         },
@@ -62,7 +62,7 @@ function addPlayerToLobby(lobbyCode, socketId, playerData) {
     const lobby = lobbies.get(lobbyCode);
     if (!lobby) return false;
 
-    if (lobby.players.size >= lobby.settings.maxPlayers) {
+    if (lobby.players.size >= lobby.settings.numPlayers || lobby.status != 'waiting') {
         return false;
     }
 
@@ -132,7 +132,7 @@ function getActiveLobbiesToSpectate() {
             activeLobbies.push({
                 code,
                 playersLeft: Array.from(lobby.players.values()).filter(p => p.isAlive).length,
-                maxPlayers: lobby.settings.maxPlayers,
+                numPlayers: lobby.settings.numPlayers,
                 timeLeft: lobby.gameData.endTime ? 
                     Math.max(0, lobby.gameData.endTime - Date.now()) : 
                     lobby.settings.duration * 60 * 1000,
@@ -228,7 +228,7 @@ io.on('connection', (socket) => {
 
             // Check if all players are ready
             const allReady = Array.from(lobby.players.values()).every(p => p.isReady);
-            if (allReady && lobby.players.size >= 2) {
+            if (allReady && lobby.players.size >= lobby.settings.numPlayers) {
                 startGameCountdown(player.lobbyCode);
             }
         }
