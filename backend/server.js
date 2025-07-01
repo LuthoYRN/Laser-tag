@@ -264,23 +264,7 @@ io.on('connection', (socket) => {
         callback(activeLobbies);
     });
 
-    // Game Events
-    socket.on('shoot', (data) => {
-        const player = players.get(socket.id);
-        if (!player || player.type === 'spectator') return;
-
-        const lobby = lobbies.get(player.lobbyCode);
-        if (!lobby || lobby.status !== 'active') return;
-
-        // Broadcast shoot event to all players in lobby
-        socket.to(player.lobbyCode).emit('player-shot', {
-            playerId: socket.id,
-            playerName: player.name,
-            timestamp: Date.now()
-        });
-    });
-
-    socket.on('player-hit', (data) => {
+    socket.on('player-forfeit', () => {
         const player = players.get(socket.id);
         if (!player || player.type === 'spectator') return;
 
@@ -288,33 +272,159 @@ io.on('connection', (socket) => {
         if (!lobby || lobby.status !== 'active') return;
 
         const lobbyPlayer = lobby.players.get(socket.id);
-        if (lobbyPlayer && lobbyPlayer.isAlive) {
-            lobbyPlayer.health = Math.max(0, lobbyPlayer.health - (data.damage || 10));
-            
-            if (lobbyPlayer.health <= 0) {
-                lobbyPlayer.isAlive = false;
-                
-                // Update shooter's score
-                if (data.shooterId && lobby.players.has(data.shooterId)) {
-                    const shooter = lobby.players.get(data.shooterId);
-                    shooter.eliminations += 1;
-                    shooter.score += 100;
-                }
-                
-                io.to(player.lobbyCode).emit('player-eliminated', {
-                    playerId: socket.id,
-                    playerName: lobbyPlayer.name,
-                    shooterId: data.shooterId
-                });
-                
-                checkGameEnd(player.lobbyCode);
-            } else {
-                io.to(player.lobbyCode).emit('player-damaged', {
-                    playerId: socket.id,
-                    health: lobbyPlayer.health
-                });
-            }
+        if (!lobbyPlayer) return;
+
+        // Mark player as eliminated (forfeit)
+        lobbyPlayer.isAlive = false;
+        lobbyPlayer.health = 0;
+
+        // Notify all players of forfeit
+        io.to(player.lobbyCode).emit('player-eliminated', {
+            playerId: socket.id,
+            playerName: lobbyPlayer.name,
+            shooterId: null, // No shooter for forfeit
+            shooterName: 'Forfeit',
+            reason: 'forfeit'
+        });
+
+        // Remove player from lobby
+        removePlayerFromLobby(socket.id);
+        socket.leave(player.lobbyCode);
+
+        // Check if game should end
+        checkGameEnd(player.lobbyCode);
+
+        console.log(`${lobbyPlayer.name} forfeited the game in lobby ${player.lobbyCode}`);
+    });
+
+    socket.on('assign-qr-code', (data) => {
+        const player = players.get(socket.id);
+        if (!player || player.type === 'spectator') return;
+
+        const lobby = lobbies.get(player.lobbyCode);
+        if (!lobby) return;
+
+        const { qrCode } = data;
+        
+        // Check if QR code is already assigned to another player
+        const existingPlayer = Array.from(lobby.players.values()).find(p => p.assignedQR === qrCode);
+        if (existingPlayer && existingPlayer.id !== socket.id) {
+            socket.emit('qr-assigned', {
+                success: false,
+                message: 'QR code already assigned to another player'
+            });
+            return;
         }
+        
+        // Assign QR code to player
+        const lobbyPlayer = lobby.players.get(socket.id);
+        if (lobbyPlayer) {
+            lobbyPlayer.assignedQR = qrCode;
+            
+            socket.emit('qr-assigned', {
+                success: true,
+                qrCode: qrCode,
+                playerName: lobbyPlayer.name,
+                playerId: socket.id
+            });
+            
+            console.log(`Player ${lobbyPlayer.name} assigned QR code: ${qrCode}`);
+        }
+    });
+
+    // Game Events
+    socket.on('qr-scan', (data) => {
+        const player = players.get(socket.id);
+        if (!player || player.type === 'spectator') return;
+
+        const lobby = lobbies.get(player.lobbyCode);
+        if (!lobby || lobby.status !== 'active') return;
+
+        const { targetQrCode, scannerId } = data;
+        
+        // Find target player by their assigned QR code
+        const targetPlayer = Array.from(lobby.players.values()).find(p => p.assignedQR === targetQrCode);
+        const scannerPlayer = lobby.players.get(scannerId);
+        
+        if (!targetPlayer || !scannerPlayer) {
+            socket.emit('scan-result', { 
+                success: false, 
+                message: 'Invalid QR code or player not found' 
+            });
+            return;
+        }
+        
+        // Don't allow scanning yourself
+        if (targetPlayer.id === scannerId) {
+            socket.emit('scan-result', { 
+                success: false, 
+                message: 'Cannot scan your own QR code' 
+            });
+            return;
+        }
+        
+        if (!targetPlayer.isAlive) {
+            socket.emit('scan-result', { 
+                success: false, 
+                message: 'Target already eliminated' 
+            });
+            return;
+        }
+        
+        if (!scannerPlayer.isAlive) {
+            socket.emit('scan-result', { 
+                success: false, 
+                message: 'You are eliminated' 
+            });
+            return;
+        }
+        
+        // Apply damage
+        const damage = 25;
+        const pointsEarned = 50;
+        
+        targetPlayer.health = Math.max(0, targetPlayer.health - damage);
+        scannerPlayer.score += pointsEarned;
+        
+        // Notify scanner of successful hit
+        socket.emit('scan-result', {
+            success: true,
+            targetPlayerId: targetPlayer.id,
+            targetPlayerName: targetPlayer.name,
+            damage: damage,
+            pointsEarned: pointsEarned,
+            newScore: scannerPlayer.score,
+            scannerId: scannerId
+        });
+        
+        // Check if target was eliminated
+        if (targetPlayer.health <= 0) {
+            targetPlayer.isAlive = false;
+            scannerPlayer.eliminations += 1;
+            scannerPlayer.score += 100; // Bonus for elimination
+            
+            // Notify all players of elimination
+            io.to(player.lobbyCode).emit('player-eliminated', {
+                playerId: targetPlayer.id,
+                playerName: targetPlayer.name,
+                shooterId: scannerId,
+                shooterName: scannerPlayer.name
+            });
+            
+            checkGameEnd(player.lobbyCode);
+        } else {
+            // Notify all players of damage
+            io.to(player.lobbyCode).emit('player-damaged', {
+                playerId: targetPlayer.id,
+                playerName: targetPlayer.name,
+                health: targetPlayer.health,
+                damage: damage,
+                shooterId: scannerId,
+                shooterName: scannerPlayer.name
+            });
+        }
+        
+        console.log(`${scannerPlayer.name} scanned ${targetPlayer.name} (${targetQrCode}) - Health: ${targetPlayer.health}`);
     });
 
     socket.on('disconnect', () => {
