@@ -1,0 +1,24 @@
+{
+  "name": "laser-tag",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/LuthoYRN/Laser-tag.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/LuthoYRN/Laser-tag/issues"
+  },
+  "homepage": "https://github.com/LuthoYRN/Laser-tag#readme",
+  "description": "",
+  "dependencies": {
+    "@tensorflow-models/coco-ssd": "^2.2.3",
+    "@tensorflow/tfjs": "^4.22.0"
+  }
+}
