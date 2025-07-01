@@ -1,0 +1,300 @@
+.container.join .back-button {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    background: rgba(0, 0, 0, 0.6);
+    border: 2px solid #666;
+    border-radius: 10px;
+    padding: 10px;
+    color: #ffffff;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-size: 1.2rem;
+    backdrop-filter: blur(10px);
+}
+
+.container.join .back-button:hover {
+    border-color: #00ffff;
+    box-shadow: 0 0 15px rgba(0, 255, 255, 0.3);
+}
+
+.join-title {
+    text-align: center;
+    font-size: 1.5rem;
+    color: #00ffff;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    margin-bottom: 30px;
+    text-shadow: 0 0 15px #00ffff;
+}
+
+.code-input-section {
+    background: rgba(0, 0, 0, 0.8);
+    border: 2px solid #ff00ff;
+    border-radius: 15px;
+    padding: 25px;
+    margin-bottom: 30px;
+    backdrop-filter: blur(10px);
+}
+
+.input-label {
+    display: block;
+    color: #ff00ff;
+    font-size: 0.9rem;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 12px;
+}
+
+.lobby-code-input {
+    width: 100%;
+    padding: 15px;
+    background: rgba(0, 0, 0, 0.8);
+    border: 2px solid #333;
+    border-radius: 10px;
+    color: #ffffff;
+    font-size: 1.5rem;
+    font-family: 'Courier New', monospace;
+    text-align: center;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    transition: all 0.3s ease;
+    margin-bottom: 10px;
+}
+
+.lobby-code-input:focus {
+    outline: none;
+    border-color: #ff00ff;
+    box-shadow: 0 0 20px rgba(255, 0, 255, 0.3);
+}
+
+.lobby-code-input::placeholder {
+    color: #666;
+    letter-spacing: 2px;
+}
+
+.input-hint {
+    font-size: 0.8rem;
+    color: #999;
+    text-align: center;
+    font-style: italic;
+}
+
+.join-type-section {
+    background: rgba(0, 0, 0, 0.6);
+    border: 2px solid #333;
+    border-radius: 15px;
+    padding: 25px;
+    margin-bottom: 30px;
+    backdrop-filter: blur(10px);
+}
+
+.section-label {
+    display: block;
+    color: #00ffff;
+    font-size: 0.9rem;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+.join-options {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.join-option {
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02));
+    border: 2px solid #333;
+    border-radius: 12px;
+    padding: 20px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.join-option:hover {
+    border-color: #00ffff;
+    box-shadow: 0 5px 20px rgba(0, 255, 255, 0.2);
+}
+
+.join-option.selected {
+    border-color: #00ff00;
+    background: linear-gradient(135deg, rgba(0, 255, 0, 0.1), rgba(0, 255, 0, 0.05));
+    box-shadow: 0 5px 20px rgba(0, 255, 0, 0.3);
+}
+
+.join-option::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+    transition: left 0.5s;
+}
+
+.join-option:hover::before {
+    left: 100%;
+}
+
+.option-header {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin-bottom: 8px;
+}
+
+.option-icon {
+    font-size: 1.5rem;
+    width: 40px;
+    text-align: center;
+}
+
+.option-title {
+    font-size: 1.2rem;
+    font-weight: bold;
+    color: #ffffff;
+}
+
+.option-description {
+    font-size: 0.9rem;
+    color: #999;
+    margin-left: 55px;
+    line-height: 1.4;
+}
+
+.player-option .option-title {
+    color: #00ff00;
+}
+
+.spectator-option .option-title {
+    color: #ffff00;
+}
+
+.join-button {
+    width: 100%;
+    padding: 18px;
+    background: linear-gradient(45deg, #ff00ff, #cc00cc);
+    border: none;
+    border-radius: 12px;
+    color: #ffffff;
+    font-size: 1.3rem;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 5px 20px rgba(255, 0, 255, 0.4);
+    margin-bottom: 20px;
+    opacity: 0.5;
+}
+
+.join-button:enabled {
+    opacity: 1;
+}
+
+.join-button:enabled:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 30px rgba(255, 0, 255, 0.6);
+}
+
+.join-button:active {
+    transform: translateY(0);
+}
+
+.join-button:disabled {
+    cursor: not-allowed;
+}
+
+.container.join .status-section {
+    background: rgba(0, 0, 0, 0.6);
+    border: 2px solid #333;
+    border-radius: 12px;
+    padding: 15px;
+    margin-bottom: 20px;
+    backdrop-filter: blur(10px);
+    display: none;
+}
+
+.container.join .status-section.show {
+    display: block;
+}
+
+.container.join .status-indicator {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    font-size: 0.9rem;
+    color: #00ff00;
+}
+
+.container.join .status-dot {
+    width: 8px;
+    height: 8px;
+    background: #00ff00;
+    border-radius: 50%;
+    animation: joinLobbyPulse 1.5s infinite;
+}
+
+@keyframes joinLobbyPulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(1.2); }
+}
+
+.footer-hint {
+    text-align: center;
+    color: #666;
+    font-size: 0.8rem;
+    line-height: 1.4;
+}
+
+/* Mobile optimizations */
+@media (max-width: 480px) {
+    .container.join {
+        padding: 15px;
+    }
+    
+     .container.join .logo {
+        font-size: 2rem;
+    }
+    
+    .lobby-code-input {
+        font-size: 1.3rem;
+        padding: 12px;
+    }
+    
+    .join-option {
+        padding: 15px;
+    }
+    
+    .option-header {
+        gap: 12px;
+    }
+    
+    .option-icon {
+        font-size: 1.3rem;
+        width: 35px;
+    }
+    
+    .option-title {
+        font-size: 1.1rem;
+    }
+    
+    .option-description {
+        margin-left: 47px;
+        font-size: 0.8rem;
+    }
+    
+    .join-button {
+        padding: 16px;
+        font-size: 1.2rem;
+    }
+}
