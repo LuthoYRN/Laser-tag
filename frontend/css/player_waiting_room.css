@@ -1,0 +1,487 @@
+.container.wait .leave-button {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    background: rgba(255, 0, 0, 0.2);
+    border: 2px solid #ff0000;
+    border-radius: 10px;
+    padding: 8px 12px;
+    color: #ff0000;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-size: 0.9rem;
+    backdrop-filter: blur(10px);
+}
+
+.container.wait .leave-button:hover {
+    background: rgba(255, 0, 0, 0.3);
+    box-shadow: 0 0 15px rgba(255, 0, 0, 0.3);
+}
+
+.status-header {
+    text-align: center;
+    font-size: 1.3rem;
+    color: #00ff00;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    margin-bottom: 25px;
+    text-shadow: 0 0 15px #00ff00;
+    animation: waitingRoomPulse 2s infinite;
+}
+
+@keyframes waitingRoomPulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
+}
+
+.container.wait .lobby-info {
+    background: rgba(0, 0, 0, 0.8);
+    border: 2px solid #ffff00;
+    border-radius: 15px;
+    padding: 20px;
+    margin-bottom: 25px;
+    backdrop-filter: blur(10px);
+}
+
+.lobby-code-display {
+    text-align: center;
+    margin-bottom: 15px;
+}
+
+.container.wait .code-label {
+    font-size: 0.8rem;
+    color: #ffff00;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 5px;
+}
+
+.container.wait .lobby-code {
+    font-size: 1.8rem;
+    font-weight: bold;
+    color: #ffffff;
+    font-family: 'Courier New', monospace;
+    letter-spacing: 3px;
+    text-shadow: 0 0 10px #ffffff;
+}
+
+.container.wait .game-info {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+    margin-top: 15px;
+}
+
+.container.wait .info-item {
+    text-align: center;
+    padding: 8px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+}
+
+.container.wait .info-label {
+    font-size: 0.7rem;
+    color: #999;
+    text-transform: uppercase;
+    margin-bottom: 3px;
+}
+
+.container.wait .info-value {
+    font-size: 0.9rem;
+    font-weight: bold;
+    color: #00ffff;
+}
+
+.container.wait .players-section {
+    background: rgba(0, 0, 0, 0.6);
+    border: 2px solid #333;
+    border-radius: 15px;
+    padding: 20px;
+    margin-bottom: 25px;
+    backdrop-filter: blur(10px);
+    flex: 1;
+}
+
+.players-title {
+    color: #00ffff;
+    font-size: 1rem;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 15px;
+    text-align: center;
+    border-bottom: 2px solid #00ffff;
+    padding-bottom: 8px;
+}
+
+.players-count {
+    text-align: center;
+    font-size: 0.9rem;
+    color: #ffff00;
+    margin-bottom: 15px;
+}
+
+.player-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.player-item {
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02));
+    border: 1px solid #333;
+    border-radius: 10px;
+    padding: 12px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    transition: all 0.3s ease;
+}
+
+.player-item.current-player {
+    border-color: #00ff00;
+    background: linear-gradient(135deg, rgba(0, 255, 0, 0.1), rgba(0, 255, 0, 0.05));
+}
+
+.player-item.host {
+    border-color: #ffff00;
+    background: linear-gradient(135deg, rgba(255, 255, 0, 0.1), rgba(255, 255, 0, 0.05));
+}
+
+.player-avatar {
+    width: 35px;
+    height: 35px;
+    border-radius: 50%;
+    background: linear-gradient(45deg, #00ffff, #ff00ff);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    color: #000;
+    font-size: 0.9rem;
+}
+
+.container.wait .player-info {
+    flex: 1;
+}
+
+.player-name {
+    font-weight: bold;
+    font-size: 0.9rem;
+    margin-bottom: 2px;
+}
+
+.player-role {
+    font-size: 0.7rem;
+    color: #999;
+    text-transform: uppercase;
+}
+
+.player-role.host {
+    color: #ffff00;
+}
+
+.player-role.you {
+    color: #00ff00;
+}
+
+.container.wait .player-status {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.8rem;
+    font-weight: bold;
+}
+
+.container.wait .status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+}
+
+.container.wait .status-ready {
+    color: #00ff00;
+}
+
+.container.wait .status-ready .status-dot {
+    background: #00ff00;
+    animation: waitingRoomStatusPulse 1.5s infinite;
+}
+
+.container.wait .status-waiting {
+    color: #ffff00;
+}
+
+.container.wait .status-waiting .status-dot {
+    background: #ffff00;
+}
+
+@keyframes waitingRoomStatusPulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(1.2); }
+}
+
+.empty-slot {
+    opacity: 0.5;
+    border-style: dashed;
+}
+
+.empty-slot .player-avatar {
+    background: rgba(255, 255, 255, 0.2);
+    color: #666;
+}
+
+.ready-section {
+    margin-bottom: 20px;
+}
+
+.ready-button {
+    width: 100%;
+    padding: 18px;
+    border: none;
+    border-radius: 12px;
+    font-size: 1.2rem;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    margin-bottom: 15px;
+}
+
+.ready-button.not-ready {
+    background: linear-gradient(45deg, #00ff00, #00cc00);
+    color: #000000;
+    box-shadow: 0 5px 20px rgba(0, 255, 0, 0.4);
+}
+
+.ready-button.not-ready:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 30px rgba(0, 255, 0, 0.6);
+}
+
+.ready-button.ready {
+    background: linear-gradient(45deg, #ff6600, #ff4400);
+    color: #ffffff;
+    box-shadow: 0 5px 20px rgba(255, 102, 0, 0.4);
+}
+
+.ready-button.ready:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 30px rgba(255, 102, 0, 0.6);
+}
+
+.game-start-section {
+    background: rgba(0, 0, 0, 0.8);
+    border: 2px solid #00ff00;
+    border-radius: 12px;
+    padding: 15px;
+    text-align: center;
+    backdrop-filter: blur(10px);
+    display: none;
+}
+
+.game-start-section.show {
+    display: block;
+    animation: waitingRoomStartPulse 1s infinite;
+}
+
+@keyframes waitingRoomStartPulse {
+    0%, 100% { box-shadow: 0 0 20px rgba(0, 255, 0, 0.3); }
+    50% { box-shadow: 0 0 40px rgba(0, 255, 0, 0.6); }
+}
+
+.start-message {
+    font-size: 1.1rem;
+    color: #00ff00;
+    font-weight: bold;
+    margin-bottom: 10px;
+}
+
+.countdown {
+    font-size: 2rem;
+    color: #ffffff;
+    font-weight: bold;
+    font-family: 'Courier New', monospace;
+    text-shadow: 0 0 20px #ffffff;
+}
+
+.footer-hint {
+    text-align: center;
+    color: #666;
+    font-size: 0.8rem;
+    line-height: 1.4;
+    margin-top: 15px;
+}
+
+/* Mobile optimizations */
+@media (max-width: 480px) {
+    .container.wait {
+        padding: 15px;
+        max-width: 100%;
+    }
+    
+    .container.wait .header {
+        padding-top: 15px;
+        margin-bottom: 20px;
+    }
+    
+    .container.wait .logo {
+        font-size: 1.8rem;
+    }
+    
+    .container.wait .subtitle {
+        font-size: 0.8rem;
+    }
+    
+    .container.wait .leave-button {
+        top: 15px;
+        left: 15px;
+        padding: 10px 15px;
+        font-size: 0.8rem;
+    }
+    
+    .status-header {
+        font-size: 1.1rem;
+        margin-bottom: 20px;
+    }
+    
+    .container.wait .lobby-info {
+        padding: 15px;
+        margin-bottom: 20px;
+    }
+    
+    .container.wait .lobby-code {
+        font-size: 1.5rem;
+        letter-spacing: 2px;
+    }
+    
+    .container.wait .game-info {
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+        margin-top: 12px;
+    }
+    
+    .container.wait .info-item {
+        padding: 10px 8px;
+    }
+    
+    .container.wait .info-label {
+        font-size: 0.65rem;
+    }
+    
+    .container.wait .info-value {
+        font-size: 0.85rem;
+    }
+    
+    .container.wait .players-section {
+        padding: 15px;
+        margin-bottom: 20px;
+    }
+    
+    .players-title {
+        font-size: 0.9rem;
+        margin-bottom: 12px;
+        padding-bottom: 6px;
+    }
+    
+    .players-count {
+        font-size: 0.8rem;
+        margin-bottom: 12px;
+    }
+    
+    .player-item {
+        padding: 12px 10px;
+        gap: 10px;
+    }
+    
+    .player-avatar {
+        width: 32px;
+        height: 32px;
+        font-size: 0.8rem;
+    }
+    
+    .player-name {
+        font-size: 0.85rem;
+    }
+    
+    .player-role {
+        font-size: 0.65rem;
+    }
+    
+    .container.wait .player-status {
+        font-size: 0.75rem;
+    }
+    
+    .container.wait .status-dot {
+        width: 6px;
+        height: 6px;
+    }
+    
+    .ready-button {
+        padding: 16px;
+        font-size: 1.1rem;
+        letter-spacing: 1px;
+    }
+    
+    .game-start-section {
+        padding: 12px;
+    }
+    
+    .start-message {
+        font-size: 1rem;
+        margin-bottom: 8px;
+    }
+    
+    .countdown {
+        font-size: 1.8rem;
+    }
+    
+    .footer-hint {
+        font-size: 0.75rem;
+        margin-top: 12px;
+    }
+}
+
+@media (max-width: 480px) {
+    .container.wait {
+        padding: 12px;
+    }
+    
+    .container.wait .logo {
+        font-size: 1.6rem;
+    }
+    
+    .container.wait .lobby-code {
+        font-size: 1.3rem;
+        letter-spacing: 1px;
+    }
+    
+    .container.wait .game-info {
+        gap: 8px;
+    }
+    
+    .container.wait .info-item {
+        padding: 8px 6px;
+    }
+    
+    .player-item {
+        padding: 10px 8px;
+        gap: 8px;
+    }
+    
+    .player-avatar {
+        width: 28px;
+        height: 28px;
+        font-size: 0.7rem;
+    }
+    
+    .player-name {
+        font-size: 0.8rem;
+    }
+    
+    .ready-button {
+        padding: 14px;
+        font-size: 1rem;
+    }
+}
