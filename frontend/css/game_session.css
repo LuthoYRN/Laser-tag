@@ -461,6 +461,183 @@
     color: #ffffff;
 }
 
+.qr-scanner-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.95);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+    backdrop-filter: blur(15px);
+}
+
+.qr-scanner-modal.show {
+    display: flex;
+}
+
+.qr-scanner-container {
+    background: linear-gradient(135deg, rgba(20, 20, 20, 0.95), rgba(40, 40, 40, 0.95));
+    border: 2px solid #00ffff;
+    border-radius: 20px;
+    padding: 30px;
+    max-width: 400px;
+    width: 90%;
+    text-align: center;
+    box-shadow: 0 0 40px rgba(0, 255, 255, 0.5);
+    animation: scannerSlideIn 0.5s ease-out;
+}
+
+@keyframes scannerSlideIn {
+    0% {
+        transform: scale(0.8) translateY(50px);
+        opacity: 0;
+    }
+    100% {
+        transform: scale(1) translateY(0);
+        opacity: 1;
+    }
+}
+
+.qr-scanner-title {
+    font-size: 1.5rem;
+    color: #00ffff;
+    font-weight: bold;
+    margin-bottom: 20px;
+    text-transform: uppercase;
+    text-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
+}
+
+.qr-scanner-subtitle {
+    color: #aaa;
+    margin-bottom: 25px;
+    font-size: 0.9rem;
+}
+
+.qr-camera-view {
+    width: 100%;
+    height: 250px;
+    background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 50%, #16213e 100%);
+    border: 2px solid #00ffff;
+    border-radius: 15px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 20px;
+    position: relative;
+    overflow: hidden;
+}
+
+.qr-camera-placeholder {
+    width: 100% !important;
+    height: 100% !important;
+}
+
+.qr-instructions {
+    color: #ffffff;
+    font-size: 0.9rem;
+    margin-bottom: 20px;
+}
+.qr-cancel-button {
+    background: rgba(100, 100, 100, 0.8);
+    border: 2px solid #666;
+    border-radius: 8px;
+    padding: 10px 20px;
+    color: #ffffff;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-transform: uppercase;
+}
+
+.qr-cancel-button:hover {
+    border-color: #ff0000;
+    background: rgba(255, 0, 0, 0.2);
+    box-shadow: 0 0 15px rgba(255, 0, 0, 0.3);
+}
+
+/* Player Assignment Modal */
+.player-assignment-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.95);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 2100;
+    backdrop-filter: blur(15px);
+}
+
+.player-assignment-modal.show {
+    display: flex;
+}
+
+.player-assignment-container {
+    background: linear-gradient(135deg, rgba(0, 255, 0, 0.1), rgba(0, 255, 0, 0.05));
+    border: 3px solid #00ff00;
+    border-radius: 20px;
+    padding: 40px;
+    max-width: 350px;
+    width: 90%;
+    text-align: center;
+    box-shadow: 0 0 50px rgba(0, 255, 0, 0.6);
+    animation: assignmentPulse 0.8s ease-out;
+}
+
+@keyframes assignmentPulse {
+    0% {
+        transform: scale(0.5);
+        opacity: 0;
+    }
+    50% {
+        transform: scale(1.1);
+        opacity: 0.8;
+    }
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+.assignment-icon {
+    font-size: 3rem;
+    margin-bottom: 20px;
+    animation: assignmentSpin 1s ease-out;
+}
+
+@keyframes assignmentSpin {
+    0% { transform: rotate(0deg) scale(0.5); }
+    100% { transform: rotate(360deg) scale(1); }
+}
+
+.assignment-title {
+    font-size: 1.8rem;
+    color: #00ff00;
+    font-weight: bold;
+    margin-bottom: 15px;
+    text-transform: uppercase;
+    text-shadow: 0 0 15px rgba(0, 255, 0, 0.8);
+}
+
+.assignment-player-name {
+    font-size: 1.3rem;
+    color: #ffffff;
+    font-weight: bold;
+    margin-bottom: 10px;
+    font-family: 'Courier New', monospace;
+}
+
+.assignment-subtitle {
+    color: #aaa;
+    font-size: 0.9rem;
+}
+
 /* Mobile optimizations */
 @media (max-width: 768px) {
     .game-container .top-hud {
@@ -519,6 +696,20 @@
         flex-direction: column;
         gap: 10px;
     }
+    
+    .qr-scanner-container {
+        padding: 20px;
+        margin: 20px;
+    }
+
+    .qr-camera-view {
+        height: 200px;
+    }
+
+    .player-assignment-container {
+        padding: 30px;
+        margin: 20px;
+    }
 }
 
 @media (max-width: 480px) {
@@ -557,5 +748,8 @@
 
     .forfeit-text {
         font-size: 0.6rem;
+    }
+    .qr-camera-view {
+        height: 180px;
     }
 }

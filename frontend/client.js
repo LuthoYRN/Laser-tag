@@ -178,19 +178,29 @@ socket.on('game-started', (gameData) => {
     if (gameState.playerType === 'player') {
         showScreen('gameSession');
         initializeGameSession(gameData);
+        // Show QR scanner modal first, before starting the actual game
+        setTimeout(() => {
+            showQRScannerModal();
+        }, 500);
     } else if (gameState.playerType === 'spectator') {
         showScreen('spectatorMode');
         initializeSpectatorMode(gameData);
     }
 });
 
-socket.on('game-timer', (data) => {
-    updateGameTimer(data.timeLeft, data.playersAlive);
+// QR Code Assignment Events
+socket.on('qr-assigned', (data) => {
+    console.log('QR Code assigned:', data);
+    if (data.success) {
+        showPlayerAssignmentSuccess(data);
+        hideQRScannerModal();
+    } else {
+        showNotification(data.message || 'Failed to assign QR code', 'error');
+    }
 });
 
-socket.on('player-shot', (data) => {
-    console.log('Player shot:', data);
-    // Handle shooting animation/feedback
+socket.on('game-timer', (data) => {
+    updateGameTimer(data.timeLeft, data.playersAlive);
 });
 
 socket.on('player-eliminated', (data) => {
@@ -203,6 +213,18 @@ socket.on('player-damaged', (data) => {
     console.log('Player damaged:', data);
     if (data.playerId === socket.id) {
         updatePlayerHealth(data.health);
+        triggerHitIndicator();
+    }
+});
+
+socket.on('scan-result', (data) => {
+    console.log('Scan result:', data);
+    if (data.success) {
+        updatePlayerScore(data.newScore);
+        triggerShootIndicator();
+        showNotification(`Hit ${data.targetPlayerName} for ${data.pointsEarned} points!`, 'success');
+    } else {
+        showNotification(data.message, 'error');
     }
 });
 
@@ -354,7 +376,7 @@ let liveGameTimers = new Map(); // Store timer data for each lobby
 
 function initializeLiveLobbies() {
     const backButton = document.querySelector('.container.live .back-button');
-     const refreshButton = document.querySelector('.refresh-button');
+    const refreshButton = document.querySelector('.refresh-button');
     const container = document.getElementById('gamesContainer');
     
     // Immediately clear dummy data and show loading state
@@ -371,7 +393,7 @@ function initializeLiveLobbies() {
         backButton.addEventListener('click', goBack);
     }
     
-      if (refreshButton) {
+    if (refreshButton) {
         refreshButton.addEventListener('click', loadActiveLiveLobbies);
     }
     // Start real-time updates
@@ -714,10 +736,196 @@ function updateCountdown(count) {
     }
 }
 
-// Game Session Functions (basic structure)
+// Game Session Functions
+let qrScanner = null;
+
 function initializeGameSession(gameData) {
     console.log('Initializing game session with data:', gameData);
-    // Game-specific initialization will be added in next phase
+    
+    // Initialize player stats
+    updatePlayerHealth(100);
+    updatePlayerScore(0);
+    updateGameTimer(gameData.duration * 60, gameState.lobbyData?.settings.numPlayers || 4);
+    
+    // Show initial status message
+    showStatusMessage('Game Started!', 'Hunt for treasures and eliminate opponents');
+    
+    // Initialize forfeit modal
+    initializeForfeitModal();
+}
+
+function showStatusMessage(title, text) {
+    const statusMessage = document.getElementById('statusMessage');
+    const statusTitle = document.getElementById('statusTitle');
+    const statusText = document.getElementById('statusText');
+    
+    if (statusMessage && statusTitle && statusText) {
+        statusTitle.textContent = title;
+        statusText.textContent = text;
+        statusMessage.classList.add('show');
+        
+        // Auto hide after 3 seconds
+        setTimeout(() => {
+            statusMessage.classList.remove('show');
+        }, 3000);
+    }
+}
+
+function showQRScannerModal() {
+    const modal = document.getElementById('qrScannerModal');
+    if (modal) {
+        modal.classList.add('show');
+        startQRScanner();
+    }
+}
+
+function hideQRScannerModal() {
+    const modal = document.getElementById('qrScannerModal');
+    if (modal) {
+        modal.classList.remove('show');
+        stopQRScanner();
+    }
+}
+
+function startQRScanner() {
+    const qrReader = document.getElementById('qrModalPlaceholder');    
+    // Initialize html5-qrcode scanner - SIMPLE APPROACH
+    qrScanner = new Html5Qrcode("qrModalPlaceholder");
+    
+    const config = {
+        fps: 10,
+        qrbox: 200  // Simple number, not object
+    };
+    
+    qrScanner.start(
+        { facingMode: "environment" },  // Simple camera constraint
+        config,
+        qrCodeMessage => {
+            console.log('QR Code detected:', qrCodeMessage);
+            handleQRScan(qrCodeMessage);
+        },
+        error => {
+            // Silently handle scanning errors
+        }
+    ).then(() => {
+        // Camera started successfully
+        console.log('QR Scanner camera started successfully');
+        if (qrReader) {
+            qrReader.style.display = 'none';
+        }
+        qrReader.style.display = 'block';
+    }).catch(err => {
+        console.error("QR Scanner failed to start:", err);
+        if (qrReader) {
+            qrReader.innerHTML = '❌<br>Camera Access Required<br><small>Please allow camera permissions</small>';
+        }
+    });
+}
+
+function startMainGameCamera() {
+    const placeholder = document.getElementById('qrCameraPlaceholder');
+    
+   // Initialize main game QR scanner - SIMPLE APPROACH
+    const mainScanner = new Html5Qrcode("qrCameraPlaceholder");
+    
+    const config = {
+        fps: 10,
+        qrbox: 150  // Smaller for gameplay
+    };
+    
+    mainScanner.start(
+        { facingMode: "environment" },
+        config,
+        qrCodeMessage => {
+            handleGameQRScan(qrCodeMessage);
+        },
+        error => {
+            // Silently handle scanning errors
+        }
+    ).then(() => {
+        mainScanner.style.display = 'block';
+        console.log('Main game camera started');
+    }).catch(err => {
+        console.error("Main game camera failed to start", err);
+        if (mainScanner) {
+            mainScanner.style.display = 'flex';
+            mainScanner.innerHTML = '❌<br>Camera Access Required';
+        }
+    });
+}
+function stopQRScanner() {
+    if (qrScanner) {
+        qrScanner.stop().then(() => {
+            qrScanner.clear();
+            qrScanner = null;
+            
+            const qrReader = document.getElementById('qrModalReader');
+            const placeholder = document.getElementById('qrModalPlaceholder');
+            
+            if (qrReader) qrReader.style.display = 'none';
+            if (placeholder) {
+                placeholder.style.display = 'flex';
+                placeholder.innerHTML = '📷<br>Camera View<br>';
+            }
+        }).catch(err => {
+            console.error("Error stopping QR scanner:", err);
+        });
+    }
+}
+
+function handleQRScan(qrData) {
+    // Haptic feedback
+    if (navigator.vibrate) {
+        navigator.vibrate(200);
+    }
+    
+    console.log('QR Code scanned:', qrData);
+    
+    // Send QR assignment to server
+    socket.emit('assign-qr-code', {
+        qrCode: qrData,
+        playerId: socket.id
+    });
+}
+
+function showPlayerAssignmentSuccess(data) {
+    const modal = document.getElementById('playerAssignmentModal');
+    const playerName = document.getElementById('assignmentPlayerName');
+    
+    if (modal) {
+        if (playerName) {
+            playerName.textContent = data.playerName || 'Player';
+        }
+        modal.classList.add('show');
+        
+        // Auto hide after 2 seconds
+        setTimeout(() => {
+            modal.classList.remove('show');
+            // Start the main game camera now
+            startMainGameCamera();
+        }, 2000);
+    }
+}
+
+function handleGameQRScan(qrData) {
+    // Haptic feedback
+    if (navigator.vibrate) {
+        navigator.vibrate(100);
+    }
+    
+    console.log('Game QR Code scanned:', qrData);
+    
+    // Send scan to server
+    socket.emit('qr-scan', {
+        targetQrCode: qrData,
+        scannerId: socket.id
+    });
+}
+
+function cancelQRScanning() {
+    hideQRScannerModal();
+    // Start main game camera directly
+    socket.emit("player-forfeit")
 }
 
 function updateGameTimer(timeLeft, playersAlive) {
@@ -744,6 +952,84 @@ function updatePlayerHealth(health) {
     
     if (healthText) {
         healthText.textContent = `${health}%`;
+    }
+}
+
+function updatePlayerScore(score) {
+    const scoreElement = document.getElementById('playerScore');
+    if (scoreElement) {
+        scoreElement.textContent = score.toLocaleString();
+    }
+}
+
+function triggerShootIndicator() {
+    const shootIndicator = document.getElementById('shootIndicator');
+    if (shootIndicator) {
+        shootIndicator.classList.add('active');
+        setTimeout(() => {
+            shootIndicator.classList.remove('active');
+        }, 300);
+    }
+}
+
+function triggerHitIndicator() {
+    const hitIndicator = document.getElementById('hitIndicator');
+    if (hitIndicator) {
+        hitIndicator.classList.add('active');
+        setTimeout(() => {
+            hitIndicator.classList.remove('active');
+        }, 500);
+    }
+}
+
+// Forfeit Modal Functions
+function initializeForfeitModal() {
+    const confirmBtn = document.querySelector('.forfeit-confirm-btn');
+    const cancelBtn = document.querySelector('.forfeit-cancel-btn');
+    
+    if (confirmBtn) {
+        confirmBtn.addEventListener('click', confirmForfeit);
+    }
+    
+    if (cancelBtn) {
+        cancelBtn.addEventListener('click', cancelForfeit);
+    }
+}
+
+function showForfeitConfirm() {
+    const modal = document.getElementById('forfeitModal');
+    if (modal) {
+        modal.classList.add('show');
+    }
+}
+
+function confirmForfeit() {
+    // Send forfeit to server
+    socket.emit('player-forfeit');
+    
+    // Hide modal and return to home
+    cancelForfeit();
+    showScreen('home');
+    showNotification('You have forfeited the game', 'info');
+}
+
+function cancelForfeit() {
+    const modal = document.getElementById('forfeitModal');
+    if (modal) {
+        modal.classList.remove('show');
+    }
+}
+
+function showEliminationPopup() {
+    const statusMessage = document.getElementById('statusMessage');
+    const statusTitle = document.getElementById('statusTitle');
+    const statusText = document.getElementById('statusText');
+    
+    if (statusMessage && statusTitle && statusText) {
+        statusTitle.textContent = '💀 ELIMINATED!';
+        statusText.textContent = 'Transitioning to spectator mode...';
+        statusMessage.classList.add('show');
+        statusMessage.style.borderColor = '#ff0000';
     }
 }
 
@@ -777,3 +1063,7 @@ document.addEventListener('DOMContentLoaded', () => {
 // Global functions for HTML onclick handlers
 window.goBack = goBack;
 window.spectateGame = spectateGame;
+window.cancelQRScanning = cancelQRScanning;
+window.showForfeitConfirm = showForfeitConfirm;
+window.confirmForfeit = confirmForfeit;
+window.cancelForfeit = cancelForfeit;

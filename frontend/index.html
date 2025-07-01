@@ -14,6 +14,7 @@
   <link rel="stylesheet" href="css/spectator_mode.css">
   <!-- Socket.io Client -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.8.1/socket.io.js"></script>
+  <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>  
 </head>
 <body>
     <!-- Universal grid -->
@@ -243,19 +244,19 @@
             Make sure your camera is working properly
         </div>
     </div>
-    <!-- Game session -->
+<!-- Game session -->
     <div class="game-container hidden">
         <!-- Camera View -->
         <div class="camera-view">
-            <div class="camera-placeholder">
-                📷<br>
+            <!-- Camera Placeholder -->
+            <div class="camera-placeholder" id="qrCameraPlaceholder">
             </div>
             
             <!-- Crosshair -->
             <div class="crosshair"></div>
             
             <!-- Shooting Indicator -->
-            <div class="shoot-indicator" id="shootIndicator"></div>
+            <div class="shoot-indicator" id="shootIndicator"></div>            
         </div>
 
         <!-- Top HUD -->
@@ -272,12 +273,12 @@
 
             <div class="score-section">
                 <div class="score-label">Score</div>
-                <div class="score-value" id="playerScore">1,250</div>
+                <div class="score-value" id="playerScore">0</div>
             </div>
         </div>
 
         <!-- Bottom HUD -->
-       <div class="bottom-hud">
+        <div class="bottom-hud">
             <div class="health-section">
                 <div class="health-label">Health</div>
                 <div class="health-bar-container">
@@ -302,7 +303,39 @@
             <div class="status-text" id="statusText">Hunt for treasures and eliminate opponents</div>
         </div>
     </div>
-      <!-- Forfeit Confirmation Modal -->
+
+    <!-- QR Scanner Modal -->
+    <div class="qr-scanner-modal" id="qrScannerModal">
+        <div class="qr-scanner-container">
+            <div class="qr-scanner-title">🎯 Scan Your QR Code</div>
+            <div class="qr-scanner-subtitle">Position your assigned QR code in the camera view</div>
+            
+            <div class="qr-camera-view">
+                <div class="qr-camera-placeholder" id="qrModalPlaceholder">
+                </div>
+            </div>
+            
+            <div class="qr-instructions">
+                Point your camera at your assigned QR code to register for battle
+            </div>
+            
+            <button class="qr-cancel-button">
+                Quit
+            </button>
+        </div>
+    </div>
+
+    <!-- Player Assignment Success Modal -->
+    <div class="player-assignment-modal" id="playerAssignmentModal">
+        <div class="player-assignment-container">
+            <div class="assignment-icon">✅</div>
+            <div class="assignment-title">QR Code Registered!</div>
+            <div class="assignment-player-name" id="assignmentPlayerName">QUANTUM_SNIPER</div>
+            <div class="assignment-subtitle">Ready for battle!</div>
+        </div>
+    </div>
+
+    <!-- Forfeit Confirmation Modal -->
     <div class="forfeit-modal" id="forfeitModal">
         <div class="forfeit-dialog">
             <div class="forfeit-title">⚠️ Forfeit Game?</div>
