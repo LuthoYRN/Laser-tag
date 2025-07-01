@@ -6,18 +6,18 @@
   <title>Laser Tag</title>
   <link rel="stylesheet" href="./css/home.css" />
   <link rel="stylesheet" href="./css/create_lobby.css" />
+  <link rel="stylesheet" href="css/live_lobbies.css">
   <link rel="stylesheet" href="./css/join_lobby.css" />
   <link rel="stylesheet" href="./css/player_waiting_room.css" />
   <link rel="stylesheet" href="./css/game_session.css" />
   <link rel="stylesheet" href="./css/leaderboard.css" />
-  <link rel="stylesheet" href="./css/live_lobbies.css" />
   <link rel="stylesheet" href="css/spectator_mode.css">
 </head>
 <body>
     <!-- Universal grid -->
     <div class="cyber-grid"></div>
     <!-- Home / Lobby screen -->
-    <div class="container hidden">
+    <div class="container">
         <div class="header">
             <h1 class="logo">CV LASER TAG</h1>
             <p class="subtitle">Treasure Hunt Arena</p>
@@ -42,7 +42,7 @@
         </div>
     </div> 
     <!-- Create Lobby -->
-    <div class="container hidden">
+    <div class="container create">
         <button class="back-button" onclick="goBack()">←</button>
         
         <div class="header">
@@ -87,7 +87,7 @@
         </div>
     </div>
     <!-- Join Lobby -->
-    <div class="container hidden">
+    <div class="container join">
         <button class="back-button">←</button>
         
         <div class="header">
@@ -126,7 +126,7 @@
         </div>
     </div>
     <!-- Player waiting room -->
-   <div class="container hidden">
+   <div class="container wait">
         <button class="leave-button">← Leave</button>
         
         <div class="header">
@@ -248,7 +248,7 @@
         </div>
     </div>
     <!-- Game session -->
-    <div class="game-container hidden">
+    <div class="game-container">
         <!-- Camera View -->
         <div class="camera-view">
             <div class="camera-placeholder">
@@ -301,7 +301,7 @@
         </div>
     </div>
     <!-- Leaderboard -->
-    <div class="results-container hidden">
+    <div class="results-container">
         <div class="header">
             <h1 class="logo">CV LASER TAG</h1>
             <p class="subtitle">Battle Results</p>
@@ -452,7 +452,7 @@
         </div>
     </div>
     <!-- Current lobbies -->
-    <div class="container hidden">
+    <div class="container live">
         <button class="back-button">←</button>
         
         <div class="header">
@@ -569,7 +569,7 @@
         </div>
     </div>   
     <!-- Spectator view -->
-    <div class="spectator-container hidden">
+    <div class="spectator-container">
         <!-- Top HUD -->
         <div class="top-hud">
             <button class="back-button">←</button>
@@ -588,7 +588,7 @@
         <!-- Main Content -->
         <div class="main-content">
             <!-- Leaderboard View -->
-            <div class="leaderboard-view hidden" id="leaderboardView">
+            <div class="leaderboard-view" id="leaderboardView">
                 <div class="leaderboard" id="leaderboard">
                     <div class="leaderboard-header" id="leaderboardHeader">
                         <div class="leaderboard-title" id="leaderboardTitle">Live Leaderboard</div>
@@ -596,7 +596,7 @@
                     </div>
 
                     <!-- Your Stats (only shown for eliminated players) -->
-                    <div class="your-stats spectator-mode " id="yourStats">
+                    <div class="your-stats spectator-mode" id="yourStats">
                         <div class="your-stats-title">💀 Your Final Stats</div>
                         <div class="your-final-stats">
                             <div class="final-stat">
@@ -697,7 +697,7 @@
             </div>
 
             <!-- Camera View -->
-            <div class="camera-view active" id="cameraView">
+            <div class="camera-view" id="cameraView">
                 <div class="camera-header-bar">
                     <button class="camera-back-btn">← Back to Leaderboard</button>
                     <div class="viewing-info">

@@ -12,13 +12,13 @@
     display: none;
 }
 
-.header {
+.results-container .header {
     text-align: center;
     margin-bottom: 30px;
     padding-top: 20px;
 }
 
-.logo {
+.results-container .logo {
     font-size: 2rem;
     font-weight: bold;
     background: linear-gradient(45deg, #00ffff, #ff00ff, #ffff00);
@@ -35,7 +35,7 @@
     50% { background-position: 100% 50%; }
 }
 
-.subtitle {
+.results-container .subtitle {
     font-size: 0.9rem;
     color: #00ffff;
     text-transform: uppercase;
@@ -55,7 +55,7 @@
     margin-top: 15px;
 }
 
-.stat-item {
+.results-container .stat-item {
     text-align: center;
     padding: 10px;
     background: rgba(255, 255, 255, 0.05);
@@ -135,7 +135,7 @@
     flex: 1;
 }
 
-.leaderboard-title {
+.results-container .leaderboard-title {
     color: #00ffff;
     font-size: 1.2rem;
     font-weight: bold;

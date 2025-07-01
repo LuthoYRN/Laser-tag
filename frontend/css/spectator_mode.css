@@ -12,7 +12,7 @@
 }
 
 /* Top HUD */
-.top-hud {
+.spectator-container .top-hud {
     position: absolute;
     top: 0;
     left: 0;
@@ -26,7 +26,7 @@
     z-index: 30;
 }
 
-.back-button {
+.spectator-container .back-button {
     background: rgba(0, 0, 0, 0.8);
     border: 2px solid #666;
     border-radius: 50%;
@@ -42,18 +42,18 @@
     color: #ffffff;
 }
 
-.back-button:hover {
+.spectator-container .back-button:hover {
     border-color: #00ffff;
     box-shadow: 0 0 15px rgba(0, 255, 255, 0.4);
 }
 
-.game-info {
+.spectator-container .game-info {
     display: flex;
     align-items: center;
     gap: 15px;
 }
 
-.lobby-code {
+.spectator-container .lobby-code {
     font-size: 1.1rem;
     font-weight: bold;
     color: #00ffff;
@@ -86,7 +86,7 @@
     box-shadow: 0 0 10px rgba(255, 0, 0, 0.5);
 }
 
-.game-timer {
+.spectator-container .game-timer {
     background: rgba(0, 0, 0, 0.8);
     border: 2px solid #ffff00;
     border-radius: 12px;
@@ -95,12 +95,12 @@
     box-shadow: 0 0 10px rgba(255, 255, 0, 0.3);
 }
 
-.game-timer.finished {
+.spectator-container .game-timer.finished {
     border-color: #ff0000;
     box-shadow: 0 0 10px rgba(255, 0, 0, 0.3);
 }
 
-.timer-label {
+.spectator-container .timer-label {
     font-size: 0.6rem;
     color: #ffff00;
     text-transform: uppercase;
@@ -108,11 +108,11 @@
     margin-bottom: 2px;
 }
 
-.timer-label.finished {
+.spectator-container .timer-label.finished {
     color: #ff0000;
 }
 
-.timer-value {
+.spectator-container .timer-value {
     font-size: 1.1rem;
     font-weight: bold;
     color: #ffffff;
@@ -120,7 +120,7 @@
     text-shadow: 0 0 8px #ffff00;
 }
 
-.timer-value.finished {
+.spectator-container .timer-value.finished {
     text-shadow: 0 0 8px #ff0000;
     color: #ff0000;
 }
@@ -187,7 +187,7 @@
     border-bottom: 2px solid #00ffff;
 }
 
-.leaderboard-title {
+.spectator-container .leaderboard-title {
     font-size: 1.2rem;
     color: #00ffff;
     font-weight: bold;
@@ -201,6 +201,7 @@
     color: #aaa;
 }
 
+/* Your Stats (only shown for eliminated players) */
 .your-stats {
     background: linear-gradient(135deg, rgba(255, 0, 0, 0.2), rgba(255, 0, 0, 0.1));
     border: 2px solid #ff0000;
@@ -336,7 +337,7 @@
     color: #666;
 }
 
-.player-info {
+.spectator-container .player-info {
     flex: 1;
     min-width: 0;
 }
@@ -364,14 +365,14 @@
     color: #ffd700;
 }
 
-.player-details {
+.spectator-container .player-details {
     display: flex;
     justify-content: space-between;
     font-size: 0.8rem;
     color: #aaa;
 }
 
-.score-value {
+.spectator-container .score-value {
     color: #00ff00;
     font-weight: bold;
 }
@@ -381,7 +382,7 @@
     font-weight: bold;
 }
 
-.status-indicator {
+.spectator-container .status-indicator {
     width: 12px;
     height: 12px;
     border-radius: 50%;
@@ -391,7 +392,7 @@
 .status-alive {
     background: #00ff00;
     box-shadow: 0 0 8px rgba(0, 255, 0, 0.5);
-    animation: aliveGlow 2s infinite;
+    animation: spectatorAliveGlow 2s infinite;
 }
 
 .status-eliminated {
@@ -399,7 +400,7 @@
     opacity: 0.5;
 }
 
-@keyframes aliveGlow {
+@keyframes spectatorAliveGlow {
     0%, 100% { opacity: 1; }
     50% { opacity: 0.6; }
 }
@@ -414,13 +415,13 @@
 }
 
 /* Camera View */
-.camera-view {
+.spectator-container .camera-view {
     display: none;
     height: 100%;
     flex-direction: column;
 }
 
-.camera-view.active {
+.spectator-container .camera-view.active {
     display: flex;
 }
 
@@ -508,18 +509,18 @@
     color: #00ffff;
 }
 
-.player-health {
+.spectator-container .player-health {
     display: flex;
     align-items: center;
     gap: 10px;
 }
 
-.health-label {
+.spectator-container .health-label {
     font-size: 0.8rem;
     color: #aaa;
 }
 
-.health-bar-container {
+.spectator-container .health-bar-container {
     width: 80px;
     height: 10px;
     background: rgba(0, 0, 0, 0.5);
@@ -527,15 +528,15 @@
     overflow: hidden;
 }
 
-.health-bar {
+.spectator-container .health-bar {
     height: 100%;
     background: linear-gradient(90deg, #ff0000 0%, #ffff00 50%, #00ff00 100%);
     transition: width 0.3s ease;
 }
 
-.health-high { width: 100%; }
-.health-medium { width: 60%; }
-.health-low { width: 30%; }
+.spectator-container .health-high { width: 100%; }
+.spectator-container .health-medium { width: 60%; }
+.spectator-container .health-low { width: 30%; }
 
 .camera-display {
     flex: 1;
@@ -548,7 +549,7 @@
     text-align: center;
 }
 
-.camera-stats {
+.spectator-container .camera-stats {
     position: absolute;
     bottom: 15px;
     left: 15px;
@@ -562,24 +563,24 @@
     border: 1px solid #333;
 }
 
-.stat-item {
+.spectator-container .stat-item {
     color: #aaa;
 }
 
-.stat-value {
+.spectator-container .stat-value {
     color: #ffffff;
     font-weight: bold;
 }
 
 /* Mobile optimizations */
 @media (max-width: 768px) {
-    .top-hud {
+    .spectator-container .top-hud {
         padding: 10px;
         gap: 8px;
         grid-template-columns: auto 1fr auto;
     }
     
-    .back-button {
+    .spectator-container .back-button {
         width: 35px;
         height: 35px;
         font-size: 1rem;

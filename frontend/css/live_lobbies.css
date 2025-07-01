@@ -1,4 +1,4 @@
-.back-button {
+.container.live .back-button {
     position: absolute;
     top: 20px;
     left: 20px;
@@ -17,7 +17,7 @@
     color: #ffffff;
 }
 
-.back-button:hover {
+.container.live .back-button:hover {
     border-color: #00ffff;
     box-shadow: 0 0 15px rgba(0, 255, 255, 0.4);
     transform: scale(1.05);
@@ -127,7 +127,7 @@
     margin-bottom: 18px;
 }
 
-.lobby-code {
+.container.live .lobby-code {
     font-size: 1.5rem;
     font-weight: bold;
     color: #00ffff;
@@ -150,14 +150,14 @@
     box-shadow: 0 0 10px rgba(255, 102, 0, 0.5);
 }
 
-.game-info {
+.container.live .game-info {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 20px;
     margin-bottom: 20px;
 }
 
-.info-item {
+.container.live .info-item {
     text-align: center;
     padding: 15px;
     background: rgba(0, 0, 0, 0.4);
@@ -165,7 +165,7 @@
     border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-.info-label {
+.container.live .info-label {
     font-size: 0.75rem;
     color: #aaa;
     text-transform: uppercase;
@@ -174,7 +174,7 @@
     letter-spacing: 0.5px;
 }
 
-.info-value {
+.container.live .info-value {
     font-size: 1.3rem;
     color: #ffffff;
     font-weight: bold;
@@ -260,11 +260,11 @@
 
 /* Mobile optimizations */
 @media (max-width: 768px) {
-    .container {
+    .container.live {
         padding: 15px;
     }
     
-    .back-button {
+    .container.live .back-button {
         width: 40px;
         height: 40px;
         font-size: 1rem;
@@ -274,33 +274,33 @@
         padding: 18px;
     }
     
-    .lobby-code {
+    .container.live .lobby-code {
         font-size: 1.3rem;
     }
     
-    .game-info {
+    .container.live .game-info {
         gap: 15px;
     }
     
-    .info-item {
+    .container.live .info-item {
         padding: 12px;
     }
     
-    .info-value {
+    .container.live .info-value {
         font-size: 1.2rem;
     }
 }
 
 @media (max-width: 480px) {
-    .container {
+    .container.live {
         padding: 12px;
     }
     
-    .header {
+    .container.live .header {
         margin-bottom: 20px;
     }
     
-    .logo {
+    .container.live .logo {
         font-size: 1.6rem;
     }
     
@@ -308,19 +308,19 @@
         padding: 16px;
     }
     
-    .lobby-code {
+    .container.live .lobby-code {
         font-size: 1.2rem;
     }
     
-    .game-info {
+    .container.live .game-info {
         gap: 12px;
     }
     
-    .info-item {
+    .container.live .info-item {
         padding: 10px;
     }
     
-    .info-value {
+    .container.live .info-value {
         font-size: 1.1rem;
     }
     

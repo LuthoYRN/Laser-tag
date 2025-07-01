@@ -10,7 +10,7 @@
 }
 
 /* Camera View */
-.camera-view {
+.game-container .camera-view {
     flex: 1;
     position: relative;
     background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 50%, #16213e 100%);
@@ -72,7 +72,7 @@
 }
 
 /* Top HUD */
-.top-hud {
+.game-container .top-hud {
     position: absolute;
     top: 0;
     left: 0;
@@ -86,7 +86,7 @@
     z-index: 20;
 }
 
-.timer-section {
+.game-container .timer-section {
     justify-self: start;
     text-align: center;
     background: rgba(0, 0, 0, 0.7);
@@ -96,7 +96,7 @@
     backdrop-filter: blur(10px);
 }
 
-.players-section {
+.game-container .players-section {
     justify-self: center;
     text-align: center;
     background: rgba(0, 0, 0, 0.7);
@@ -106,7 +106,7 @@
     backdrop-filter: blur(10px);
 }
 
-.score-section {
+.game-container .score-section {
     justify-self: end;
     text-align: center;
     background: rgba(0, 0, 0, 0.7);
@@ -116,14 +116,14 @@
     backdrop-filter: blur(10px);
 }
 
-.timer-label {
+.game-container .timer-label {
     font-size: 0.7rem;
     color: #ffff00;
     text-transform: uppercase;
     margin-bottom: 2px;
 }
 
-.timer-value {
+.game-container .timer-value {
     font-size: 1.5rem;
     font-weight: bold;
     color: #ffffff;
@@ -131,28 +131,29 @@
     text-shadow: 0 0 10px #ffff00;
 }
 
-.players-label {
+.game-container .players-label {
     font-size: 0.7rem;
     color: #ff00ff;
     text-transform: uppercase;
     margin-bottom: 2px;
 }
 
-.players-value {
+.game-container .players-value {
     font-size: 1.5rem;
     font-weight: bold;
     color: #ffffff;
     font-family: 'Courier New', monospace;
     text-shadow: 0 0 10px #ff00ff;
 }
-.score-label {
+
+.game-container .score-label {
     font-size: 0.7rem;
     color: #00ff00;
     text-transform: uppercase;
     margin-bottom: 2px;
 }
 
-.score-value {
+.game-container .score-value {
     font-size: 1.5rem;
     font-weight: bold;
     color: #ffffff;
@@ -174,21 +175,21 @@
     z-index: 20;
 }
 
-.health-section {
+.game-container .health-section {
     display: flex;
     flex-direction: column;
     align-items: center;
     gap: 8px;
 }
 
-.health-label {
+.game-container .health-label {
     font-size: 0.8rem;
     color: #ff0000;
     text-transform: uppercase;
     font-weight: bold;
 }
 
-.health-bar-container {
+.game-container .health-bar-container {
     width: 200px;
     height: 20px;
     background: rgba(0, 0, 0, 0.7);
@@ -198,7 +199,7 @@
     position: relative;
 }
 
-.health-bar {
+.game-container .health-bar {
     height: 100%;
     background: linear-gradient(90deg, #ff0000 0%, #ff6600 50%, #00ff00 100%);
     width: 100%;
@@ -206,28 +207,28 @@
     box-shadow: 0 0 15px rgba(255, 0, 0, 0.5);
 }
 
-.health-bar.low {
+.game-container .health-bar.low {
     width: 30%;
     background: #ff0000;
-    animation: healthPulse 1s infinite;
+    animation: gameHealthPulse 1s infinite;
 }
 
-.health-bar.medium {
+.game-container .health-bar.medium {
     width: 60%;
     background: linear-gradient(90deg, #ff6600 0%, #ffff00 100%);
 }
 
-.health-bar.high {
+.game-container .health-bar.high {
     width: 100%;
     background: linear-gradient(90deg, #ffff00 0%, #00ff00 100%);
 }
 
-@keyframes healthPulse {
+@keyframes gameHealthPulse {
     0%, 100% { opacity: 1; }
     50% { opacity: 0.5; }
 }
 
-.health-text {
+.game-container .health-text {
     position: absolute;
     top: 50%;
     left: 50%;
@@ -249,7 +250,7 @@
     border: 3px solid #ff0000;
     border-radius: 50%;
     opacity: 0;
-    animation: shootPulse 0.3s ease-out;
+    animation: gameShootPulse 0.3s ease-out;
     pointer-events: none;
     z-index: 15;
 }
@@ -258,7 +259,7 @@
     opacity: 1;
 }
 
-@keyframes shootPulse {
+@keyframes gameShootPulse {
     0% {
         transform: translate(-50%, -50%) scale(0.5);
         opacity: 1;
@@ -284,16 +285,16 @@
 
 .hit-indicator.active {
     opacity: 1;
-    animation: hitFlash 0.5s ease-out;
+    animation: gameHitFlash 0.5s ease-out;
 }
 
-@keyframes hitFlash {
+@keyframes gameHitFlash {
     0%, 100% { opacity: 0; }
     50% { opacity: 0.6; }
 }
 
-/* Game Status Messages */
-.status-message {
+/* Status Messages */
+.game-container .status-message {
     position: absolute;
     top: 50%;
     left: 50%;
@@ -307,12 +308,12 @@
     display: none;
 }
 
-.status-message.show {
+.game-container .status-message.show {
     display: block;
-    animation: messageSlide 0.5s ease-out;
+    animation: gameMessageSlide 0.5s ease-out;
 }
 
-@keyframes messageSlide {
+@keyframes gameMessageSlide {
     0% {
         transform: translate(-50%, -50%) scale(0.8);
         opacity: 0;
@@ -323,33 +324,37 @@
     }
 }
 
-.status-title {
+.game-container .status-title {
     font-size: 1.5rem;
     font-weight: bold;
     color: #00ffff;
     margin-bottom: 10px;
 }
 
-.status-text {
+.game-container .status-text {
     font-size: 1rem;
     color: #ffffff;
 }
 
 /* Mobile optimizations */
 @media (max-width: 768px) {
-    .top-hud {
+    .game-container .top-hud {
         padding: 10px;
     }
     
-    .timer-section, .score-section, .players-section {
+    .game-container .timer-section, 
+    .game-container .score-section, 
+    .game-container .players-section {
         padding: 6px 12px;
     }
     
-    .timer-value, .score-value, .players-value {
+    .game-container .timer-value, 
+    .game-container .score-value, 
+    .game-container .players-value {
         font-size: 1.2rem;
     }
     
-    .health-bar-container {
+    .game-container .health-bar-container {
         width: 150px;
         height: 18px;
     }
@@ -361,19 +366,23 @@
 }
 
 @media (max-width: 480px) {
-    .top-hud {
+    .game-container .top-hud {
         padding: 8px;
     }
     
-    .timer-section, .score-section, .players-section {
+    .game-container .timer-section, 
+    .game-container .score-section, 
+    .game-container .players-section {
         padding: 5px 10px;
     }
     
-    .timer-value, .score-value, .players-value {
+    .game-container .timer-value, 
+    .game-container .score-value, 
+    .game-container .players-value {
         font-size: 1rem;
     }
     
-    .health-bar-container {
+    .game-container .health-bar-container {
         width: 120px;
         height: 16px;
     }
