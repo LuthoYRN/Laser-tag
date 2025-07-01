@@ -7,6 +7,9 @@ class WebcamModule {
         this.statusDiv = document.getElementById('status');
         this.stream = null;
         this.isClassifying = false;
+        
+        // Crop box settings
+        this.cropSize = 200; // Size of the crop box (200x200 pixels)
 
         this.options = {
             inputs: [64, 64, 4],
@@ -22,7 +25,6 @@ class WebcamModule {
             weights: './model/shape-model/model.weights.bin'
         };
 
-        // Bind the gotResults method to maintain context
         this.gotResults = this.gotResults.bind(this);
 
         this.shapeClassifier.load(this.modelDetails, () => {
@@ -31,62 +33,128 @@ class WebcamModule {
         });
     }
 
-    // Method to preprocess video frame to 64x64x4 format
+    // Create overlay with center marker
+    createOverlay() {
+        const overlay = document.createElement('div');
+        overlay.id = 'overlay';
+        overlay.style.position = 'absolute';
+        overlay.style.top = '0';
+        overlay.style.left = '0';
+        overlay.style.width = '100%';
+        overlay.style.height = '100%';
+        overlay.style.pointerEvents = 'none';
+        overlay.style.zIndex = '10';
+
+        // Create center crop box
+        const cropBox = document.createElement('div');
+        cropBox.id = 'cropBox';
+        cropBox.style.position = 'absolute';
+        cropBox.style.width = `${this.cropSize}px`;
+        cropBox.style.height = `${this.cropSize}px`;
+        cropBox.style.border = '3px solid #00ff00';
+        cropBox.style.borderRadius = '8px';
+        cropBox.style.backgroundColor = 'rgba(0, 255, 0, 0.1)';
+        cropBox.style.boxShadow = '0 0 10px rgba(0, 255, 0, 0.5)';
+        
+        // Center the crop box
+        cropBox.style.left = '50%';
+        cropBox.style.top = '50%';
+        cropBox.style.transform = 'translate(-50%, -50%)';
+
+        // Add label
+        const label = document.createElement('div');
+        label.textContent = 'Classification Area';
+        label.style.position = 'absolute';
+        label.style.top = '-25px';
+        label.style.left = '50%';
+        label.style.transform = 'translateX(-50%)';
+        label.style.backgroundColor = 'rgba(0, 255, 0, 0.8)';
+        label.style.color = 'white';
+        label.style.padding = '2px 8px';
+        label.style.borderRadius = '4px';
+        label.style.fontSize = '12px';
+        label.style.fontWeight = 'bold';
+
+        cropBox.appendChild(label);
+        overlay.appendChild(cropBox);
+
+        return overlay;
+    }
+
+    // Method to preprocess only the center crop area to 64x64x4 format
     preprocessImage() {
         if (!this.video || this.video.readyState !== 4) {
             console.warn('Video not ready for preprocessing');
             return null;
         }
 
-        // Create canvas for processing
         const canvas = document.createElement('canvas');
         const ctx = canvas.getContext('2d');
-
-        // Set canvas size to model input size (64x64)
         canvas.width = 64;
         canvas.height = 64;
 
-        // Draw and resize video frame to 64x64
-        ctx.drawImage(this.video, 0, 0, this.video.videoWidth, this.video.videoHeight,
-            0, 0, 64, 64);
+        // Calculate crop area (center of video)
+        const videoWidth = this.video.videoWidth;
+        const videoHeight = this.video.videoHeight;
+        
+        // Calculate center crop coordinates
+        const cropX = (videoWidth - this.cropSize) / 2;
+        const cropY = (videoHeight - this.cropSize) / 2;
+
+        console.log(`Video dimensions: ${videoWidth}x${videoHeight}`);
+        console.log(`Crop area: ${cropX}, ${cropY}, ${this.cropSize}x${this.cropSize}`);
+
+        // Draw only the center crop area, resized to 64x64
+        ctx.drawImage(
+            this.video,
+            cropX, cropY, this.cropSize, this.cropSize, // Source crop area
+            0, 0, 64, 64 // Destination (64x64)
+        );
 
         // Get image data (RGBA format)
         const imageData = ctx.getImageData(0, 0, 64, 64);
-        const data = imageData.data; // This is Uint8ClampedArray with RGBA values
+        const data = imageData.data;
 
         // Convert to normalized array [0-1] for the neural network
         const normalizedData = [];
-
         for (let i = 0; i < data.length; i += 4) {
-            // Extract RGBA values and normalize to 0-1 range
             const r = data[i] / 255.0;
             const g = data[i + 1] / 255.0;
             const b = data[i + 2] / 255.0;
             const a = data[i + 3] / 255.0;
-
             normalizedData.push(r, g, b, a);
         }
 
-        console.log(`Preprocessed data length: ${normalizedData.length}`); // Should be 16384 (64*64*4)
-
+        console.log(`Preprocessed data length: ${normalizedData.length}`);
         return normalizedData;
     }
 
-    // Alternative method using canvas element (if you want to see the preprocessed image)
+    // Create debug canvas to show the cropped area
     createPreprocessCanvas() {
         const canvas = document.createElement('canvas');
-        const ctx = canvas.getContext('2d');
         canvas.width = 64;
         canvas.height = 64;
-        canvas.style.border = '1px solid red';
+        canvas.style.border = '2px solid red';
         canvas.style.position = 'absolute';
         canvas.style.top = '10px';
         canvas.style.right = '10px';
+        canvas.style.zIndex = '20';
         canvas.id = 'preprocessCanvas';
 
-        // Add to page for debugging (optional)
+        const label = document.createElement('div');
+        label.textContent = 'Processed (64x64)';
+        label.style.position = 'absolute';
+        label.style.top = '-20px';
+        label.style.right = '10px';
+        label.style.fontSize = '12px';
+        label.style.fontWeight = 'bold';
+        label.style.color = 'red';
+        label.style.zIndex = '20';
+        label.id = 'preprocessLabel';
+
         if (!document.getElementById('preprocessCanvas')) {
             document.body.appendChild(canvas);
+            document.body.appendChild(label);
         }
 
         return canvas;
@@ -95,21 +163,17 @@ class WebcamModule {
     gotResults(err, results) {
         this.isClassifying = false;
 
-        // Check if 'err' is actually the results (ml5.js sometimes does this)
         if (Array.isArray(err) && err.length > 0) {
-            // 'err' is actually the results array
             results = err;
             err = null;
         }
 
-        // Now handle actual errors
         if (err && !Array.isArray(err)) {
             console.error('Classification error:', err);
             this.updateStatus(`Classification error: ${err.message || err}`, 'error');
             return;
         }
 
-        // Validate results
         if (!results || !Array.isArray(results) || results.length === 0) {
             console.warn('No valid classification results returned:', results);
             this.updateStatus('No classification results', 'error');
@@ -119,7 +183,6 @@ class WebcamModule {
             return;
         }
 
-        // Additional check for valid result structure
         if (!results[0] || typeof results[0].label === 'undefined' || typeof results[0].confidence === 'undefined') {
             console.warn('Invalid result structure:', results[0]);
             if (this.stream && this.video.readyState === 4) {
@@ -128,20 +191,28 @@ class WebcamModule {
             return;
         }
 
-        // Successfully got results - display them
         let label = results[0].label;
         let confidence = (100 * results[0].confidence).toFixed(2);
         console.log(`${label} ${confidence}%`);
 
-        // Show all results for debugging
-        console.log('All results:', results.map(r => `${r.label}: ${(r.confidence * 100).toFixed(2)}%`));
+        // Show top 3 results
+        const topResults = results.slice(0, 3)
+            .map(r => `${r.label}: ${(r.confidence * 100).toFixed(1)}%`)
+            .join(' | ');
+        console.log('Top results:', topResults);
 
         const resultsDiv = document.getElementById('results');
         if (resultsDiv) {
-            resultsDiv.textContent = `Detected: ${label} (${confidence}% confidence)`;
+            resultsDiv.innerHTML = `
+                <div style="font-size: 20px; font-weight: bold; margin-bottom: 5px;">
+                    ${label} (${confidence}%)
+                </div>
+                <div style="font-size: 14px; color: #666;">
+                    ${topResults}
+                </div>
+            `;
         }
 
-        // Continue classification if camera is still active
         if (this.stream && this.video.readyState === 4) {
             setTimeout(() => this.classifyImage(), 100);
         }
@@ -171,7 +242,6 @@ class WebcamModule {
         this.isClassifying = true;
 
         try {
-            // Preprocess the image to 64x64x4 format
             const preprocessedData = this.preprocessImage();
 
             if (!preprocessedData) {
@@ -180,12 +250,10 @@ class WebcamModule {
                 return;
             }
 
-            // Optional: Show preprocessed image for debugging
             this.showPreprocessedImage();
 
-            // Classify using the preprocessed data
             this.shapeClassifier.classify(
-                preprocessedData, // Use preprocessed data instead of raw video
+                preprocessedData,
                 this.gotResults
             );
 
@@ -196,14 +264,22 @@ class WebcamModule {
         }
     }
 
-    // Optional: Method to display the preprocessed 64x64 image for debugging
     showPreprocessedImage() {
         const debugCanvas = document.getElementById('preprocessCanvas') || this.createPreprocessCanvas();
         const ctx = debugCanvas.getContext('2d');
 
-        // Draw the current video frame resized to 64x64
-        ctx.drawImage(this.video, 0, 0, this.video.videoWidth, this.video.videoHeight,
-            0, 0, 64, 64);
+        // Calculate crop area
+        const videoWidth = this.video.videoWidth;
+        const videoHeight = this.video.videoHeight;
+        const cropX = (videoWidth - this.cropSize) / 2;
+        const cropY = (videoHeight - this.cropSize) / 2;
+
+        // Draw the cropped area to the debug canvas
+        ctx.drawImage(
+            this.video,
+            cropX, cropY, this.cropSize, this.cropSize,
+            0, 0, 64, 64
+        );
     }
 
     initializeEventListeners() {
@@ -229,6 +305,9 @@ class WebcamModule {
             this.video.addEventListener('loadedmetadata', () => {
                 console.log('Video metadata loaded');
                 console.log(`Video dimensions: ${this.video.videoWidth}x${this.video.videoHeight}`);
+                
+                // Add overlay after video is loaded
+                this.addOverlay();
             });
 
             this.video.addEventListener('canplay', () => {
@@ -260,6 +339,22 @@ class WebcamModule {
         }
     }
 
+    addOverlay() {
+        // Remove existing overlay
+        const existingOverlay = document.getElementById('overlay');
+        if (existingOverlay) {
+            existingOverlay.remove();
+        }
+
+        // Create and add new overlay
+        const overlay = this.createOverlay();
+        
+        // Position overlay relative to video
+        const videoContainer = this.video.parentElement;
+        videoContainer.style.position = 'relative';
+        videoContainer.appendChild(overlay);
+    }
+
     stopCamera() {
         this.isClassifying = false;
 
@@ -276,10 +371,20 @@ class WebcamModule {
                 resultsDiv.textContent = '';
             }
 
-            // Remove debug canvas if it exists
+            // Remove overlay and debug elements
+            const overlay = document.getElementById('overlay');
+            if (overlay) {
+                overlay.remove();
+            }
+
             const debugCanvas = document.getElementById('preprocessCanvas');
             if (debugCanvas) {
                 debugCanvas.remove();
+            }
+
+            const debugLabel = document.getElementById('preprocessLabel');
+            if (debugLabel) {
+                debugLabel.remove();
             }
         }
     }
@@ -287,6 +392,19 @@ class WebcamModule {
     updateStatus(message, type) {
         this.statusDiv.textContent = message;
         this.statusDiv.className = type;
+    }
+
+    // Method to adjust crop size
+    setCropSize(size) {
+        this.cropSize = size;
+        console.log(`Crop size set to: ${size}x${size}`);
+        
+        // Update overlay if it exists
+        const cropBox = document.getElementById('cropBox');
+        if (cropBox) {
+            cropBox.style.width = `${size}px`;
+            cropBox.style.height = `${size}px`;
+        }
     }
 
     captureFrame() {
@@ -317,4 +435,7 @@ class WebcamModule {
 document.addEventListener('DOMContentLoaded', () => {
     const webcamModule = new WebcamModule();
     window.webcamModule = webcamModule;
+    
+    // Expose crop size control for testing
+    window.setCropSize = (size) => webcamModule.setCropSize(size);
 });

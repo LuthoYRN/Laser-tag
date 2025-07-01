@@ -12,6 +12,10 @@
             align-items: center;
             gap: 10px;
         }
+        #videoContainer {
+            position: relative;
+            display: inline-block;
+        }
         video {
             width: 400px;
             height: 400px;
@@ -20,6 +24,7 @@
         #status, #results {
             font-size: 18px;
             padding: 10px;
+            text-align: center;
         }
         .info { color: blue; }
         .success { color: green; }
@@ -27,19 +32,49 @@
         button {
             padding: 10px 20px;
             font-size: 16px;
+            margin: 5px;
+        }
+        .controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        #cropSizeSlider {
+            width: 200px;
         }
     </style>
 </head>
 <body>
-    <video id="webcam" autoplay></video>
-    <button id="startBtn">Start Camera</button>
-    <button id="stopBtn" disabled>Stop Camera</button>
+    <div id="videoContainer">
+        <video id="webcam" autoplay></video>
+    </div>
+    
+    <div class="controls">
+        <button id="startBtn">Start Camera</button>
+        <button id="stopBtn" disabled>Stop Camera</button>
+    </div>
+    
+    <div class="controls">
+        <label for="cropSizeSlider">Crop Size:</label>
+        <input type="range" id="cropSizeSlider" min="64" max="128" value="64" step="64">
+        <span id="cropSizeValue">64px</span>
+    </div>
+    
     <div id="status">Waiting...</div>
     <div id="results"></div>
 
-    <!-- Load ml5.js -->
     <script src="https://unpkg.com/ml5@latest/dist/ml5.min.js"></script>
-    <!-- Load your script -->
-    <script src="webcam-module.js" defer></script>
+    <script src="webcam-module.js"></script>
+    
+    <script>
+        // Add crop size control
+        document.getElementById('cropSizeSlider').addEventListener('input', (e) => {
+            const size = parseInt(e.target.value);
+            document.getElementById('cropSizeValue').textContent = size + 'px';
+            if (window.webcamModule) {
+                window.webcamModule.setCropSize(size);
+            }
+        });
+    </script>
 </body>
 </html>
