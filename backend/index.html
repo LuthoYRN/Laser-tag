@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Webcam Shape Classifier</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+        }
+        video {
+            width: 400px;
+            height: 400px;
+            border: 2px solid black;
+        }
+        #status, #results {
+            font-size: 18px;
+            padding: 10px;
+        }
+        .info { color: blue; }
+        .success { color: green; }
+        .error { color: red; }
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+        }
+    </style>
+</head>
+<body>
+    <video id="webcam" autoplay></video>
+    <button id="startBtn">Start Camera</button>
+    <button id="stopBtn" disabled>Stop Camera</button>
+    <div id="status">Waiting...</div>
+    <div id="results"></div>
+
+    <!-- Load ml5.js -->
+    <script src="https://unpkg.com/ml5@latest/dist/ml5.min.js"></script>
+    <!-- Load your script -->
+    <script src="webcam-module.js" defer></script>
+</body>
+</html>
