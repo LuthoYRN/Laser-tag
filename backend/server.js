@@ -471,8 +471,7 @@ function handlePlayerElimination(lobbyCode, eliminatedPlayerId, shooterId = null
     });
     
     if (isLastEliminated) {
-        console.log(`Game ending due to ${reason || 'elimination'}`);
-        setTimeout(() => endGame(lobbyCode), 50); // Very short delay
+        endGame(lobbyCode);
     }
 }
 

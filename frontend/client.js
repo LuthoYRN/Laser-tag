@@ -191,12 +191,12 @@ socket.on('player-eliminated', (data) => {
         updatePlayerHealth(0)
         triggerHitIndicator();
         showStatusMessage('💀 YOU WERE ELIMINATED!', 'You have been eliminated from the game', 'eliminated');
-        if (gameState.gameActive && gameState.currentScreen === 'gameSession' && gameState.playerType === 'player') {
+        if (gameState.gameActive && gameState.currentScreen === 'gameSession' && gameState.playerType === 'player' && !data.isLastEliminated) {
             setTimeout(() => {
                 gameState.playerType = 'spectator';
                 stopMainGameCamera();
                 showScreen('spectatorMode');
-                if ((gameState.lobbyData) && (!data.isLastEliminated)) {
+                if (gameState.lobbyData) {
                     initializeSpectatorMode(gameState.lobbyData);
                 }
             }, 1000);
@@ -1289,12 +1289,12 @@ function confirmForfeit() {
     socket.emit('player-forfeit');
     // Hide modal and return to home
     cancelForfeit();
-    if (gameState.gameActive && gameState.currentScreen === 'gameSession' && gameState.playerType === 'player') {
+    if (gameState.gameActive && gameState.currentScreen === 'gameSession' && gameState.playerType === 'player' && !data.isLastEliminated) {
         setTimeout(() => {
             gameState.playerType = 'spectator';
             stopMainGameCamera();
             showScreen('spectatorMode');
-            if (gameState.lobbyData && !data.isLastEliminated) {
+            if (gameState.lobbyData) {
                 initializeSpectatorMode(gameState.lobbyData);
             }
         }, 1000);
