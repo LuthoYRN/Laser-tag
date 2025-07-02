@@ -86,7 +86,6 @@ h1 {
     margin-top: 20px;
 }
 
-#bodyPrediction,
 #colorPrediction {
     background-color: #f8f9fa;
     border: 1px solid #dee2e6;
@@ -206,7 +205,6 @@ h1 {
         height: 15px;
     }
     
-    #bodyPrediction,
     #colorPrediction {
         min-height: 25px;
         padding: 8px;
