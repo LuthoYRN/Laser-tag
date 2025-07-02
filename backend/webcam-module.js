@@ -163,7 +163,7 @@ export class WebcamModule {
             cropX, cropY, this.boundingBoxSize, this.boundingBoxSize,
             0, 0, this.boundingBoxSize, this.boundingBoxSize
         );
-        const colorPresence = [];
+        let dominantColor = null;
         const totalPixels = this.boundingBoxSize * this.boundingBoxSize;
         const pixelThreshold = totalPixels * this.colorThreshold; // 1% of pixels
         if (this.selectedColorsHSV.length > 0) {
@@ -195,13 +195,19 @@ export class WebcamModule {
                 }
             }
             maskCtx.putImageData(imageData, 0, 0);
-            // Determine which colors are present
+            // Find the dominant color (highest pixel count, or first if equal)
+            let maxCount = 0;
+            let dominantIndex = 0;
             pixelCounts.forEach((count, index) => {
-                if (count >= pixelThreshold) {
-                    const [h, s, v] = this.selectedColorsHSV[index];
-                    colorPresence.push(`Color${h}${s}${v}`);
+                if (count >= pixelThreshold && count >= maxCount) {
+                    maxCount = count;
+                    dominantIndex = index;
                 }
             });
+            if (maxCount >= pixelThreshold) {
+                const [h, s, v] = this.selectedColorsHSV[dominantIndex];
+                dominantColor = `Color${h}${s}${v}`;
+            }
         } else {
             // Clear to black if no colors selected
             maskCtx.fillStyle = 'black';
@@ -265,8 +271,8 @@ export class WebcamModule {
         }
 
         // Combined prediction output
-        if (bodyDetected && colorPresence.length > 0) {
-            this.outputElement.textContent = colorPresence.join(', ');
+        if (bodyDetected && dominantColor) {
+            this.outputElement.textContent = dominantColor;
         } else {
             this.outputElement.textContent = 'No body or colors detected';
         }
