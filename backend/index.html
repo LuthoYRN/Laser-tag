@@ -17,10 +17,16 @@
             <button id="toggleButton">Start Camera</button>
             <button id="pickColorButton">Pick Color</button>
             <div class="color-selection">
+                <select id="colorCountSelect">
+                    <option value="2">2 Colors</option>
+                    <option value="4">4 Colors</option>
+                    <option value="6">6 Colors</option>
+                    <option value="8">8 Colors</option>
+                </select>
                 <input type="color" id="colorPicker">
                 <div class="color-display">
-                    <span id="colorValue">No color selected</span>
-                    <div id="colorSwatch"></div>
+                    <span id="colorValue">No colors selected</span>
+                    <div id="colorSwatches"></div>
                 </div>
             </div>
         </div>

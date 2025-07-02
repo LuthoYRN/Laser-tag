@@ -4,8 +4,9 @@ class WebcamModule {
         this.toggleButton = document.getElementById('toggleButton');
         this.pickColorButton = document.getElementById('pickColorButton');
         this.colorPicker = document.getElementById('colorPicker');
+        this.colorCountSelect = document.getElementById('colorCountSelect');
         this.colorValue = document.getElementById('colorValue');
-        this.colorSwatch = document.getElementById('colorSwatch');
+        this.colorSwatches = document.getElementById('colorSwatches');
         this.bodyPrediction = document.getElementById('bodyPrediction');
         this.colorPrediction = document.getElementById('colorPrediction');
         this.stream = null;
@@ -20,9 +21,10 @@ class WebcamModule {
         this.boundingBoxSize = 200;
         this.animationFrameId = null;
         this.tfjsReady = false;
-        this.selectedColorHSV = null;
+        this.selectedColorsHSV = []; // Array to store multiple colors
         this.colorTolerance = { h: 10, s: 40, v: 40 }; // Tolerance for HSV
         this.colorThreshold = 0.01; // 1% of pixels for color presence
+        this.maxColors = 2; // Default to 2 colors
         this.detector = null;
         this.loadTensorFlow();
         this.initializeEventListeners();
@@ -57,6 +59,11 @@ class WebcamModule {
         });
         this.colorPicker.addEventListener('change', () => {
             this.setColorFromPicker();
+        });
+        this.colorCountSelect.addEventListener('change', () => {
+            this.maxColors = parseInt(this.colorCountSelect.value);
+            this.selectedColorsHSV = []; // Reset colors when changing max
+            this.updateColorDisplay();
         });
     }
 
@@ -112,6 +119,10 @@ class WebcamModule {
             alert('Camera is not active or video is not ready.');
             return;
         }
+        if (this.selectedColorsHSV.length >= this.maxColors) {
+            alert(`Maximum ${this.maxColors} colors selected. Clear existing colors to select new ones.`);
+            return;
+        }
 
         const tempCanvas = document.createElement('canvas');
         tempCanvas.width = this.video.videoWidth;
@@ -121,31 +132,45 @@ class WebcamModule {
         const centerX = Math.floor(tempCanvas.width / 2);
         const centerY = Math.floor(tempCanvas.height / 2);
         const pixelData = tempCtx.getImageData(centerX, centerY, 1, 1).data;
-        this.selectedColorHSV = this.rgbToHsv(pixelData[0], pixelData[1], pixelData[2]);
+        const hsv = this.rgbToHsv(pixelData[0], pixelData[1], pixelData[2]);
+        this.selectedColorsHSV.push(hsv);
         this.updateColorDisplay();
-        console.log('Selected color (HSV):', this.selectedColorHSV);
+        console.log('Selected colors (HSV):', this.selectedColorsHSV);
     }
 
     setColorFromPicker() {
+        if (this.selectedColorsHSV.length >= this.maxColors) {
+            alert(`Maximum ${this.maxColors} colors selected. Clear existing colors to select new ones.`);
+            return;
+        }
         const hexColor = this.colorPicker.value;
         const r = parseInt(hexColor.slice(1, 3), 16);
         const g = parseInt(hexColor.slice(3, 5), 16);
         const b = parseInt(hexColor.slice(5, 7), 16);
-        this.selectedColorHSV = this.rgbToHsv(r, g, b);
+        const hsv = this.rgbToHsv(r, g, b);
+        this.selectedColorsHSV.push(hsv);
         this.updateColorDisplay();
-        console.log('Selected color from picker (HSV):', this.selectedColorHSV);
+        console.log('Selected colors from picker (HSV):', this.selectedColorsHSV);
     }
 
     updateColorDisplay() {
-        if (this.selectedColorHSV) {
-            const [h, s, v] = this.selectedColorHSV;
-            this.colorValue.textContent = `HSV(${h}, ${s}%, ${v}%)`;
-            const [r, g, b] = this.hsvToRgb(h, s, v);
-            this.colorSwatch.style.backgroundColor = `rgb(${r}, ${g}, ${b})`;
+        this.colorSwatches.innerHTML = ''; // Clear existing swatches
+        if (this.selectedColorsHSV.length > 0) {
+            const hsvText = this.selectedColorsHSV.map((hsv, i) => `color${i + 1}: HSV(${hsv[0]}, ${hsv[1]}%, ${hsv[2]}%)`).join(', ');
+            this.colorValue.textContent = hsvText;
+            this.selectedColorsHSV.forEach((hsv, i) => {
+                const [r, g, b] = this.hsvToRgb(hsv[0], hsv[1], hsv[2]);
+                const swatch = document.createElement('div');
+                swatch.className = 'color-swatch';
+                swatch.style.backgroundColor = `rgb(${r}, ${g}, ${b})`;
+                this.colorSwatches.appendChild(swatch);
+            });
+            // Set color picker to last selected color
+            const lastHsv = this.selectedColorsHSV[this.selectedColorsHSV.length - 1];
+            const [r, g, b] = this.hsvToRgb(lastHsv[0], lastHsv[1], lastHsv[2]);
             this.colorPicker.value = `#${((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1).padStart(6, '0')}`;
         } else {
-            this.colorValue.textContent = 'No color selected';
-            this.colorSwatch.style.backgroundColor = 'transparent';
+            this.colorValue.textContent = 'No colors selected';
             this.colorPicker.value = '#000000';
         }
     }
@@ -242,38 +267,52 @@ class WebcamModule {
             cropX, cropY, this.boundingBoxSize, this.boundingBoxSize,
             0, 0, this.boundingBoxSize, this.boundingBoxSize
         );
-        let colorPixelCount = 0;
+        const colorPresence = [];
         const totalPixels = this.boundingBoxSize * this.boundingBoxSize;
         const pixelThreshold = totalPixels * this.colorThreshold; // 1% of pixels
-        if (this.selectedColorHSV) {
-            const [h, s, v] = this.selectedColorHSV;
+        if (this.selectedColorsHSV.length > 0) {
             const imageData = maskCtx.getImageData(0, 0, this.boundingBoxSize, this.boundingBoxSize);
             const data = imageData.data;
+            const pixelCounts = new Array(this.selectedColorsHSV.length).fill(0);
+            
+            // First pass: count matching pixels for each color
             for (let i = 0; i < data.length; i += 4) {
                 const [pixelH, pixelS, pixelV] = this.rgbToHsv(data[i], data[i + 1], data[i + 2]);
-                if (
-                    (Math.abs(pixelH - h) <= this.colorTolerance.h ||
-                     (pixelH + 360 - h) <= this.colorTolerance.h ||
-                     (h + 360 - pixelH) <= this.colorTolerance.h) &&
-                    Math.abs(pixelS - s) <= this.colorTolerance.s &&
-                    Math.abs(pixelV - v) <= this.colorTolerance.v
-                ) {
-                    colorPixelCount++; // Count matching pixels
-                    continue; // Keep the pixel color
+                let matched = false;
+                this.selectedColorsHSV.forEach(([h, s, v], index) => {
+                    if (
+                        (Math.abs(pixelH - h) <= this.colorTolerance.h ||
+                         (pixelH + 360 - h) <= this.colorTolerance.h ||
+                         (h + 360 - pixelH) <= this.colorTolerance.h) &&
+                        Math.abs(pixelS - s) <= this.colorTolerance.s &&
+                        Math.abs(pixelV - v) <= this.colorTolerance.v
+                    ) {
+                        pixelCounts[index]++;
+                        matched = true;
+                    }
+                });
+                if (!matched) {
+                    // Set to black if no color matches
+                    data[i] = 0;
+                    data[i + 1] = 0;
+                    data[i + 2] = 0;
                 }
-                // Set to black
-                data[i] = 0;
-                data[i + 1] = 0;
-                data[i + 2] = 0;
             }
             maskCtx.putImageData(imageData, 0, 0);
+            // Determine which colors are present
+            pixelCounts.forEach((count, index) => {
+                if (count >= pixelThreshold) {
+                    colorPresence.push(`color${index + 1}`);
+                }
+            });
         } else {
-            // Clear to black if no color selected
+            // Clear to black if no colors selected
             maskCtx.fillStyle = 'black';
             maskCtx.fillRect(0, 0, this.boundingBoxSize, this.boundingBoxSize);
         }
         this.monitorCtxMasked.drawImage(maskCanvas, 0, 0);
-        const colorPresent = colorPixelCount >= pixelThreshold;
+        // Update color prediction text
+        this.colorPrediction.textContent = colorPresence.length > 0 ? `Colors seen: ${colorPresence.join(', ')}` : 'No selected colors present';
 
         // Binary Canvas (cropped)
         const binaryCanvas = document.createElement('canvas');
@@ -325,7 +364,7 @@ class WebcamModule {
 
                 if (poses.length > 0) {
                     const keypoints = poses[0].keypoints;
-                    bodyDetected = upperBodyKeypointIndices.some(i => keypoints[i].score > 0.5); // Waist-up detected if any keypoint has confidence > 0.5
+                    bodyDetected = upperBodyKeypointIndices.some(i => keypoints[i].score > 0.5); // Waist-up detected if any keypoint has confidence31confidence > 0.5
                     upperBodyKeypointIndices.forEach(i => {
                         const kp = keypoints[i];
                         if (kp.score > 0.5) {
@@ -360,7 +399,7 @@ class WebcamModule {
 
         // Update prediction text in separate divs
         this.bodyPrediction.textContent = bodyDetected ? 'Body detected' : 'No body detected';
-        this.colorPrediction.textContent = colorPresent ? 'Selected color present' : 'Selected color not present';
+        this.colorPrediction.textContent = colorPresence.length > 0 ? `Colors seen: ${colorPresence.join(', ')}` : 'No selected colors present';
 
         this.animationFrameId = requestAnimationFrame(() => this.updateMonitor());
     }
@@ -396,7 +435,7 @@ class WebcamModule {
             this.video.srcObject = null;
             this.toggleButton.textContent = 'Start Camera';
             this.toggleButton.classList.remove('stop');
-            this.selectedColorHSV = null;
+            this.selectedColorsHSV = [];
             this.updateColorDisplay();
 
             if (this.animationFrameId) {

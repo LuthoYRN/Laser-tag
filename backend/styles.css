@@ -169,6 +169,14 @@ h1 {
     margin-top: 10px;
 }
 
+#colorCountSelect {
+    padding: 8px;
+    font-size: 14px;
+    border-radius: 4px;
+    border: 1px solid #ddd;
+    cursor: pointer;
+}
+
 #colorPicker {
     width: 40px;
     height: 40px;
@@ -188,7 +196,13 @@ h1 {
     color: #333;
 }
 
-#colorSwatch {
+#colorSwatches {
+    display: flex;
+    gap: 5px;
+    flex-wrap: wrap;
+}
+
+.color-swatch {
     width: 30px;
     height: 30px;
     border: 1px solid #333;
@@ -262,7 +276,7 @@ h1 {
         height: 30px;
     }
     
-    #colorSwatch {
+    .color-swatch {
         width: 25px;
         height: 25px;
     }
