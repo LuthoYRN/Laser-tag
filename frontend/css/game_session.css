@@ -491,7 +491,6 @@
     left: 50%;
     transform: translate(-50%, -50%);
     background: rgba(0, 0, 0, 0.9);
-    border: 2px solid #00ffff;
     border-radius: 15px;
     padding: 20px 30px;
     text-align: center;
@@ -518,13 +517,11 @@
 .game-container .status-title {
     font-size: 1.5rem;
     font-weight: bold;
-    color: #00ffff;
     margin-bottom: 10px;
 }
 
 .game-container .status-text {
     font-size: 1rem;
-    color: #ffffff;
 }
 
 .qr-scanner-modal {

@@ -48,72 +48,82 @@ function showScreen(screenName) {
         }
     }
 }
-
 function showStatusMessage(title, text, type = 'info') {
+    console.log('🐛 showStatusMessage called:', { title, text, type }); // Debug line
+    
     const statusMessage = document.getElementById('statusMessage');
     const statusTitle = document.getElementById('statusTitle');
     const statusText = document.getElementById('statusText');
     
     if (statusMessage && statusTitle && statusText) {
-        // Clear first
+        // FORCE CLEAR FIRST
         statusTitle.innerHTML = '';
         statusText.innerHTML = '';
         
-        // Set new values
+        // SET NEW VALUES
         statusTitle.textContent = title;
         statusText.textContent = text;
         
-        // Reset all styles
+        console.log('🐛 Set title to:', statusTitle.textContent); // Debug line
+        console.log('🐛 Set text to:', statusText.textContent); // Debug line
+        
+        // Reset all styles first
         statusMessage.style.borderColor = '';
         statusMessage.style.background = '';
         statusMessage.style.boxShadow = '';
-        statusTitle.style.color = ''; // Reset title color
-        statusText.style.color = ''; // Reset text color
+        statusTitle.style.color = ''; // Clear any existing color
+        statusText.style.color = ''; // Clear any existing color
         
-        // Apply colors based on message type
+        // Apply colors based on message type with !important equivalent (direct style setting)
         switch(type) {
             case 'success':
                 statusMessage.style.borderColor = '#00ff00';
-                statusMessage.style.background = 'rgba(0, 255, 0, 0.3)'; // More opaque
+                statusMessage.style.background = 'rgba(0, 255, 0, 0.3)';
                 statusMessage.style.boxShadow = '0 0 20px rgba(0, 255, 0, 0.4)';
-                statusTitle.style.color = '#00ff00'; // Green title
-                statusText.style.color = '#ffffff'; // White text
+                statusTitle.style.setProperty('color', '#00ff00', 'important'); // Force green title
+                statusText.style.setProperty('color', '#ffffff', 'important'); // Force white text
                 break;
             case 'error':
                 statusMessage.style.borderColor = '#ff0000';
-                statusMessage.style.background = 'rgba(255, 0, 0, 0.3)'; // More opaque
+                statusMessage.style.background = 'rgba(255, 0, 0, 0.3)';
                 statusMessage.style.boxShadow = '0 0 20px rgba(255, 0, 0, 0.4)';
-                statusTitle.style.color = '#ff0000'; // Red title
-                statusText.style.color = '#ffffff'; // White text
+                statusTitle.style.setProperty('color', '#ff0000', 'important'); // Force red title
+                statusText.style.setProperty('color', '#ffffff', 'important'); // Force white text
                 break;
             case 'warning':
                 statusMessage.style.borderColor = '#ffaa00';
-                statusMessage.style.background = 'rgba(255, 170, 0, 0.3)'; // More opaque
+                statusMessage.style.background = 'rgba(255, 170, 0, 0.3)';
                 statusMessage.style.boxShadow = '0 0 20px rgba(255, 170, 0, 0.4)';
-                statusTitle.style.color = '#ffaa00'; // Orange title
-                statusText.style.color = '#ffffff'; // White text
+                statusTitle.style.setProperty('color', '#ffaa00', 'important'); // Force orange title
+                statusText.style.setProperty('color', '#ffffff', 'important'); // Force white text
                 break;
             case 'eliminated':
                 statusMessage.style.borderColor = '#ff0000';
-                statusMessage.style.background = 'rgba(255, 0, 0, 0.5)'; // Very opaque
+                statusMessage.style.background = 'rgba(255, 0, 0, 0.8)';
                 statusMessage.style.boxShadow = '0 0 30px rgba(255, 0, 0, 0.6)';
-                statusTitle.style.color = '#ffffff'; // White title for contrast
-                statusText.style.color = '#ffcccc'; // Light pink text
+                statusTitle.style.setProperty('color', '#ffffff', 'important'); // Force white title
+                statusText.style.setProperty('color', '#ffcccc', 'important'); // Force light pink text
                 break;
             case 'hit':
                 statusMessage.style.borderColor = '#ff6600';
-                statusMessage.style.background = 'rgba(255, 102, 0, 0.3)'; // More opaque
+                statusMessage.style.background = 'rgba(255, 102, 0, 0.3)';
                 statusMessage.style.boxShadow = '0 0 20px rgba(255, 102, 0, 0.4)';
-                statusTitle.style.color = '#ff6600'; // Orange title
-                statusText.style.color = '#ffffff'; // White text
+                statusTitle.style.setProperty('color', '#ff6600', 'important'); // Force orange title
+                statusText.style.setProperty('color', '#ffffff', 'important'); // Force white text
                 break;
             default: // 'info'
                 statusMessage.style.borderColor = '#00ffff';
-                statusMessage.style.background = 'rgba(0, 0, 0, 0.8)'; // More opaque
+                statusMessage.style.background = 'rgba(0, 0, 0, 0.8)';
                 statusMessage.style.boxShadow = '0 0 15px rgba(0, 255, 255, 0.3)';
-                statusTitle.style.color = '#00ffff'; // Cyan title
-                statusText.style.color = '#ffffff'; // White text
+                statusTitle.style.setProperty('color', '#00ffff', 'important'); // Force cyan title
+                statusText.style.setProperty('color', '#ffffff', 'important'); // Force white text
         }
+        
+        console.log('🐛 Applied colors:', {
+            titleColor: statusTitle.style.color,
+            textColor: statusText.style.color,
+            type: type
+        }); // Debug line
         
         statusMessage.classList.add('show');
         
@@ -134,9 +144,10 @@ function showStatusMessage(title, text, type = 'info') {
             statusTitle.style.color = '#00ffff'; // Reset to default
             statusText.style.color = '#ffffff'; // Reset to default
         }, duration);
+    } else {
+        console.error('🐛 Status message elements not found!', { statusMessage, statusTitle, statusText });
     }
 }
-
 
 // Updated showNotification to use proper types
 function showNotification(message, type = 'info') {
