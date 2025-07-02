@@ -49,30 +49,98 @@ function showScreen(screenName) {
     }
 }
 
-// Keep the original simple showNotification function in client.js
-function showNotification(message, type = 'info') {
-    console.log(`[${type.toUpperCase()}] ${message}`);
+function showStatusMessage(title, text, type = 'info') {
+    const statusMessage = document.getElementById('statusMessage');
+    const statusTitle = document.getElementById('statusTitle');
+    const statusText = document.getElementById('statusText');
     
-    // Use status message system instead of alert
-    if (type === 'error') {
-        showStatusMessage('⚠️ Error', message);
-    } else if (type === 'success') {
-        showStatusMessage('✅ Success', message);
-    } else {
-        showStatusMessage('ℹ️ Info', message);
+    if (statusMessage && statusTitle && statusText) {
+        statusTitle.innerHTML = '';
+        statusText.innerHTML = '';
+        
+        statusTitle.textContent = title;
+        statusText.textContent = text;
+        
+        // Reset any existing styles
+        statusMessage.style.borderColor = '';
+        statusMessage.style.background = '';
+        statusMessage.style.boxShadow = '';
+        
+        // Apply colors based on message type
+        switch(type) {
+            case 'success':
+                statusMessage.style.borderColor = '#00ff00';
+                statusMessage.style.background = 'rgba(0, 255, 0, 0.1)';
+                statusMessage.style.boxShadow = '0 0 20px rgba(0, 255, 0, 0.4)';
+                break;
+            case 'error':
+                statusMessage.style.borderColor = '#ff0000';
+                statusMessage.style.background = 'rgba(255, 0, 0, 0.1)';
+                statusMessage.style.boxShadow = '0 0 20px rgba(255, 0, 0, 0.4)';
+                break;
+            case 'warning':
+                statusMessage.style.borderColor = '#ffaa00';
+                statusMessage.style.background = 'rgba(255, 170, 0, 0.1)';
+                statusMessage.style.boxShadow = '0 0 20px rgba(255, 170, 0, 0.4)';
+                break;
+            case 'eliminated':
+                statusMessage.style.borderColor = '#ff0000';
+                statusMessage.style.background = 'rgba(255, 0, 0, 0.9)';
+                statusMessage.style.boxShadow = '0 0 30px rgba(255, 0, 0, 0.6)';
+                break;
+            case 'hit':
+                statusMessage.style.borderColor = '#ff6600';
+                statusMessage.style.background = 'rgba(255, 102, 0, 0.1)';
+                statusMessage.style.boxShadow = '0 0 20px rgba(255, 102, 0, 0.4)';
+                break;
+            default: // 'info'
+                statusMessage.style.borderColor = '#00ffff';
+                statusMessage.style.background = 'rgba(0, 0, 0, 0.9)';
+                statusMessage.style.boxShadow = '0 0 15px rgba(0, 255, 255, 0.3)';
+        }
+        
+        statusMessage.classList.add('show');
+        
+        // Auto hide based on message type
+        let duration = 1000; // default
+        if (type === 'eliminated' || type === 'error') {
+            duration = 3000; // longer for critical messages
+        } else if (type === 'hit' || type === 'success') {
+            duration = 500; // shorter for action feedback
+        }
+        
+        setTimeout(() => {
+            statusMessage.classList.remove('show');
+            // Reset styles when hiding
+            statusMessage.style.borderColor = '#00ffff';
+            statusMessage.style.background = 'rgba(0, 0, 0, 0.9)';
+            statusMessage.style.boxShadow = '';
+        }, duration);
     }
 }
 
+// Updated showNotification to use proper types
+function showNotification(message, type = 'info') {
+    console.log(`[${type.toUpperCase()}] ${message}`);
+    
+    // Map notification types to status message types
+    if (type === 'error') {
+        showStatusMessage('⚠️ Error', message, 'error');
+    } else if (type === 'success') {
+        showStatusMessage('✅ Success', message, 'success');
+    } else {
+        showStatusMessage('ℹ️ Info', message, 'info');
+    }
+}
 
-// Simplified socket event handlers - just use existing red flash indicator
+// Update all socket handlers to use specific types
 socket.on('scan-result', (data) => {
     console.log('Scan result received:', data);
     if (data.success) {
         updatePlayerScore(data.newScore);
         triggerShootIndicator();
-        showNotification(`Hit ${data.targetPlayerName} for ${data.pointsEarned} points!`, 'success');
     } else {
-        showNotification(data.message, 'error');
+         showStatusMessage('⚠️ Scan Failed', data.message, 'error');
     }
 });
 
@@ -81,25 +149,21 @@ socket.on('player-damaged', (data) => {
     if (data.playerId === socket.id) {
         updatePlayerHealth(data.health);
         triggerHitIndicator();
-        showStatusMessage('💥 HIT!', `Hit by ${data.shooterName}! -${data.damage} HP (${data.health}% remaining)`);
+        showStatusMessage('💥 HIT!', `Hit by ${data.shooterName}! -${data.damage} HP (${data.health}% remaining)`, 'hit');
+        showStatusMessage('💥 HIT!', `Hit by ${data.shooterName}! -${data.damage} HP (${data.health}% remaining)`, 'hit');
     } else {
-        // Show feedback when you hit someone else
-        showStatusMessage('🎯 Direct Hit!', `You hit ${data.playerName} for ${data.damage} damage!`);
+        showStatusMessage('🎯 Direct Hit!', `You hit ${data.playerName} for ${data.damage} damage!`, 'success');
+        showStatusMessage('🎯 Direct Hit!', `You hit ${data.playerName} for ${data.damage} damage!`, 'success');
     }
 });
 
 socket.on('player-eliminated', (data) => {
     console.log('Player eliminated:', data);
     if (data.playerId === socket.id) {
-        // You were eliminated - use status message instead of alert
         triggerHitIndicator();
-        showStatusMessage('💀 ELIMINATED!', 'You have been eliminated from the game');
-        
-        // Show elimination overlay for longer duration
-        showEliminationOverlay();
+        showStatusMessage('💀 YOU WERE ELIMINATED!', 'You have been eliminated from the game', 'eliminated');
     } else {
-        // Someone else was eliminated
-        showStatusMessage('🎯 Player Eliminated', `${data.playerName} was eliminated by ${data.shooterName}!`);
+        showStatusMessage('🎯 Player Eliminated', `${data.playerName} was eliminated by ${data.shooterName}!`, 'warning');
     }
 });
 
@@ -171,27 +235,6 @@ function showQRAssignmentOverlay(message) {
     progressEl.textContent = 'Waiting for all players to scan QR codes...';
     
     overlay.classList.add('show');
-}
-
-function showEliminationOverlay() {
-    const statusMessage = document.getElementById('statusMessage');
-    const statusTitle = document.getElementById('statusTitle');
-    const statusText = document.getElementById('statusText');
-    
-    if (statusMessage && statusTitle && statusText) {
-        statusTitle.textContent = '💀 YOU WERE ELIMINATED!';
-        statusText.textContent = 'Game over - transitioning to spectator mode...';
-        statusMessage.classList.add('show');
-        statusMessage.style.borderColor = '#ff0000';
-        statusMessage.style.background = 'rgba(255, 0, 0, 0.9)';
-        
-        // Keep visible for longer (5 seconds instead of 3)
-        setTimeout(() => {
-            statusMessage.classList.remove('show');
-            statusMessage.style.borderColor = '#00ffff'; // Reset color
-            statusMessage.style.background = 'rgba(0, 0, 0, 0.9)'; // Reset background
-        }, 5000);
-    }
 }
 
 // Create QR assignment overlay (add this to your HTML)
@@ -288,14 +331,6 @@ socket.on('qr-assigned', (data) => {
         showNotification(data.message || 'Failed to assign QR code', 'error');
     }
 });
-
-// Show assignment success but keep waiting
-function showPlayerAssignmentSuccess(data) {
-    // This function is called by the new flow - just hide scanner and show overlay
-    hideQRScannerModal();
-    showQRAssignmentOverlay('Waiting for all players to scan...');
-}
-
 function createSuccessMessage() {
     const msg = document.createElement('div');
     msg.id = 'qrSuccessMessage';
@@ -369,23 +404,21 @@ function goBack() {
     }
 }
 
-// Socket Event Handlers
 socket.on('connect', () => {
     console.log('🔗 Connected to server:', socket.id);
-    showStatusMessage('🔗 Connected', 'Connected to game server');
+    showStatusMessage('🔗 Connected', 'Connected to game server', 'success');
 });
 
 socket.on('disconnect', () => {
     console.log('❌ Disconnected from server');
-    showStatusMessage('❌ Disconnected', 'Lost connection to server');
+    showStatusMessage('❌ Disconnected', 'Lost connection to server', 'error');
     showScreen('home');
 });
 
 socket.on('connect_error', (error) => {
     console.error('Connection error:', error);
-    showStatusMessage('❌ Connection Error', 'Failed to connect to server');
+    showStatusMessage('❌ Connection Error', 'Failed to connect to server', 'error');
 });
-
 
 // Lobby Management Events
 socket.on('player-joined', (lobbyState) => {
@@ -968,30 +1001,6 @@ function initializeGameSession(gameData) {
     initializeForfeitModal();
 }
 
-function showStatusMessage(title, text) {
-    const statusMessage = document.getElementById('statusMessage');
-    const statusTitle = document.getElementById('statusTitle');
-    const statusText = document.getElementById('statusText');
-    
-    if (statusMessage && statusTitle && statusText) {
-        statusTitle.textContent = title;
-        statusText.textContent = text;
-        statusMessage.classList.add('show');
-        
-        // Auto hide based on message type (longer for important messages)
-        let duration = 3000; // default
-        if (title.includes('ELIMINATED') || title.includes('Error')) {
-            duration = 5000; // longer for critical messages
-        } else if (title.includes('Hit') || title.includes('Shot')) {
-            duration = 2000; // shorter for action feedback
-        }
-        
-        setTimeout(() => {
-            statusMessage.classList.remove('show');
-        }, duration);
-    }
-}
-
 function showQRScannerModal() {
     const modal = document.getElementById('qrScannerModal');
     if (modal) {
@@ -1017,7 +1026,7 @@ function startQRScanner() {
     const qrBoxSize = Math.min(screenWidth * 0.8, 300); // 80% of screen width, max 300px
     
     const config = {
-        fps: 10,
+        fps: 20,
         qrbox: qrBoxSize,
         aspectRatio: 1.0 // Square scanning area
     };
@@ -1062,7 +1071,7 @@ function startMainGameCamera() {
     const qrBoxSize = Math.min(screenWidth * 0.9, 400);
     
     const config = {
-        fps: 10,
+        fps: 20,
         qrbox: qrBoxSize,
         aspectRatio: 1.0
     };
@@ -1144,12 +1153,7 @@ function stopQRScanner() {
     }
 }
 
-function handleQRScan(qrData) {
-    // Haptic feedback
-    if (navigator.vibrate) {
-        navigator.vibrate(200);
-    }
-    
+function handleQRScan(qrData) {  
     console.log('QR Code scanned:', qrData);
     
     // Send QR assignment to server
@@ -1158,45 +1162,21 @@ function handleQRScan(qrData) {
         playerId: socket.id
     });
 }
-
-function showPlayerAssignmentSuccess(data) {
-    const modal = document.getElementById('playerAssignmentModal');
-    const playerName = document.getElementById('assignmentPlayerName');
-    
-    if (modal) {
-        if (playerName) {
-            playerName.textContent = data.playerName || 'Player';
-        }
-        modal.classList.add('show');
-        
-        // Auto hide after 2 seconds
-        setTimeout(() => {
-            modal.classList.remove('show');
-            // Start the main game camera now
-            startMainGameCamera();
-        }, 2000);
-    }
-}
-
 // Replace the handleGameQRScan function in client.js
 let lastGameScanTime = 0;
 
 function handleGameQRScan(qrData) {
     const now = Date.now();
     
-    // Prevent rapid scanning (2 second cooldown)
-    if (now - lastGameScanTime < 2000) {
+    // Prevent rapid scanning (1 second cooldown)
+    if (now - lastGameScanTime < 1000) {
         console.log('Scan cooldown active, ignoring scan');
         return;
     }
     
     lastGameScanTime = now;
-    
-    // Haptic feedback
-    if (navigator.vibrate) {
-        navigator.vibrate(100);
-    }
-    
+       
+       
     console.log('Game QR Code scanned:', qrData);
     
     // Send scan to server - only need the target QR code
@@ -1207,8 +1187,8 @@ function handleGameQRScan(qrData) {
 
 function cancelQRScanning() {
     hideQRScannerModal();
-    // Start main game camera directly
-    socket.emit("player-forfeit")
+    socket.emit('leave-lobby');
+    showScreen("joinLobby")
 }
 
 function updateGameTimer(timeLeft, playersAlive) {
@@ -1300,19 +1280,6 @@ function cancelForfeit() {
     const modal = document.getElementById('forfeitModal');
     if (modal) {
         modal.classList.remove('show');
-    }
-}
-
-function showEliminationPopup() {
-    const statusMessage = document.getElementById('statusMessage');
-    const statusTitle = document.getElementById('statusTitle');
-    const statusText = document.getElementById('statusText');
-    
-    if (statusMessage && statusTitle && statusText) {
-        statusTitle.textContent = '💀 ELIMINATED!';
-        statusText.textContent = 'Transitioning to spectator mode...';
-        statusMessage.classList.add('show');
-        statusMessage.style.borderColor = '#ff0000';
     }
 }
 
