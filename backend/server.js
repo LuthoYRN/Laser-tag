@@ -399,8 +399,8 @@ io.on('connection', (socket) => {
         }
         
         // Apply damage
-        const damage = 25;
-        const pointsEarned = 50;
+        const damage = 10;
+        const pointsEarned = 105;
         
         targetPlayer.health = Math.max(0, targetPlayer.health - damage);
         scannerPlayer.score += pointsEarned;
