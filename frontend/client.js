@@ -243,12 +243,10 @@ socket.on('game-actually-started', (gameData) => {
 function initializeQRAssignmentPhase(data) {
     console.log('Initializing QR assignment phase');
     
-    // Show QR assignment overlay instead of immediately starting game
-    showQRAssignmentOverlay(data.message);
-    
     // Show QR scanner modal for assignment
     setTimeout(() => {
         showQRScannerModal();
+        showQRAssignmentOverlay(data.message);
     }, 1000);
 }
 
@@ -264,7 +262,7 @@ function showQRAssignmentOverlay(message) {
     overlay.classList.add('show');
 }
 
-// Create QR assignment overlay (add this to your HTML)
+// Create QR assignment overlay 
 function createQRAssignmentOverlay() {
     const overlay = document.createElement('div');
     overlay.id = 'qrAssignmentOverlay';
@@ -599,6 +597,7 @@ function initializeJoinLobby() {
     }
     
     if (lobbyInput) {
+        lobbyInput.value =''
         lobbyInput.addEventListener('input', (e) => {
             const code = e.target.value.toUpperCase();
             e.target.value = code;
@@ -908,6 +907,8 @@ function updatePlayerList(lobbyState = gameState.lobbyData) {
 function initializeWaitingRoom() {
     const readyButton = document.getElementById('readyButton');
     const leaveButton = document.querySelector('.container.wait .leave-button');
+    const countdownSection = document.getElementById('gameStartSection');
+    countdownSection.classList.remove("show");
     
     if (leaveButton) {
         leaveButton.addEventListener('click', () => {
