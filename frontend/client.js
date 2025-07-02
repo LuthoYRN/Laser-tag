@@ -25,6 +25,11 @@ const screens = {
 
 // Utility Functions
 function showScreen(screenName) {
+    // Clean up live lobbies updates when leaving that screen
+    if (gameState.currentScreen === 'liveLobbies' && screenName !== 'liveLobbies') {
+        stopLiveLobbiesUpdates();
+    }
+    
     // Hide all screens
     Object.values(screens).forEach(screen => {
         if (screen) screen.classList.add('hidden');
@@ -35,11 +40,17 @@ function showScreen(screenName) {
         screens[screenName].classList.remove('hidden');
         gameState.currentScreen = screenName;
         console.log(`Switched to screen: ${screenName}`);
+        
+        // Start live lobbies updates when entering that screen
+        if (screenName === 'liveLobbies') {
+            loadActiveLiveLobbies();
+            startLiveLobbiesUpdates();
+        }
     }
 }
 
+// Keep the original simple showNotification function in client.js
 function showNotification(message, type = 'info') {
-    // Simple notification system - you can enhance this
     console.log(`[${type.toUpperCase()}] ${message}`);
     
     // You could add a proper notification UI element here
@@ -47,6 +58,40 @@ function showNotification(message, type = 'info') {
         alert(`Error: ${message}`);
     }
 }
+
+// Simplified socket event handlers - just use existing red flash indicator
+socket.on('scan-result', (data) => {
+    console.log('Scan result received:', data);
+    if (data.success) {
+        updatePlayerScore(data.newScore);
+        triggerShootIndicator();
+        showNotification(`Hit ${data.targetPlayerName} for ${data.pointsEarned} points!`, 'success');
+    } else {
+        showNotification(data.message, 'error');
+    }
+});
+
+socket.on('player-damaged', (data) => {
+    console.log('Player damaged:', data);
+    if (data.playerId === socket.id) {
+        updatePlayerHealth(data.health);
+        triggerHitIndicator(); // Use existing red flash indicator
+        showNotification(`Hit by ${data.shooterName}! -${data.damage} HP`, 'info');
+    }
+});
+
+socket.on('player-eliminated', (data) => {
+    console.log('Player eliminated:', data);
+    if (data.playerId === socket.id) {
+        // You were eliminated - trigger red flash
+        triggerHitIndicator();
+        showNotification('💀 YOU WERE ELIMINATED!', 'error');
+        showEliminationPopup();
+    } else {
+        // Someone else was eliminated
+        showNotification(`${data.playerName} was eliminated by ${data.shooterName}!`, 'info');
+    }
+});
 
 function updateLobbyCode(code) {
     const lobbyCodeElements = document.querySelectorAll('.lobby-code');
@@ -61,6 +106,11 @@ function formatTime(seconds) {
 
 // Navigation Functions
 function goBack() {
+    // Clean up live lobbies updates when leaving
+    if (gameState.currentScreen === 'liveLobbies') {
+        stopLiveLobbiesUpdates();
+    }
+    
     switch(gameState.currentScreen) {
         case 'createLobby':
         case 'joinLobby':
@@ -73,6 +123,11 @@ function goBack() {
             break;
         case 'spectatorMode':
             showScreen('liveLobbies');
+            // Restart live lobbies updates when returning
+            if (gameState.currentScreen === 'liveLobbies') {
+                loadActiveLiveLobbies();
+                startLiveLobbiesUpdates();
+            }
             break;
         case 'results':
             showScreen('home');
@@ -137,9 +192,15 @@ socket.on('countdown', (count) => {
 
 socket.on('countdown-canceled', () => {
     console.log('Countdown canceled');
-    setTimeout(() => {
-        hideGameStartCountdown();
-    }, 100);
+    
+    hideGameStartCountdown();
+    
+    if (gameState.lobbyData) {
+        const currentPlayer = gameState.lobbyData.players.find(p => p.id === socket.id);
+        if (currentPlayer) {
+            updateReadyButton(currentPlayer.isReady);
+        }
+    }   
     setReadyButtonState('normal');
     showNotification('Countdown canceled - player not ready', 'info');
 });
@@ -151,32 +212,29 @@ socket.on('game-started', (gameData) => {
     if (gameState.playerType === 'player') {
         showScreen('gameSession');
         initializeGameSession(gameData);
+        // Show QR scanner modal first, before starting the actual game
+        setTimeout(() => {
+            showQRScannerModal();
+        }, 500);
     } else if (gameState.playerType === 'spectator') {
         showScreen('spectatorMode');
         initializeSpectatorMode(gameData);
     }
 });
 
+// QR Code Assignment Events
+socket.on('qr-assigned', (data) => {
+    console.log('QR Code assigned:', data);
+    if (data.success) {
+        showPlayerAssignmentSuccess(data);
+        hideQRScannerModal();
+    } else {
+        showNotification(data.message || 'Failed to assign QR code', 'error');
+    }
+});
+
 socket.on('game-timer', (data) => {
     updateGameTimer(data.timeLeft, data.playersAlive);
-});
-
-socket.on('player-shot', (data) => {
-    console.log('Player shot:', data);
-    // Handle shooting animation/feedback
-});
-
-socket.on('player-eliminated', (data) => {
-    console.log('Player eliminated:', data);
-    showNotification(`${data.playerName} was eliminated!`, 'info');
-    updatePlayerList();
-});
-
-socket.on('player-damaged', (data) => {
-    console.log('Player damaged:', data);
-    if (data.playerId === socket.id) {
-        updatePlayerHealth(data.health);
-    }
 });
 
 socket.on('game-ended', (results) => {
@@ -322,9 +380,23 @@ function joinLobby() {
 }
 
 // Live Lobbies Screen
+let liveLobbiesInterval = null;
+let liveGameTimers = new Map(); // Store timer data for each lobby
+
 function initializeLiveLobbies() {
     const backButton = document.querySelector('.container.live .back-button');
     const refreshButton = document.querySelector('.refresh-button');
+    const container = document.getElementById('gamesContainer');
+    
+    // Immediately clear dummy data and show loading state
+    if (container) {
+        container.innerHTML = `
+            <div class="loading-state">
+                <div class="loading-spinner"></div>
+                <div class="loading-text">Loading live games...</div>
+            </div>
+        `;
+    }
     
     if (backButton) {
         backButton.addEventListener('click', goBack);
@@ -333,11 +405,95 @@ function initializeLiveLobbies() {
     if (refreshButton) {
         refreshButton.addEventListener('click', loadActiveLiveLobbies);
     }
+    // Start real-time updates
+    loadActiveLiveLobbies();
+    startLiveLobbiesUpdates();
+}
+
+function startLiveLobbiesUpdates() {
+    // Clear any existing interval
+    if (liveLobbiesInterval) {
+        clearInterval(liveLobbiesInterval);
+    }
+    
+    // Update lobby data every 10 seconds
+    liveLobbiesInterval = setInterval(() => {
+        if (gameState.currentScreen === 'liveLobbies') {
+            loadActiveLiveLobbies();
+        } else {
+            // Stop updates if user left the screen
+            stopLiveLobbiesUpdates();
+        }
+    }, 10000);
+    
+    // Update timers every second for smooth countdown
+    setInterval(() => {
+        if (gameState.currentScreen === 'liveLobbies') {
+            updateLiveGameTimers();
+        }
+    }, 1000);
+}
+
+function stopLiveLobbiesUpdates() {
+    if (liveLobbiesInterval) {
+        clearInterval(liveLobbiesInterval);
+        liveLobbiesInterval = null;
+    }
+    liveGameTimers.clear();
 }
 
 function loadActiveLiveLobbies() {
+    const container = document.getElementById('gamesContainer');
+    
+    // Only show loading if container is empty or has loading state
+    if (container && (!container.children.length || container.querySelector('.loading-state'))) {
+        container.innerHTML = `
+            <div class="loading-state">
+                <div class="loading-spinner"></div>
+                <div class="loading-text">Loading live games...</div>
+            </div>
+        `;
+    }
+    
     socket.emit('get-active-lobbies', (lobbies) => {
+        // Store timer data for real-time updates
+        liveGameTimers.clear();
+        lobbies.forEach(lobby => {
+            liveGameTimers.set(lobby.code, {
+                timeLeft: lobby.timeLeft,
+                lastUpdate: Date.now()
+            });
+        });
+        
         displayActiveLiveLobbies(lobbies);
+    });
+}
+
+function updateLiveGameTimers() {
+    const now = Date.now();
+    
+    liveGameTimers.forEach((timerData, lobbyCode) => {
+        const timeElement = document.querySelector(`[data-lobby-code="${lobbyCode}"] .time-value`);
+        if (timeElement) {
+            // Calculate time elapsed since last server update
+            const elapsed = now - timerData.lastUpdate;
+            const currentTimeLeft = Math.max(0, timerData.timeLeft - elapsed);
+            
+            // Update display
+            timeElement.textContent = formatTime(Math.floor(currentTimeLeft / 1000));
+            
+            // Remove game if time expired
+            if (currentTimeLeft <= 0) {
+                const gameCard = document.querySelector(`[data-lobby-code="${lobbyCode}"]`);
+                if (gameCard) {
+                    gameCard.style.opacity = '0.5';
+                    gameCard.style.pointerEvents = 'none';
+                    setTimeout(() => {
+                        loadActiveLiveLobbies(); // Refresh to get updated data
+                    }, 2000);
+                }
+            }
+        }
     });
 }
 
@@ -554,9 +710,13 @@ function setReadyButtonState(state) {
 
 function showGameStartCountdown() {
     const countdownSection = document.getElementById('gameStartSection');
+    const countdownElement = document.getElementById('countdown');
+    
     if (countdownSection) {
         countdownSection.classList.add('show');
     }
+    
+    // Reset countdown display to 5 when showing
     if (countdownElement) {
         countdownElement.textContent = '5';
     }
@@ -566,27 +726,278 @@ function hideGameStartCountdown() {
     const countdownSection = document.getElementById('gameStartSection');
     if (countdownSection) {
         countdownSection.classList.remove('show');
-    }
-    // Clear the countdown number to prevent showing stale data
-    const countdownElement = document.getElementById('countdown');
-    if (countdownElement) {
-        countdownElement.textContent = '5'; // Reset to default
+        
+        // Clear the countdown number to prevent showing stale data
+        const countdownElement = document.getElementById('countdown');
+        if (countdownElement) {
+            countdownElement.textContent = '5'; // Reset to default
+        }
     }
 }
 
 function updateCountdown(count) {
     const countdownElement = document.getElementById('countdown');
     const countdownSection = document.getElementById('gameStartSection');
-     // Only update if countdown section is visible
+    
+    // Only update if countdown section is visible
     if (countdownElement && countdownSection && countdownSection.classList.contains('show')) {
         countdownElement.textContent = count;
     }
 }
 
-// Game Session Functions (basic structure)
+// Game Session Functions
+let qrScanner = null;
+
 function initializeGameSession(gameData) {
     console.log('Initializing game session with data:', gameData);
-    // Game-specific initialization will be added in next phase
+    
+    // Initialize player stats
+    updatePlayerHealth(100);
+    updatePlayerScore(0);
+    updateGameTimer(gameData.duration * 60, gameState.lobbyData?.settings.numPlayers || 4);
+    
+    // Show initial status message
+    showStatusMessage('Game Started!', 'Hunt for treasures and eliminate opponents');
+    
+    // Initialize forfeit modal
+    initializeForfeitModal();
+}
+
+function showStatusMessage(title, text) {
+    const statusMessage = document.getElementById('statusMessage');
+    const statusTitle = document.getElementById('statusTitle');
+    const statusText = document.getElementById('statusText');
+    
+    if (statusMessage && statusTitle && statusText) {
+        statusTitle.textContent = title;
+        statusText.textContent = text;
+        statusMessage.classList.add('show');
+        
+        // Auto hide after 3 seconds
+        setTimeout(() => {
+            statusMessage.classList.remove('show');
+        }, 3000);
+    }
+}
+
+function showQRScannerModal() {
+    const modal = document.getElementById('qrScannerModal');
+    if (modal) {
+        modal.classList.add('show');
+        startQRScanner();
+    }
+}
+
+function hideQRScannerModal() {
+    const modal = document.getElementById('qrScannerModal');
+    if (modal) {
+        modal.classList.remove('show');
+        stopQRScanner();
+    }
+}
+
+function startQRScanner() {
+    const qrReader = document.getElementById('qrModalPlaceholder');    
+    qrScanner = new Html5Qrcode("qrModalPlaceholder");
+    
+    // Make qrbox responsive to screen size
+    const screenWidth = window.innerWidth;
+    const qrBoxSize = Math.min(screenWidth * 0.8, 300); // 80% of screen width, max 300px
+    
+    const config = {
+        fps: 10,
+        qrbox: qrBoxSize,
+        aspectRatio: 1.0 // Square scanning area
+    };
+    
+    qrScanner.start(
+        { facingMode: "environment" },
+        config,
+        qrCodeMessage => {
+            console.log('QR Code detected:', qrCodeMessage);
+            handleQRScan(qrCodeMessage);
+        },
+        error => {
+            // Silently handle scanning errors
+        }
+    ).then(() => {
+        console.log('QR Scanner camera started successfully');
+        if (qrReader) {
+            qrReader.style.display = 'block';
+        }
+    }).catch(err => {
+        console.error("QR Scanner failed to start:", err);
+        if (qrReader) {
+            qrReader.innerHTML = '❌<br>Camera Access Required<br><small>Please allow camera permissions</small>';
+        }
+    });
+}
+function startMainGameCamera() {
+    const placeholder = document.getElementById('qrCameraPlaceholder');
+    
+    if (!placeholder) {
+        console.error('Camera placeholder not found');
+        return;
+    }
+    
+    // Clear any existing content
+    placeholder.innerHTML = '';
+    
+    const mainScanner = new Html5Qrcode("qrCameraPlaceholder");
+    
+    // Make scanning area MUCH larger for mobile - almost full screen width
+    const screenWidth = window.innerWidth;
+    const screenHeight = window.innerHeight;
+    
+    // Use 90% of screen width, but cap at reasonable size for larger screens
+    const qrBoxSize = Math.min(screenWidth * 0.9, 400); // Much larger: 90% width, max 400px
+    
+    const config = {
+        fps: 10,
+        qrbox: qrBoxSize,
+        aspectRatio: 1.0
+    };
+    
+    console.log(`Setting QR box size to: ${qrBoxSize}px for screen width: ${screenWidth}px`);
+    
+    // Show loading state
+    placeholder.innerHTML = '<div style="color: #00ffff; text-align: center;">📷<br>Starting Camera...</div>';
+    
+    mainScanner.start(
+        { facingMode: "environment" },
+        config,
+        qrCodeMessage => {
+            handleGameQRScan(qrCodeMessage);
+        },
+        error => {
+            // Silently handle scanning errors - don't log every frame
+        }
+    ).then(() => {
+        console.log('Main game camera started successfully with QR box size:', qrBoxSize);
+        
+        const crosshair = document.querySelector('.crosshair');
+        if (crosshair) {
+            crosshair.classList.add('scanning');
+        }
+        
+    }).catch(err => {
+        console.error("Main game camera failed to start:", err);
+        
+        // Show error message if camera fails
+        placeholder.innerHTML = `
+            <div style="color: #ff0000; text-align: center; padding: 20px;">
+                ❌<br>
+                Camera Access Required<br>
+                <small>Please allow camera permissions and refresh</small>
+            </div>
+        `;
+        
+        // Also show alert to user
+        alert('Camera access is required to play. Please allow camera permissions and try again.');
+    });
+}
+// Also add this helper function to stop the main camera when needed
+function stopMainGameCamera() {
+    const placeholder = document.getElementById('qrCameraPlaceholder');
+    if (placeholder) {
+        // Try to stop any existing Html5Qrcode instance
+        try {
+            const scannerElement = placeholder.querySelector('video');
+            if (scannerElement) {
+                Html5Qrcode.getCameras().then(() => {
+                    // Clear the placeholder
+                    placeholder.innerHTML = '<div style="color: #00ffff; text-align: center;">📷<br>Camera Stopped</div>';
+                });
+            }
+        } catch (err) {
+            console.log('Error stopping camera:', err);
+        }
+    }
+}
+
+function stopQRScanner() {
+    if (qrScanner) {
+        qrScanner.stop().then(() => {
+            qrScanner.clear();
+            qrScanner = null;
+            
+            const placeholder = document.getElementById('qrModalPlaceholder');
+            
+            if (placeholder) {
+                placeholder.style.display = 'flex';
+                placeholder.innerHTML = '📷<br>Camera View<br>';
+            }
+        }).catch(err => {
+            console.error("Error stopping QR scanner:", err);
+        });
+    }
+}
+
+function handleQRScan(qrData) {
+    // Haptic feedback
+    if (navigator.vibrate) {
+        navigator.vibrate(200);
+    }
+    
+    console.log('QR Code scanned:', qrData);
+    
+    // Send QR assignment to server
+    socket.emit('assign-qr-code', {
+        qrCode: qrData,
+        playerId: socket.id
+    });
+}
+
+function showPlayerAssignmentSuccess(data) {
+    const modal = document.getElementById('playerAssignmentModal');
+    const playerName = document.getElementById('assignmentPlayerName');
+    
+    if (modal) {
+        if (playerName) {
+            playerName.textContent = data.playerName || 'Player';
+        }
+        modal.classList.add('show');
+        
+        // Auto hide after 2 seconds
+        setTimeout(() => {
+            modal.classList.remove('show');
+            // Start the main game camera now
+            startMainGameCamera();
+        }, 2000);
+    }
+}
+
+// Replace the handleGameQRScan function in client.js
+let lastGameScanTime = 0;
+
+function handleGameQRScan(qrData) {
+    const now = Date.now();
+    
+    // Prevent rapid scanning (2 second cooldown)
+    if (now - lastGameScanTime < 2000) {
+        console.log('Scan cooldown active, ignoring scan');
+        return;
+    }
+    
+    lastGameScanTime = now;
+    
+    // Haptic feedback
+    if (navigator.vibrate) {
+        navigator.vibrate(100);
+    }
+    
+    console.log('Game QR Code scanned:', qrData);
+    
+    // Send scan to server - only need the target QR code
+    socket.emit('qr-scan', {
+        targetQrCode: qrData
+    });
+}
+
+function cancelQRScanning() {
+    hideQRScannerModal();
+    // Start main game camera directly
+    socket.emit("player-forfeit")
 }
 
 function updateGameTimer(timeLeft, playersAlive) {
@@ -616,6 +1027,84 @@ function updatePlayerHealth(health) {
     }
 }
 
+function updatePlayerScore(score) {
+    const scoreElement = document.getElementById('playerScore');
+    if (scoreElement) {
+        scoreElement.textContent = score.toLocaleString();
+    }
+}
+
+function triggerShootIndicator() {
+    const shootIndicator = document.getElementById('shootIndicator');
+    if (shootIndicator) {
+        shootIndicator.classList.add('active');
+        setTimeout(() => {
+            shootIndicator.classList.remove('active');
+        }, 300);
+    }
+}
+
+function triggerHitIndicator() {
+    const hitIndicator = document.getElementById('hitIndicator');
+    if (hitIndicator) {
+        hitIndicator.classList.add('active');
+        setTimeout(() => {
+            hitIndicator.classList.remove('active');
+        }, 500);
+    }
+}
+
+// Forfeit Modal Functions
+function initializeForfeitModal() {
+    const confirmBtn = document.querySelector('.forfeit-confirm-btn');
+    const cancelBtn = document.querySelector('.forfeit-cancel-btn');
+    
+    if (confirmBtn) {
+        confirmBtn.addEventListener('click', confirmForfeit);
+    }
+    
+    if (cancelBtn) {
+        cancelBtn.addEventListener('click', cancelForfeit);
+    }
+}
+
+function showForfeitConfirm() {
+    const modal = document.getElementById('forfeitModal');
+    if (modal) {
+        modal.classList.add('show');
+    }
+}
+
+function confirmForfeit() {
+    // Send forfeit to server
+    socket.emit('player-forfeit');
+    
+    // Hide modal and return to home
+    cancelForfeit();
+    showScreen('home');
+    showNotification('You have forfeited the game', 'info');
+}
+
+function cancelForfeit() {
+    const modal = document.getElementById('forfeitModal');
+    if (modal) {
+        modal.classList.remove('show');
+    }
+}
+
+function showEliminationPopup() {
+    const statusMessage = document.getElementById('statusMessage');
+    const statusTitle = document.getElementById('statusTitle');
+    const statusText = document.getElementById('statusText');
+    
+    if (statusMessage && statusTitle && statusText) {
+        statusTitle.textContent = '💀 ELIMINATED!';
+        statusText.textContent = 'Transitioning to spectator mode...';
+        statusMessage.classList.add('show');
+        statusMessage.style.borderColor = '#ff0000';
+    }
+}
+
 // Spectator Mode Functions (basic structure)
 function initializeSpectatorMode(gameData) {
     console.log('Initializing spectator mode with data:', gameData);
@@ -641,15 +1130,12 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Start on home screen
     showScreen('home');
-    
-    // Load active lobbies every 30 seconds if on live lobbies screen
-    setInterval(() => {
-        if (gameState.currentScreen === 'liveLobbies') {
-            loadActiveLiveLobbies();
-        }
-    }, 30000);
 });
 
 // Global functions for HTML onclick handlers
 window.goBack = goBack;
 window.spectateGame = spectateGame;
+window.cancelQRScanning = cancelQRScanning;
+window.showForfeitConfirm = showForfeitConfirm;
+window.confirmForfeit = confirmForfeit;
+window.cancelForfeit = cancelForfeit;
