@@ -1,14 +1,8 @@
-class WebcamModule {
-    constructor() {
-        this.video = document.getElementById('videoElement');
-        this.toggleButton = document.getElementById('toggleButton');
-        this.pickColorButton = document.getElementById('pickColorButton');
-        this.colorPicker = document.getElementById('colorPicker');
-        this.colorCountSelect = document.getElementById('colorCountSelect');
-        this.colorValue = document.getElementById('colorValue');
-        this.colorSwatches = document.getElementById('colorSwatches');
-        this.bodyPrediction = document.getElementById('bodyPrediction');
-        this.colorPrediction = document.getElementById('colorPrediction');
+export class WebcamModule {
+    constructor(videoElementId, outputElementId, monitorSectionId) {
+        this.video = document.getElementById(videoElementId);
+        this.outputElement = document.getElementById(outputElementId);
+        this.monitorSection = document.getElementById(monitorSectionId);
         this.stream = null;
         this.monitorCanvasMasked = null;
         this.monitorCanvasUpperBody = null;
@@ -22,8 +16,19 @@ class WebcamModule {
         this.colorThreshold = 0.01; // 1% of pixels for color presence
         this.maxColors = 2; // Default to 2 colors
         this.detector = null;
+
+        // Validate DOM elements
+        if (!this.video) {
+            throw new Error(`Video element with ID "${videoElementId}" not found`);
+        }
+        if (!this.outputElement) {
+            throw new Error(`Output element with ID "${outputElementId}" not found`);
+        }
+        if (!this.monitorSection) {
+            throw new Error(`Monitor section with ID "${monitorSectionId}" not found`);
+        }
+
         this.loadTensorFlow();
-        this.initializeEventListeners();
     }
 
     async loadTensorFlow() {
@@ -40,27 +45,6 @@ class WebcamModule {
             console.error('Failed to load TensorFlow.js or MoveNet model:', error);
             alert('Failed to load TensorFlow.js or MoveNet model. Please check your network connection.');
         }
-    }
-
-    initializeEventListeners() {
-        this.toggleButton.addEventListener('click', () => {
-            if (this.stream) {
-                this.stopCamera();
-            } else {
-                this.startCamera();
-            }
-        });
-        this.pickColorButton.addEventListener('click', () => {
-            this.pickColor();
-        });
-        this.colorPicker.addEventListener('change', () => {
-            this.setColorFromPicker();
-        });
-        this.colorCountSelect.addEventListener('change', () => {
-            this.maxColors = parseInt(this.colorCountSelect.value);
-            this.selectedColorsHSV = []; // Reset colors when changing max
-            this.updateColorDisplay();
-        });
     }
 
     rgbToHsv(r, g, b) {
@@ -89,102 +73,41 @@ class WebcamModule {
         return [h, s, v];
     }
 
-    hsvToRgb(h, s, v) {
-        h /= 360;
-        s /= 100;
-        v /= 100;
-        let r, g, b;
-        const i = Math.floor(h * 6);
-        const f = h * 6 - i;
-        const p = v * (1 - s);
-        const q = v * (1 - f * s);
-        const t = v * (1 - (1 - f) * s);
-        switch (i % 6) {
-            case 0: r = v; g = t; b = p; break;
-            case 1: r = q; g = v; b = p; break;
-            case 2: r = p; g = v; b = t; break;
-            case 3: r = p; g = q; b = v; break;
-            case 4: r = t; g = p; b = v; break;
-            case 5: r = v; g = p; b = q; break;
-        }
-        return [Math.round(r * 255), Math.round(g * 255), Math.round(b * 255)];
-    }
-
-    pickColor() {
-        if (!this.stream || this.video.readyState !== 4) {
-            alert('Camera is not active or video is not ready.');
-            return;
-        }
+    addColorFromRGB(r, g, b) {
         if (this.selectedColorsHSV.length >= this.maxColors) {
             alert(`Maximum ${this.maxColors} colors selected. Clear existing colors to select new ones.`);
-            return;
+            return false;
         }
-
-        const tempCanvas = document.createElement('canvas');
-        tempCanvas.width = this.video.videoWidth;
-        tempCanvas.height = this.video.videoHeight;
-        const tempCtx = tempCanvas.getContext('2d');
-        tempCtx.drawImage(this.video, 0, 0, tempCanvas.width, tempCanvas.height);
-        const centerX = Math.floor(tempCanvas.width / 2);
-        const centerY = Math.floor(tempCanvas.height / 2);
-        const pixelData = tempCtx.getImageData(centerX, centerY, 1, 1).data;
-        const hsv = this.rgbToHsv(pixelData[0], pixelData[1], pixelData[2]);
-        this.selectedColorsHSV.push(hsv);
-        this.updateColorDisplay();
-        console.log('Selected colors (HSV):', this.selectedColorsHSV);
-    }
-
-    setColorFromPicker() {
-        if (this.selectedColorsHSV.length >= this.maxColors) {
-            alert(`Maximum ${this.maxColors} colors selected. Clear existing colors to select new ones.`);
-            return;
-        }
-        const hexColor = this.colorPicker.value;
-        const r = parseInt(hexColor.slice(1, 3), 16);
-        const g = parseInt(hexColor.slice(3, 5), 16);
-        const b = parseInt(hexColor.slice(5, 7), 16);
         const hsv = this.rgbToHsv(r, g, b);
         this.selectedColorsHSV.push(hsv);
-        this.updateColorDisplay();
-        console.log('Selected colors from picker (HSV):', this.selectedColorsHSV);
+        console.log('Added color (HSV):', hsv);
+        return true;
     }
 
-    updateColorDisplay() {
-        this.colorSwatches.innerHTML = ''; // Clear existing swatches
-        if (this.selectedColorsHSV.length > 0) {
-            const hsvText = this.selectedColorsHSV.map((hsv) => `Color${hsv[0]}${hsv[1]}${hsv[2]}`).join(', ');
-            this.colorValue.textContent = hsvText;
-            this.selectedColorsHSV.forEach((hsv) => {
-                const [r, g, b] = this.hsvToRgb(hsv[0], hsv[1], hsv[2]);
-                const swatch = document.createElement('div');
-                swatch.className = 'color-swatch';
-                swatch.style.backgroundColor = `rgb(${r}, ${g}, ${b})`;
-                this.colorSwatches.appendChild(swatch);
-            });
-            // Set color picker to last selected color
-            const lastHsv = this.selectedColorsHSV[this.selectedColorsHSV.length - 1];
-            const [r, g, b] = this.hsvToRgb(lastHsv[0], lastHsv[1], lastHsv[2]);
-            this.colorPicker.value = `#${((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1).padStart(6, '0')}`;
-        } else {
-            this.colorValue.textContent = 'No colors selected';
-            this.colorPicker.value = '#000000';
-        }
+    setMaxColors(maxColors) {
+        this.maxColors = maxColors;
+        this.selectedColorsHSV = []; // Reset colors when changing max
     }
 
     createMonitor(id, useFullResolution = false) {
         const canvas = document.createElement('canvas');
         canvas.id = id;
-        if (useFullResolution) {
-            canvas.width = this.video.videoWidth || 640; // Fallback to ideal width
-            canvas.height = this.video.videoHeight || 480; // Fallback to ideal height
+        if (useFullResolution && this.video.videoWidth && this.video.videoHeight) {
+            canvas.width = this.video.videoWidth;
+            canvas.height = this.video.videoHeight;
         } else {
-            canvas.width = this.boundingBoxSize;
-            canvas.height = this.boundingBoxSize;
+            canvas.width = useFullResolution ? 640 : this.boundingBoxSize; // Fallback to ideal width
+            canvas.height = useFullResolution ? 480 : this.boundingBoxSize; // Fallback to ideal height
         }
         return canvas;
     }
 
     addCenterMarkerAndMonitor() {
+        // Ensure monitorSection has two child containers
+        if (!this.monitorSection.children[0] || !this.monitorSection.children[1]) {
+            throw new Error('Monitor section must contain exactly two child elements for canvases');
+        }
+
         const existingMarker = document.getElementById('centerMarker');
         if (existingMarker) {
             existingMarker.remove();
@@ -205,7 +128,6 @@ class WebcamModule {
         centerMarker.id = 'centerMarker';
         videoContainer.appendChild(centerMarker);
 
-        const monitorSection = document.querySelector('.monitor-section');
         const monitorCanvasMasked = this.createMonitor('monitorCanvasMasked');
         const monitorCanvasUpperBody = this.createMonitor('monitorCanvasUpperBody', true);
         this.monitorCanvasMasked = monitorCanvasMasked;
@@ -213,10 +135,11 @@ class WebcamModule {
         this.monitorCtxMasked = monitorCanvasMasked.getContext('2d');
         this.monitorCtxUpperBody = monitorCanvasUpperBody.getContext('2d');
 
-        monitorSection.children[0].appendChild(monitorCanvasMasked);
-        monitorSection.children[1].appendChild(monitorCanvasUpperBody);
+        const maskedContainer = this.monitorSection.children[0];
+        const upperBodyContainer = this.monitorSection.children[1];
+        maskedContainer.appendChild(monitorCanvasMasked);
+        upperBodyContainer.appendChild(monitorCanvasUpperBody);
 
-        this.updateColorDisplay();
         this.updateMonitor();
     }
 
@@ -300,11 +223,6 @@ class WebcamModule {
                 fullCtx.drawImage(this.video, 0, 0, videoDisplayWidth, videoDisplayHeight);
 
                 const upperBodyKeypointIndices = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]; // nose to hips
-                const keypointNames = [
-                    'nose', 'left_eye', 'right_eye', 'left_ear', 'right_ear',
-                    'left_shoulder', 'right_shoulder', 'left_elbow', 'right_elbow',
-                    'left_wrist', 'right_wrist', 'left_hip', 'right_hip'
-                ];
                 const connections = [
                     [0, 1], [0, 2], [1, 3], [2, 4], [0, 5], [0, 6],
                     [5, 7], [7, 9], [6, 8], [8, 10], [5, 6],
@@ -347,11 +265,10 @@ class WebcamModule {
         }
 
         // Combined prediction output
-        this.bodyPrediction.textContent = ''; // Clear body prediction
         if (bodyDetected && colorPresence.length > 0) {
-            this.colorPrediction.textContent = colorPresence.join(', ');
+            this.outputElement.textContent = colorPresence.join(', ');
         } else {
-            this.colorPrediction.textContent = 'No body or colors detected';
+            this.outputElement.textContent = 'No body or colors detected';
         }
 
         this.animationFrameId = requestAnimationFrame(() => this.updateMonitor());
@@ -369,8 +286,6 @@ class WebcamModule {
             });
 
             this.video.srcObject = this.stream;
-            this.toggleButton.textContent = 'Stop Camera';
-            this.toggleButton.classList.add('stop');
 
             this.video.addEventListener('canplay', () => {
                 this.addCenterMarkerAndMonitor();
@@ -386,10 +301,7 @@ class WebcamModule {
             this.stream.getTracks().forEach(track => track.stop());
             this.stream = null;
             this.video.srcObject = null;
-            this.toggleButton.textContent = 'Start Camera';
-            this.toggleButton.classList.remove('stop');
             this.selectedColorsHSV = [];
-            this.updateColorDisplay();
 
             if (this.animationFrameId) {
                 cancelAnimationFrame(this.animationFrameId);
@@ -408,12 +320,7 @@ class WebcamModule {
             if (monitorCanvasUpperBody) {
                 monitorCanvasUpperBody.remove();
             }
-            this.bodyPrediction.textContent = '';
-            this.colorPrediction.textContent = '';
+            this.outputElement.textContent = '';
         }
     }
 }
-
-document.addEventListener('DOMContentLoaded', () => {
-    new WebcamModule();
-});
