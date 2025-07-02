@@ -124,15 +124,20 @@ function showNotification(message, type = 'info') {
     console.log(`[${type.toUpperCase()}] ${message}`);
     
     // Map notification types to status message types
+    // Map notification types to status message types
     if (type === 'error') {
+        showStatusMessage('⚠️ Error', message, 'error');
         showStatusMessage('⚠️ Error', message, 'error');
     } else if (type === 'success') {
         showStatusMessage('✅ Success', message, 'success');
+        showStatusMessage('✅ Success', message, 'success');
     } else {
+        showStatusMessage('ℹ️ Info', message, 'info');
         showStatusMessage('ℹ️ Info', message, 'info');
     }
 }
 
+// Update all socket handlers to use specific types
 // Update all socket handlers to use specific types
 socket.on('scan-result', (data) => {
     console.log('Scan result received:', data);
@@ -140,6 +145,7 @@ socket.on('scan-result', (data) => {
         updatePlayerScore(data.newScore);
         triggerShootIndicator();
     } else {
+        showStatusMessage('⚠️ Scan Failed', data.message, 'error');
         showStatusMessage('⚠️ Scan Failed', data.message, 'error');
     }
 });
@@ -150,7 +156,9 @@ socket.on('player-damaged', (data) => {
         updatePlayerHealth(data.health);
         triggerHitIndicator();
         showStatusMessage('💥 HIT!', `Hit by ${data.shooterName}! -${data.damage} HP (${data.health}% remaining)`, 'hit');
+        showStatusMessage('💥 HIT!', `Hit by ${data.shooterName}! -${data.damage} HP (${data.health}% remaining)`, 'hit');
     } else {
+        showStatusMessage('🎯 Direct Hit!', `You hit ${data.playerName} for ${data.damage} damage!`, 'success');
         showStatusMessage('🎯 Direct Hit!', `You hit ${data.playerName} for ${data.damage} damage!`, 'success');
     }
 });
@@ -160,7 +168,9 @@ socket.on('player-eliminated', (data) => {
     if (data.playerId === socket.id) {
         triggerHitIndicator();
         showStatusMessage('💀 YOU WERE ELIMINATED!', 'You have been eliminated from the game', 'eliminated');
+        showStatusMessage('💀 YOU WERE ELIMINATED!', 'You have been eliminated from the game', 'eliminated');
     } else {
+        showStatusMessage('🎯 Player Eliminated', `${data.playerName} was eliminated by ${data.shooterName}!`, 'warning');
         showStatusMessage('🎯 Player Eliminated', `${data.playerName} was eliminated by ${data.shooterName}!`, 'warning');
     }
 });
@@ -413,16 +423,19 @@ function goBack() {
 socket.on('connect', () => {
     console.log('🔗 Connected to server:', socket.id);
     showStatusMessage('🔗 Connected', 'Connected to game server', 'success');
+    showStatusMessage('🔗 Connected', 'Connected to game server', 'success');
 });
 
 socket.on('disconnect', () => {
     console.log('❌ Disconnected from server');
+    showStatusMessage('❌ Disconnected', 'Lost connection to server', 'error');
     showStatusMessage('❌ Disconnected', 'Lost connection to server', 'error');
     showScreen('home');
 });
 
 socket.on('connect_error', (error) => {
     console.error('Connection error:', error);
+    showStatusMessage('❌ Connection Error', 'Failed to connect to server', 'error');
     showStatusMessage('❌ Connection Error', 'Failed to connect to server', 'error');
 });
 
@@ -1033,6 +1046,7 @@ function startQRScanner() {
     
     const config = {
         fps: 20,
+        fps: 20,
         qrbox: qrBoxSize,
         aspectRatio: 1.0 // Square scanning area
     };
@@ -1077,6 +1091,7 @@ function startMainGameCamera() {
     const qrBoxSize = Math.min(screenWidth * 0.9, 400);
     
     const config = {
+        fps: 20,
         fps: 20,
         qrbox: qrBoxSize,
         aspectRatio: 1.0
@@ -1160,6 +1175,7 @@ function stopQRScanner() {
 }
 
 function handleQRScan(qrData) {  
+function handleQRScan(qrData) {  
     console.log('QR Code scanned:', qrData);
     
     // Send QR assignment to server
@@ -1196,11 +1212,13 @@ function handleGameQRScan(qrData) {
     
     // Prevent rapid scanning (2 second cooldown)
     if (now - lastGameScanTime < 1000) {
+    if (now - lastGameScanTime < 1000) {
         console.log('Scan cooldown active, ignoring scan');
         return;
     }
     
     lastGameScanTime = now;
+       
        
     console.log('Game QR Code scanned:', qrData);
     
@@ -1212,6 +1230,8 @@ function handleGameQRScan(qrData) {
 
 function cancelQRScanning() {
     hideQRScannerModal();
+    socket.emit('leave-lobby');
+    showScreen("joinLobby")
     socket.emit('leave-lobby');
     showScreen("joinLobby")
 }
