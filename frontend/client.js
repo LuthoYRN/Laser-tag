@@ -49,6 +49,12 @@ function showScreen(screenName) {
         if (screenName === 'waitingRoom') {
             document.getElementById('gameStartSection').classList.remove("show");
         }
+        if (screenName === 'gameSession') {
+            document.getElementById('gameTimer').textContent = '--';
+            document.getElementById('playersLeft').textContent = '--'
+            document.getElementById('healthText').textContent = '100%'
+            document.getElementById('healthBar').className = `health-bar high`
+        }
     }
 }
 function showStatusMessage(title, text, type = 'info') {
@@ -507,6 +513,7 @@ socket.on('game-ended', (results) => {
     console.log('Game ended:', results);
     gameState.gameActive = false;
     document.getElementById('qrAssignmentOverlay').classList.remove('show')
+    document.getElementById('qrScannerModal').classList.remove('show')
     showGameResults(results);
 });
 // Home Screen
