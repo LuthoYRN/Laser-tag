@@ -124,7 +124,7 @@ function removePlayerFromLobby(socketId) {
             lobbies.delete(player.lobbyCode);
         }
     }
-
+    checkGameStateAfterPlayerRemoval(player.lobbyCode);
     return player.lobbyCode;
 }
 
@@ -612,6 +612,43 @@ function endGame(lobbyCode) {
             totalPlayers: lobby.players.size
         }
     });
+}
+
+function checkGameStateAfterPlayerRemoval(lobbyCode) {
+    const lobby = lobbies.get(lobbyCode);
+    if (!lobby) return;
+
+    const remainingPlayers = Array.from(lobby.players.values());
+    
+    // If during QR assignment and only 1 player left, end the game
+    if (lobby.status === 'qr-assignment' && remainingPlayers.length <= 1) {
+        console.log(`Game ending: Only ${remainingPlayers.length} player(s) left during QR assignment`);
+        lobby.status = 'finished';
+        io.to(lobbyCode).emit('game-ended', {
+            results: remainingPlayers.map((player, index) => ({
+                ...player,
+                rank: index + 1,
+                survivalTime: 0
+            })),
+            winner: remainingPlayers[0] || null,
+            finalStats: {
+                duration: 0,
+                totalPlayers: lobby.settings.numPlayers,
+                reason: 'Insufficient players during QR assignment'
+            }
+        });
+        return;
+    }
+    
+    // If during active game and only 1 alive player left, end the game
+    if (lobby.status === 'active') {
+        const alivePlayers = remainingPlayers.filter(p => p.isAlive);
+        if (alivePlayers.length <= 1) {
+            console.log(`Game ending: Only ${alivePlayers.length} alive player(s) left`);
+            endGame(lobbyCode);
+            return;
+        }
+    }
 }
 
 function updateSpectators(lobbyCode, eventType, data) {
