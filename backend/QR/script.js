@@ -12,11 +12,7 @@ function startScanner() {
   };
 
   qrScanner.start(
-    {
-      facingMode: "environment",
-      noiseSuppression: true,
-      focusMode: "auto",
-    },
+    { facingMode: "environment" },
     config,
     qrCodeMessage => {
       handleScan(qrCodeMessage);
