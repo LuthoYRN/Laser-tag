@@ -154,6 +154,10 @@ socket.on('game-timer', (data) => {
 socket.on('player-shot', (data) => {
     console.log('Player shot:', data);
     // Handle shooting animation/feedback
+
+    // new add
+    let gunshot =new Audio("./public/sounds/gunshot.wav");
+    gunshot.play();
 });
 
 socket.on('player-eliminated', (data) => {
