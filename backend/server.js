@@ -46,7 +46,7 @@ function createLobby(hostSocketId, settings = {}) {
             duration: settings.duration || 15,
             ...settings
         },
-        status: 'waiting', // waiting, starting, active, finished
+        status: 'waiting', // waiting, starting, qr-assignment, active, finished
         gameData: {
             startTime: null,
             endTime: null,
@@ -76,6 +76,7 @@ function addPlayerToLobby(lobbyCode, socketId, playerData) {
         score: 0,
         eliminations: 0,
         isAlive: true,
+        eliminatedAt: null,
         joinedAt: Date.now()
     };
 
@@ -277,6 +278,7 @@ io.on('connection', (socket) => {
         // Mark player as eliminated (forfeit)
         lobbyPlayer.isAlive = false;
         lobbyPlayer.health = 0;
+        lobbyPlayer.eliminatedAt = Date.now();
 
         // Notify all players of forfeit
         io.to(player.lobbyCode).emit('player-eliminated', {
@@ -286,6 +288,7 @@ io.on('connection', (socket) => {
             shooterName: 'Forfeit',
             reason: 'forfeit'
         });
+        updateSpectators(player.lobbyCode, 'lobby-updated', getLobbyState(player.lobbyCode));
 
         // Remove player from lobby
         removePlayerFromLobby(socket.id);
@@ -423,6 +426,7 @@ io.on('connection', (socket) => {
             targetPlayer.isAlive = false;
             scannerPlayer.eliminations += 1;
             scannerPlayer.score += 100; // Bonus for elimination
+            targetPlayer.eliminatedAt = Date.now();
             
             console.log(`Player eliminated: ${targetPlayer.name} by ${scannerPlayer.name}`);
             
@@ -433,6 +437,7 @@ io.on('connection', (socket) => {
                 shooterId: socket.id,
                 shooterName: scannerPlayer.name
             });
+            updateSpectators(player.lobbyCode, 'lobby-updated', getLobbyState(player.lobbyCode));
             
             checkGameEnd(player.lobbyCode);
         } else {
@@ -445,6 +450,7 @@ io.on('connection', (socket) => {
                 shooterId: socket.id,
                 shooterName: scannerPlayer.name
             });
+            updateSpectators(player.lobbyCode, 'lobby-updated', getLobbyState(player.lobbyCode));
         }
         
         console.log(`${scannerPlayer.name} scanned ${targetPlayer.name} (${targetQrCode}) - Health: ${targetPlayer.health}`);
@@ -506,13 +512,9 @@ function startGame(lobbyCode) {
     const lobby = lobbies.get(lobbyCode);
     if (!lobby) return;
 
-    // Change status to 'qr-assignment' instead of 'active'
+    // Change status to 'qr-assignment' 
     lobby.status = 'qr-assignment';
     
-    // DON'T set start time or end time yet
-    // lobby.gameData.startTime = Date.now();
-    // lobby.gameData.endTime = Date.now() + (lobby.settings.duration * 60 * 1000);
-
     // Reset all players to alive state and clear QR assignments
     for (const player of lobby.players.values()) {
         player.health = 100;
@@ -560,6 +562,7 @@ function startActualGame(lobbyCode) {
                 timeLeft: Math.ceil(timeLeft / 1000),
                 playersAlive: Array.from(lobby.players.values()).filter(p => p.isAlive).length
             });
+            updateSpectators(lobbyCode, 'lobby-updated', getLobbyState(lobbyCode));
         }
     }, 1000);
 
@@ -582,9 +585,18 @@ function endGame(lobbyCode) {
     if (!lobby) return;
 
     lobby.status = 'finished';
+    const gameEndTime = Date.now();
     
-    // Calculate final results
     const results = Array.from(lobby.players.values())
+        .map(player => {
+            const eliminationTime = player.eliminatedAt || gameEndTime;
+            const survivalTime = eliminationTime - lobby.gameData.startTime;
+            
+            return {
+                ...player,
+                survivalTime: Math.max(0, Math.floor(survivalTime / 1000))
+            };
+        })
         .sort((a, b) => {
             if (a.isAlive !== b.isAlive) return b.isAlive - a.isAlive;
             return b.score - a.score;
@@ -598,12 +610,23 @@ function endGame(lobbyCode) {
         results,
         winner: results[0],
         finalStats: {
-            duration: Date.now() - lobby.gameData.startTime,
+            duration: gameEndTime - lobby.gameData.startTime,
             totalPlayers: lobby.players.size
         }
     });
+}
 
-    console.log(`Game ended in lobby ${lobbyCode}`);
+function updateSpectators(lobbyCode, eventType, data) {
+    const lobby = lobbies.get(lobbyCode);
+    if (!lobby) return;
+    
+    // Send updates to all spectators in the lobby
+    lobby.spectators.forEach(spectatorId => {
+        const spectatorSocket = io.sockets.sockets.get(spectatorId);
+        if (spectatorSocket) {
+            spectatorSocket.emit(eventType, data);
+        }
+    });
 }
 
 const PORT = process.env.PORT || 3000;

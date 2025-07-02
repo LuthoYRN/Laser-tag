@@ -130,7 +130,7 @@ function showStatusMessage(title, text, type = 'info') {
         // Auto hide based on message type
         let duration = 2000; // default
         if (type === 'eliminated' || type === 'error') {
-            duration = 4000; // longer for critical messages
+            duration = 5000; // longer for critical messages
         } else if (type === 'hit' || type === 'success') {
             duration = 1500; // shorter for action feedback
         }
@@ -191,6 +191,16 @@ socket.on('player-eliminated', (data) => {
         updatePlayerHealth(0)
         triggerHitIndicator();
         showStatusMessage('💀 YOU WERE ELIMINATED!', 'You have been eliminated from the game', 'eliminated');
+        if (gameState.gameActive && gameState.currentScreen === 'gameSession' && gameState.playerType === 'player') {
+            setTimeout(() => {
+                gameState.playerType = 'spectator';
+                stopMainGameCamera();
+                showScreen('spectatorMode');
+                if (gameState.lobbyData) {
+                    initializeSpectatorMode(gameState.lobbyData);
+                }
+            }, 1000);
+        }
     } else {
         showStatusMessage('🎯 Player Eliminated', `${data.playerName} was eliminated by ${data.shooterName}!`, 'warning');
     }
@@ -1044,9 +1054,13 @@ function hideQRScannerModal() {
 }
 
 function startQRScanner() {
-    const qrReader = document.getElementById('qrModalPlaceholder');    
+    const qrReader = document.getElementById('qrModalPlaceholder');  
+    const qrQuit = document.getElementById('qrCancel');  
     qrScanner = new Html5Qrcode("qrModalPlaceholder");
     
+    if (qrQuit) {
+        qrQuit.addEventListener('click',cancelQRScanning)
+    }
     // Make qrbox responsive to screen size
     const screenWidth = window.innerWidth;
     const qrBoxSize = Math.min(screenWidth * 0.8, 300); // 80% of screen width, max 300px
@@ -1139,24 +1153,29 @@ function startMainGameCamera() {
     });
 }
 
-// Also add this helper function to stop the main camera when needed
 function stopMainGameCamera() {
-    const placeholder = document.getElementById('qrCameraPlaceholder');
-    if (placeholder) {
-        // Try to stop any existing Html5Qrcode instance
-        try {
-            const scannerElement = placeholder.querySelector('video');
-            if (scannerElement) {
-                Html5Qrcode.getCameras().then(() => {
-                    // Clear the placeholder
-                    placeholder.innerHTML = '<div style="color: #00ffff; text-align: center;">📷<br>Camera Stopped</div>';
-                });
+    try {
+        const placeholder = document.getElementById('qrCameraPlaceholder');
+        if (placeholder) {
+            const existingVideo = placeholder.querySelector('video');
+            if (existingVideo) {
+                const stream = existingVideo.srcObject;
+                if (stream) {
+                    stream.getTracks().forEach(track => track.stop());
+                }
             }
-        } catch (err) {
-            console.log('Error stopping camera:', err);
+            placeholder.innerHTML = '<div style="color: #00ffff; text-align: center;">📷<br>Camera Stopped</div>';
         }
+        
+        const crosshair = document.querySelector('.crosshair');
+        if (crosshair) {
+            crosshair.classList.remove('scanning');
+        }
+    } catch (err) {
+        console.log('Error stopping camera:', err);
     }
 }
+
 function showSpectatorQRWaiting() {
     // Simple placeholder for spectators during QR assignment
     showStatusMessage('⏳ QR Assignment Phase', 'Waiting for all players to scan their QR codes...');
@@ -1295,11 +1314,21 @@ function showForfeitConfirm() {
 function confirmForfeit() {
     // Send forfeit to server
     socket.emit('player-forfeit');
-    
     // Hide modal and return to home
     cancelForfeit();
-    showScreen('home');
-    showNotification('You have forfeited the game', 'info');
+    if (gameState.gameActive && gameState.currentScreen === 'gameSession' && gameState.playerType === 'player') {
+        setTimeout(() => {
+            gameState.playerType = 'spectator';
+            stopMainGameCamera();
+            showScreen('spectatorMode');
+            if (gameState.lobbyData) {
+                initializeSpectatorMode(gameState.lobbyData);
+            }
+        }, 1000);
+    }
+    else{
+        showScreen('home');
+    }
 }
 
 function cancelForfeit() {
@@ -1309,16 +1338,294 @@ function cancelForfeit() {
     }
 }
 
-// Spectator Mode Functions (basic structure)
-function initializeSpectatorMode(gameData) {
-    console.log('Initializing spectator mode with data:', gameData);
-    // Spectator-specific initialization will be added in next phase
-}
-
 function showGameResults(results) {
     console.log('Showing game results:', results);
     showScreen('results');
-    // Results display will be enhanced in next phase
+    
+    const { results: players, winner, finalStats } = results;
+    
+    // Update winner section
+    const winnerCrown = document.querySelector('.winner-crown');
+    const winnerName = document.querySelector('.winner-name');
+    const winnerScore = document.querySelector('.winner-score');
+    
+    if (winner && winnerName && winnerScore) {
+        winnerName.textContent = winner.name;
+        winnerScore.textContent = `Final Score: ${winner.score.toLocaleString()}`;
+    }
+    
+    // Update leaderboard
+    const playerStatsContainer = document.querySelector('.player-stats');
+    if (playerStatsContainer && players) {
+        playerStatsContainer.innerHTML = players.map(player => {
+            const isCurrentPlayer = player.id === socket.id;
+            const isWinner = player.rank === 1;
+            const survivalMinutes = Math.floor(player.survivalTime / 60);
+            const survivalSeconds = player.survivalTime % 60;
+            const survivalFormatted = `${survivalMinutes}:${survivalSeconds.toString().padStart(2, '0')}`;
+            
+            return `
+                <div class="player-stat-item ${isWinner ? 'winner' : ''} ${isCurrentPlayer ? 'you' : ''}">
+                    <div class="rank-badge ${player.rank === 1 ? 'rank-1' : player.rank === 2 ? 'rank-2' : player.rank === 3 ? 'rank-3' : 'rank-other'}">${player.rank}</div>
+                    <div class="player-info">
+                        <div class="player-name ${isWinner ? 'winner' : ''} ${isCurrentPlayer ? 'you' : ''}">${player.name}${isCurrentPlayer ? ' (You)' : ''}</div>
+                        <div class="player-details">
+                            <div class="detail-item">
+                                <div class="detail-label">Score</div>
+                                <div class="detail-value">${player.score.toLocaleString()}</div>
+                            </div>
+                            <div class="detail-item">
+                                <div class="detail-label">Eliminations</div>
+                                <div class="detail-value">${player.eliminations}</div>
+                            </div>
+                            <div class="detail-item">
+                                <div class="detail-label">Survival</div>
+                                <div class="detail-value">${survivalFormatted}</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }
+    
+    // Add home button functionality
+    const homeButton = document.querySelector('.lobby-button');
+    if (homeButton) {
+        homeButton.onclick = () => {
+            showScreen('home');
+            // Reset game state
+            gameState.gameActive = false;
+            gameState.lobbyData = null;
+            gameState.playerType = null;
+        };
+    }
+}
+function initializeSpectatorMode(gameData) {
+    console.log('Initializing spectator mode with data:', gameData);
+   
+    // Update lobby code display
+    const lobbyCodeEl = document.querySelector('.spectator-container .lobby-code');
+    if (lobbyCodeEl && gameData.code) {
+        lobbyCodeEl.textContent = gameData.code;
+    }
+    const currentPlayer = gameData.players ? gameData.players.find(p => p.id === socket.id) : null;
+    const isEliminatedPlayer = currentPlayer && !currentPlayer.isAlive;
+
+    // Update viewer badge
+    const viewerBadge = document.getElementById('viewerBadge');
+    if (viewerBadge) {
+        if (isEliminatedPlayer) {
+            viewerBadge.textContent = '💀 ELIMINATED';
+            viewerBadge.className = 'viewer-badge eliminated';
+        } else {
+            viewerBadge.textContent = '👁️ SPECTATING';
+            viewerBadge.className = 'viewer-badge spectator';
+        }
+    }   
+
+    const yourStats = document.getElementById('yourStats');
+    if (yourStats && isEliminatedPlayer) {
+        yourStats.classList.remove('spectator-mode'); // Show the stats
+        
+        // Calculate rank
+        const sortedPlayers = [...gameData.players].sort((a, b) => {
+            if (a.isAlive !== b.isAlive) return b.isAlive - a.isAlive;
+            return b.score - a.score;
+        });
+        const playerRank = sortedPlayers.findIndex(p => p.id === socket.id) + 1;
+        
+        const finalRankValue = yourStats.querySelector('.final-stat-value');
+        const scoreValue = yourStats.querySelectorAll('.final-stat-value')[1];
+        const elimsValue = yourStats.querySelectorAll('.final-stat-value')[2];
+        
+        if (finalRankValue) finalRankValue.textContent = `#${playerRank}`;
+        if (scoreValue) scoreValue.textContent = currentPlayer.score.toLocaleString();
+        if (elimsValue) elimsValue.textContent = currentPlayer.eliminations;
+    } else if (yourStats) {
+        yourStats.classList.add('spectator-mode'); // Hide the stats
+    }
+    // Initialize back button
+    const backButton = document.querySelector('.spectator-container .back-button');
+    if (backButton) {
+        backButton.onclick = goBack;
+    }
+    
+    // Initialize camera view toggle
+    const cameraBackBtn = document.querySelector('.camera-back-btn');
+    if (cameraBackBtn) {
+        cameraBackBtn.onclick = () => showSpectatorLeaderboard();
+    }
+    
+    // Show leaderboard by default
+    showSpectatorLeaderboard();
+    
+    // Update leaderboard with current game data
+    updateSpectatorLeaderboard(gameData);
+    
+    // Start real-time updates
+    startSpectatorUpdates();
+}
+
+function updateSpectatorLeaderboard(lobbyData) {
+    if (!lobbyData || !lobbyData.players) return;
+    
+    const leaderboardList = document.getElementById('leaderboardList');
+    if (!leaderboardList) return;
+    
+    // Sort players by score, alive status
+    const sortedPlayers = [...lobbyData.players].sort((a, b) => {
+        if (a.isAlive !== b.isAlive) return b.isAlive - a.isAlive; // Alive players first
+        return b.score - a.score; // Then by score
+    });
+    
+    leaderboardList.innerHTML = sortedPlayers.map((player, index) => {
+        const rank = index + 1;
+        const isCurrentUser = player.id === socket.id;
+        
+        return `
+            <div class="leaderboard-item ${player.isAlive ? 'alive' : 'eliminated'} ${isCurrentUser ? 'you' : ''}" 
+                 ${player.isAlive ? `onclick="viewPlayerCamera('${player.id}', '${player.name}')"` : ''}>
+                <div class="rank-badge ${rank === 1 ? 'rank-1' : rank === 2 ? 'rank-2' : rank === 3 ? 'rank-3' : player.isAlive ? 'rank-other' : 'rank-eliminated'}">${rank}</div>
+                <div class="player-info">
+                    <div class="leaderboard-name ${player.isAlive ? 'alive' : 'eliminated'} ${isCurrentUser ? 'you' : ''}">${player.name}${isCurrentUser ? ' (You)' : ''}</div>
+                    <div class="player-details">
+                        <span>Score: <span class="score-value">${player.score.toLocaleString()}</span></span>
+                        <span>Eliminations: <span class="eliminations-value">${player.eliminations}</span></span>
+                    </div>
+                </div>
+                <div class="status-indicator ${player.isAlive ? 'status-alive' : 'status-eliminated'}"></div>
+            </div>
+        `;
+    }).join('');
+    
+    // Update players alive count in top HUD
+    const playersValue = document.querySelector('.spectator-container .players-value');
+    if (playersValue) {
+        const alivePlayers = sortedPlayers.filter(p => p.isAlive).length;
+        playersValue.textContent = `${alivePlayers}/${sortedPlayers.length}`;
+    }
+}
+
+function showSpectatorLeaderboard() {
+    const leaderboardView = document.getElementById('leaderboardView');
+    const cameraView = document.getElementById('cameraView');
+    
+    if (leaderboardView) leaderboardView.classList.remove('hidden');
+    if (cameraView) cameraView.classList.remove('active');
+}
+
+function viewPlayerCamera(playerId, playerName) {
+    const leaderboardView = document.getElementById('leaderboardView');
+    const cameraView = document.getElementById('cameraView');
+    const viewingPlayer = document.getElementById('viewingPlayer');
+    const cameraPlayerName = document.getElementById('cameraPlayerName');
+    
+    if (leaderboardView) leaderboardView.classList.add('hidden');
+    if (cameraView) cameraView.classList.add('active');
+    if (viewingPlayer) viewingPlayer.textContent = playerName;
+    if (cameraPlayerName) cameraPlayerName.textContent = playerName;
+    
+    // Update camera stats for selected player
+    updateCameraPlayerStats(playerId);
+}
+
+function updateCameraPlayerStats(playerId) {
+    if (!gameState.lobbyData || !gameState.lobbyData.players) return;
+    
+    const player = gameState.lobbyData.players.find(p => p.id === playerId);
+    if (!player) return;
+    
+    const scoreEl = document.getElementById('cameraPlayerScore');
+    const elimsEl = document.getElementById('cameraPlayerElims');
+    const rankEl = document.getElementById('cameraPlayerRank');
+    const healthEl = document.getElementById('cameraPlayerHealth');
+    
+    if (scoreEl) scoreEl.textContent = player.score.toLocaleString();
+    if (elimsEl) elimsEl.textContent = player.eliminations;
+    if (healthEl) {
+        healthEl.style.width = `${player.health}%`;
+        healthEl.className = `health-bar ${player.health > 60 ? 'health-high' : player.health > 30 ? 'health-medium' : 'health-low'}`;
+    }
+    
+    // Calculate rank
+    if (rankEl && gameState.lobbyData.players) {
+        const sortedPlayers = [...gameState.lobbyData.players].sort((a, b) => {
+            if (a.isAlive !== b.isAlive) return b.isAlive - a.isAlive;
+            return b.score - a.score;
+        });
+        const rank = sortedPlayers.findIndex(p => p.id === playerId) + 1;
+        rankEl.textContent = `#${rank}`;
+    }
+}
+
+function startSpectatorUpdates() {
+    socket.on('lobby-updated', (lobbyData) => {
+        if (gameState.currentScreen === 'spectatorMode') {
+            gameState.lobbyData = lobbyData;
+            updateSpectatorLeaderboard(lobbyData);
+            updateEliminatedPlayerStats(lobbyData);
+        }
+    });
+    // Listen for game timer updates
+    socket.on('game-timer', (data) => {
+        if (gameState.currentScreen === 'spectatorMode') {
+            const timerValue = document.getElementById('timerValue');
+            if (timerValue) {
+                timerValue.textContent = formatTime(data.timeLeft);
+            }
+        }
+    });
+    
+    // Listen for player updates
+    socket.on('player-damaged', (data) => {
+        if (gameState.currentScreen === 'spectatorMode') {
+            // Update the damaged player's health in spectator view
+            updateSpectatorLeaderboard(gameState.lobbyData);
+        }
+    });
+    
+    socket.on('player-eliminated', (data) => {
+        if (gameState.currentScreen === 'spectatorMode') {
+            updateSpectatorLeaderboard(gameState.lobbyData);
+            if (data.playerId === socket.id) {
+                updateEliminatedPlayerStats(gameState.lobbyData);
+            }
+        }
+    });
+}
+
+function updateEliminatedPlayerStats(lobbyData) {
+    const currentPlayer = lobbyData.players ? lobbyData.players.find(p => p.id === socket.id) : null;
+    const isEliminatedPlayer = currentPlayer && !currentPlayer.isAlive;
+    
+    const yourStats = document.getElementById('yourStats');
+    if (yourStats && isEliminatedPlayer) {
+        yourStats.classList.remove('spectator-mode');
+        
+        // Calculate current rank
+        const sortedPlayers = [...lobbyData.players].sort((a, b) => {
+            if (a.isAlive !== b.isAlive) return b.isAlive - a.isAlive;
+            return b.score - a.score;
+        });
+        const playerRank = sortedPlayers.findIndex(p => p.id === socket.id) + 1;
+        
+        // Update stats with current data
+        const finalRankValue = yourStats.querySelector('.final-stat-value');
+        const scoreValue = yourStats.querySelectorAll('.final-stat-value')[1];
+        const elimsValue = yourStats.querySelectorAll('.final-stat-value')[2];
+        
+        if (finalRankValue) finalRankValue.textContent = `#${playerRank}`;
+        if (scoreValue) scoreValue.textContent = currentPlayer.score.toLocaleString();
+        if (elimsValue) elimsValue.textContent = currentPlayer.eliminations;
+        
+        // Update viewer badge
+        const viewerBadge = document.getElementById('viewerBadge');
+        if (viewerBadge) {
+            viewerBadge.textContent = '💀 ELIMINATED';
+            viewerBadge.className = 'viewer-badge eliminated';
+        }
+    }
 }
 
 // Initialize the application

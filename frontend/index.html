@@ -319,7 +319,7 @@
                 Point your camera at your assigned QR code to register for battle
             </div>
             
-            <button class="qr-cancel-button">
+            <button class="qr-cancel-button" id="qrCancel">
                 Quit
             </button>
         </div>
@@ -773,9 +773,13 @@
                             </div>
                         </div>
                         <div class="camera-display">
-                            📹<br>
-                            <small id="cameraLabel">Player Camera View</small>
+                            📊<br>
+                            <small>Live Stats View</small>
+                            <div style="font-size: 0.8rem; color: #666;">
+                                Camera feed not available
+                            </div>
                         </div>
+                       
                         <div class="camera-stats">
                             <div class="stat-item">Score: <span class="stat-value" id="cameraPlayerScore">2,450</span></div>
                             <div class="stat-item">Eliminations: <span class="stat-value" id="cameraPlayerElims">3</span></div>
