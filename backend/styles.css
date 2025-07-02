@@ -81,10 +81,10 @@ h1 {
     flex-wrap: wrap;
 }
 
-#monitorCanvasGrayscale,
+#monitorCanvasOriginal,
+#monitorCanvasMasked,
 #monitorCanvasBinary,
-#monitorCanvasInverted,
-#monitorCanvasMasked {
+#monitorCanvasPlaceholder {
     width: 100px;
     height: 100px;
     image-rendering: pixelated;
@@ -94,9 +94,9 @@ h1 {
 }
 
 #monitorLabel,
+#monitorLabelMasked,
 #monitorLabelBinary,
-#monitorLabelInverted,
-#monitorLabelMasked {
+#monitorLabelPlaceholder {
     font-size: 12px;
     font-weight: bold;
     color: #333;
@@ -152,6 +152,39 @@ h1 {
     background-color: #c82333;
 }
 
+.color-selection {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 10px;
+}
+
+#colorPicker {
+    width: 40px;
+    height: 40px;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+}
+
+.color-display {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+#colorValue {
+    font-size: 14px;
+    color: #333;
+}
+
+#colorSwatch {
+    width: 30px;
+    height: 30px;
+    border: 1px solid #333;
+    border-radius: 4px;
+}
+
 @media (max-width: 600px) {
     body {
         padding: 10px;
@@ -180,10 +213,10 @@ h1 {
         height: 15px;
     }
     
-    #monitorCanvasGrayscale,
+    #monitorCanvasOriginal,
+    #monitorCanvasMasked,
     #monitorCanvasBinary,
-    #monitorCanvasInverted,
-    #monitorCanvasMasked {
+    #monitorCanvasPlaceholder {
         width: 80px;
         height: 80px;
     }
@@ -202,5 +235,20 @@ h1 {
         padding: 10px 20px;
         font-size: 14px;
         margin: 5px;
+    }
+    
+    .color-selection {
+        flex-direction: column;
+        align-items: center;
+    }
+    
+    #colorPicker {
+        width: 30px;
+        height: 30px;
+    }
+    
+    #colorSwatch {
+        width: 25px;
+        height: 25px;
     }
 }

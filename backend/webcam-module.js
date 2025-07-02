@@ -3,21 +3,24 @@ class WebcamModule {
         this.video = document.getElementById('videoElement');
         this.toggleButton = document.getElementById('toggleButton');
         this.pickColorButton = document.getElementById('pickColorButton');
+        this.colorPicker = document.getElementById('colorPicker');
+        this.colorValue = document.getElementById('colorValue');
+        this.colorSwatch = document.getElementById('colorSwatch');
         this.stream = null;
-        this.monitorCanvasGrayscale = null;
-        this.monitorCanvasBinary = null;
-        this.monitorCanvasInverted = null;
+        this.monitorCanvasOriginal = null;
         this.monitorCanvasMasked = null;
-        this.monitorCtxGrayscale = null;
-        this.monitorCtxBinary = null;
-        this.monitorCtxInverted = null;
+        this.monitorCanvasBinary = null;
+        this.monitorCanvasPlaceholder = null;
+        this.monitorCtxOriginal = null;
         this.monitorCtxMasked = null;
+        this.monitorCtxBinary = null;
+        this.monitorCtxPlaceholder = null;
         this.boundingBoxSize = 200;
         this.outputSize = 28;
         this.animationFrameId = null;
         this.opencvReady = false;
-        this.selectedColor = null;
-        this.colorTolerance = 30;
+        this.selectedColorHSV = null;
+        this.colorTolerance = { h: 10, s: 40, v: 40 }; // Tolerance for HSV: ±10 for hue, ±40 for saturation/value
         this.loadOpenCV();
         this.initializeEventListeners();
     }
@@ -50,6 +53,56 @@ class WebcamModule {
         this.pickColorButton.addEventListener('click', () => {
             this.pickColor();
         });
+        this.colorPicker.addEventListener('change', () => {
+            this.setColorFromPicker();
+        });
+    }
+
+    rgbToHsv(r, g, b) {
+        r /= 255;
+        g /= 255;
+        b /= 255;
+        const max = Math.max(r, g, b);
+        const min = Math.min(r, g, b);
+        const delta = max - min;
+        let h, s, v = max;
+
+        if (delta === 0) {
+            h = 0;
+        } else if (max === r) {
+            h = ((g - b) / delta) % 6;
+        } else if (max === g) {
+            h = (b - r) / delta + 2;
+        } else {
+            h = (r - g) / delta + 4;
+        }
+        h = Math.round(h * 60);
+        if (h < 0) h += 360;
+        s = max === 0 ? 0 : delta / max;
+        s = Math.round(s * 100);
+        v = Math.round(v * 100);
+        return [h, s, v];
+    }
+
+    hsvToRgb(h, s, v) {
+        h /= 360;
+        s /= 100;
+        v /= 100;
+        let r, g, b;
+        const i = Math.floor(h * 6);
+        const f = h * 6 - i;
+        const p = v * (1 - s);
+        const q = v * (1 - f * s);
+        const t = v * (1 - (1 - f) * s);
+        switch (i % 6) {
+            case 0: r = v; g = t; b = p; break;
+            case 1: r = q; g = v; b = p; break;
+            case 2: r = p; g = v; b = t; break;
+            case 3: r = p; g = q; b = v; break;
+            case 4: r = t; g = p; b = v; break;
+            case 5: r = v; g = p; b = q; break;
+        }
+        return [Math.round(r * 255), Math.round(g * 255), Math.round(b * 255)];
     }
 
     pickColor() {
@@ -66,8 +119,33 @@ class WebcamModule {
         const centerX = Math.floor(tempCanvas.width / 2);
         const centerY = Math.floor(tempCanvas.height / 2);
         const pixelData = tempCtx.getImageData(centerX, centerY, 1, 1).data;
-        this.selectedColor = [pixelData[0], pixelData[1], pixelData[2]];
-        console.log('Selected color:', this.selectedColor);
+        this.selectedColorHSV = this.rgbToHsv(pixelData[0], pixelData[1], pixelData[2]);
+        this.updateColorDisplay();
+        console.log('Selected color (HSV):', this.selectedColorHSV);
+    }
+
+    setColorFromPicker() {
+        const hexColor = this.colorPicker.value;
+        const r = parseInt(hexColor.slice(1, 3), 16);
+        const g = parseInt(hexColor.slice(3, 5), 16);
+        const b = parseInt(hexColor.slice(5, 7), 16);
+        this.selectedColorHSV = this.rgbToHsv(r, g, b);
+        this.updateColorDisplay();
+        console.log('Selected color from picker (HSV):', this.selectedColorHSV);
+    }
+
+    updateColorDisplay() {
+        if (this.selectedColorHSV) {
+            const [h, s, v] = this.selectedColorHSV;
+            this.colorValue.textContent = `HSV(${h}, ${s}%, ${v}%)`;
+            const [r, g, b] = this.hsvToRgb(h, s, v);
+            this.colorSwatch.style.backgroundColor = `rgb(${r}, ${g}, ${b})`;
+            this.colorPicker.value = `#${((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1).padStart(6, '0')}`;
+        } else {
+            this.colorValue.textContent = 'No color selected';
+            this.colorSwatch.style.backgroundColor = 'transparent';
+            this.colorPicker.value = '#000000';
+        }
     }
 
     createMonitor(id) {
@@ -83,21 +161,21 @@ class WebcamModule {
         if (existingMarker) {
             existingMarker.remove();
         }
-        const existingCanvasGrayscale = document.getElementById('monitorCanvasGrayscale');
-        if (existingCanvasGrayscale) {
-            existingCanvasGrayscale.remove();
+        const existingCanvasOriginal = document.getElementById('monitorCanvasOriginal');
+        if (existingCanvasOriginal) {
+            existingCanvasOriginal.remove();
+        }
+        const existingCanvasMasked = document.getElementById('monitorCanvasMasked');
+        if (existingCanvasMasked) {
+            existingCanvasMasked.remove();
         }
         const existingCanvasBinary = document.getElementById('monitorCanvasBinary');
         if (existingCanvasBinary) {
             existingCanvasBinary.remove();
         }
-        const existingCanvasInverted = document.getElementById('monitorCanvasInverted');
-        if (existingCanvasInverted) {
-            existingCanvasInverted.remove();
-        }
-        const existingCanvasMasked = document.getElementById('monitorCanvasMasked');
-        if (existingCanvasMasked) {
-            existingCanvasMasked.remove();
+        const existingCanvasPlaceholder = document.getElementById('monitorCanvasPlaceholder');
+        if (existingCanvasPlaceholder) {
+            existingCanvasPlaceholder.remove();
         }
 
         this.boundingBoxSize = window.innerWidth <= 600 ? 150 : 200;
@@ -108,29 +186,30 @@ class WebcamModule {
         videoContainer.appendChild(centerMarker);
 
         const monitorSection = document.querySelector('.monitor-section');
-        const monitorCanvasGrayscale = this.createMonitor('monitorCanvasGrayscale');
-        const monitorCanvasBinary = this.createMonitor('monitorCanvasBinary');
-        const monitorCanvasInverted = this.createMonitor('monitorCanvasInverted');
+        const monitorCanvasOriginal = this.createMonitor('monitorCanvasOriginal');
         const monitorCanvasMasked = this.createMonitor('monitorCanvasMasked');
-        this.monitorCanvasGrayscale = monitorCanvasGrayscale;
-        this.monitorCanvasBinary = monitorCanvasBinary;
-        this.monitorCanvasInverted = monitorCanvasInverted;
+        const monitorCanvasBinary = this.createMonitor('monitorCanvasBinary');
+        const monitorCanvasPlaceholder = this.createMonitor('monitorCanvasPlaceholder');
+        this.monitorCanvasOriginal = monitorCanvasOriginal;
         this.monitorCanvasMasked = monitorCanvasMasked;
-        this.monitorCtxGrayscale = monitorCanvasGrayscale.getContext('2d');
-        this.monitorCtxBinary = monitorCanvasBinary.getContext('2d');
-        this.monitorCtxInverted = monitorCanvasInverted.getContext('2d');
+        this.monitorCanvasBinary = monitorCanvasBinary;
+        this.monitorCanvasPlaceholder = monitorCanvasPlaceholder;
+        this.monitorCtxOriginal = monitorCanvasOriginal.getContext('2d');
         this.monitorCtxMasked = monitorCanvasMasked.getContext('2d');
+        this.monitorCtxBinary = monitorCanvasBinary.getContext('2d');
+        this.monitorCtxPlaceholder = monitorCanvasPlaceholder.getContext('2d');
 
-        monitorSection.children[0].appendChild(monitorCanvasGrayscale);
-        monitorSection.children[1].appendChild(monitorCanvasBinary);
-        monitorSection.children[2].appendChild(monitorCanvasInverted);
-        monitorSection.children[3].appendChild(monitorCanvasMasked);
+        monitorSection.children[0].appendChild(monitorCanvasOriginal);
+        monitorSection.children[1].appendChild(monitorCanvasMasked);
+        monitorSection.children[2].appendChild(monitorCanvasBinary);
+        monitorSection.children[3].appendChild(monitorCanvasPlaceholder);
 
+        this.updateColorDisplay();
         this.updateMonitor();
     }
 
     updateMonitor() {
-        if (!this.stream || !this.monitorCtxGrayscale || !this.monitorCtxBinary || !this.monitorCtxInverted || !this.monitorCtxMasked || this.video.readyState !== 4) {
+        if (!this.stream || !this.monitorCtxOriginal || !this.monitorCtxMasked || !this.monitorCtxBinary || !this.monitorCtxPlaceholder || this.video.readyState !== 4) {
             return;
         }
 
@@ -154,35 +233,44 @@ class WebcamModule {
             let gray = new cv.Mat();
             let resized = new cv.Mat();
             let binary = new cv.Mat();
-            let inverted = new cv.Mat();
 
             cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY);
             let dsize = new cv.Size(this.outputSize, this.outputSize);
             cv.resize(gray, resized, dsize, 0, 0, cv.INTER_AREA);
             cv.threshold(resized, binary, 100, 255, cv.THRESH_BINARY);
-            cv.bitwise_not(binary, inverted);
 
-            if (this.selectedColor) {
-                let srcColor = cv.imread(tempCanvas);
-                cv.resize(srcColor, srcColor, dsize, 0, 0, cv.INTER_AREA);
+            // Original (no filter)
+            let srcColor = cv.imread(tempCanvas);
+            cv.resize(srcColor, srcColor, dsize, 0, 0, cv.INTER_AREA);
+            cv.imshow(this.monitorCanvasOriginal, srcColor);
+
+            // Color Mask
+            if (this.selectedColorHSV) {
+                let hsv = new cv.Mat();
+                cv.cvtColor(srcColor, hsv, cv.COLOR_RGB2HSV);
                 let mask = new cv.Mat();
                 let masked = new cv.Mat.zeros(srcColor.rows, srcColor.cols, srcColor.type());
-                let lowerBound = new cv.Mat(srcColor.rows, srcColor.cols, srcColor.type(), [
-                    Math.max(this.selectedColor[0] - this.colorTolerance, 0),
-                    Math.max(this.selectedColor[1] - this.colorTolerance, 0),
-                    Math.max(this.selectedColor[2] - this.colorTolerance, 0),
+                const [h, s, v] = this.selectedColorHSV;
+                // OpenCV HSV: H (0-180), S (0-255), V (0-255)
+                const hOpenCV = h / 2; // Convert hue from 0-360 to 0-180
+                const sOpenCV = (s / 100) * 255; // Convert saturation from 0-100% to 0-255
+                const vOpenCV = (v / 100) * 255; // Convert value from 0-100% to 0-255
+                let lowerBound = new cv.Mat(hsv.rows, hsv.cols, hsv.type(), [
+                    Math.max(hOpenCV - this.colorTolerance.h, 0),
+                    Math.max(sOpenCV - this.colorTolerance.s, 0),
+                    Math.max(vOpenCV - this.colorTolerance.v, 0),
                     255
                 ]);
-                let upperBound = new cv.Mat(srcColor.rows, srcColor.cols, srcColor.type(), [
-                    Math.min(this.selectedColor[0] + this.colorTolerance, 255),
-                    Math.min(this.selectedColor[1] + this.colorTolerance, 255),
-                    Math.min(this.selectedColor[2] + this.colorTolerance, 255),
+                let upperBound = new cv.Mat(hsv.rows, hsv.cols, hsv.type(), [
+                    Math.min(hOpenCV + this.colorTolerance.h, 180),
+                    Math.min(sOpenCV + this.colorTolerance.s, 255),
+                    Math.min(vOpenCV + this.colorTolerance.v, 255),
                     255
                 ]);
-                cv.inRange(srcColor, lowerBound, upperBound, mask);
+                cv.inRange(hsv, lowerBound, upperBound, mask);
                 cv.bitwise_and(srcColor, srcColor, masked, mask);
                 cv.imshow(this.monitorCanvasMasked, masked);
-                srcColor.delete();
+                hsv.delete();
                 mask.delete();
                 lowerBound.delete();
                 upperBound.delete();
@@ -192,17 +280,26 @@ class WebcamModule {
                 black.delete();
             }
 
-            cv.imshow(this.monitorCanvasGrayscale, resized);
+            // Binary
             cv.imshow(this.monitorCanvasBinary, binary);
-            cv.imshow(this.monitorCanvasInverted, inverted);
+
+            // Placeholder (temporarily black)
+            let black = new cv.Mat(this.outputSize, this.outputSize, cv.CV_8UC4, [0, 0, 0, 255]);
+            cv.imshow(this.monitorCanvasPlaceholder, black);
+            black.delete();
 
             src.delete();
             gray.delete();
             resized.delete();
             binary.delete();
-            inverted.delete();
+            srcColor.delete();
         } else {
-            this.monitorCtxGrayscale.drawImage(
+            this.monitorCtxOriginal.drawImage(
+                this.video,
+                cropX, cropY, this.boundingBoxSize, this.boundingBoxSize,
+                0, 0, this.outputSize, this.outputSize
+            );
+            this.monitorCtxMasked.drawImage(
                 this.video,
                 cropX, cropY, this.boundingBoxSize, this.boundingBoxSize,
                 0, 0, this.outputSize, this.outputSize
@@ -212,12 +309,7 @@ class WebcamModule {
                 cropX, cropY, this.boundingBoxSize, this.boundingBoxSize,
                 0, 0, this.outputSize, this.outputSize
             );
-            this.monitorCtxInverted.drawImage(
-                this.video,
-                cropX, cropY, this.boundingBoxSize, this.boundingBoxSize,
-                0, 0, this.outputSize, this.outputSize
-            );
-            this.monitorCtxMasked.drawImage(
+            this.monitorCtxPlaceholder.drawImage(
                 this.video,
                 cropX, cropY, this.boundingBoxSize, this.boundingBoxSize,
                 0, 0, this.outputSize, this.outputSize
@@ -258,7 +350,8 @@ class WebcamModule {
             this.video.srcObject = null;
             this.toggleButton.textContent = 'Start Camera';
             this.toggleButton.classList.remove('stop');
-            this.selectedColor = null;
+            this.selectedColorHSV = null;
+            this.updateColorDisplay();
 
             if (this.animationFrameId) {
                 cancelAnimationFrame(this.animationFrameId);
@@ -269,21 +362,21 @@ class WebcamModule {
             if (centerMarker) {
                 centerMarker.remove();
             }
-            const monitorCanvasGrayscale = document.getElementById('monitorCanvasGrayscale');
-            if (monitorCanvasGrayscale) {
-                monitorCanvasGrayscale.remove();
+            const monitorCanvasOriginal = document.getElementById('monitorCanvasOriginal');
+            if (monitorCanvasOriginal) {
+                monitorCanvasOriginal.remove();
+            }
+            const monitorCanvasMasked = document.getElementById('monitorCanvasMasked');
+            if (monitorCanvasMasked) {
+                monitorCanvasMasked.remove();
             }
             const monitorCanvasBinary = document.getElementById('monitorCanvasBinary');
             if (monitorCanvasBinary) {
                 monitorCanvasBinary.remove();
             }
-            const monitorCanvasInverted = document.getElementById('monitorCanvasInverted');
-            if (monitorCanvasInverted) {
-                monitorCanvasInverted.remove();
-            }
-            const monitorCanvasMasked = document.getElementById('monitorCanvasMasked');
-            if (monitorCanvasMasked) {
-                monitorCanvasMasked.remove();
+            const monitorCanvasPlaceholder = document.getElementById('monitorCanvasPlaceholder');
+            if (monitorCanvasPlaceholder) {
+                monitorCanvasPlaceholder.remove();
             }
         }
     }

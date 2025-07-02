@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Webcam Capture</title>
+    <title>Webcam Digit Recognition</title>
     <link rel="stylesheet" href="styles.css">
     <script src="https://cdn.jsdelivr.net/npm/onnxjs/dist/onnx.min.js"></script>
 </head>
@@ -17,24 +17,32 @@
         </div>
         <div class="controls">
             <button id="toggleButton">Start Camera</button>
-            <button id="pickColorButton">Pick Color</button>
+            <button id="pickColorButton">Pick Color from Video</button>
+            <div class="color-selection">
+                <label for="colorPicker">Select Color:</label>
+                <input type="color" id="colorPicker">
+                <div class="color-display">
+                    <span id="colorValue">No color selected</span>
+                    <div id="colorSwatch"></div>
+                </div>
+            </div>
         </div>
         <div class="monitor-section">
             <div>
-                <div id="monitorLabel">Grayscale (28x28)</div>
-                <canvas id="monitorCanvasGrayscale"></canvas>
+                <div id="monitorLabel">Original (28x28)</div>
+                <canvas id="monitorCanvasOriginal"></canvas>
+            </div>
+            <div>
+                <div id="monitorLabelMasked">Color Mask</div>
+                <canvas id="monitorCanvasMasked"></canvas>
             </div>
             <div>
                 <div id="monitorLabelBinary">Binary</div>
                 <canvas id="monitorCanvasBinary"></canvas>
             </div>
             <div>
-                <div id="monitorLabelInverted">Inverted Binary</div>
-                <canvas id="monitorCanvasInverted"></canvas>
-            </div>
-            <div>
-                <div id="monitorLabelMasked">Color Mask</div>
-                <canvas id="monitorCanvasMasked"></canvas>
+                <div id="monitorLabelPlaceholder">Placeholder</div>
+                <canvas id="monitorCanvasPlaceholder"></canvas>
             </div>
         </div>
         <div class="prediction-section">
@@ -42,6 +50,6 @@
         </div>
     </div>
     <script src="webcam-module.js"></script>
-    <script src="digit-recognition.js"></script>
+    <script src="color-recognition.js"></script>
 </body>
 </html>
