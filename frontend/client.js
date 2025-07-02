@@ -55,58 +55,74 @@ function showStatusMessage(title, text, type = 'info') {
     const statusText = document.getElementById('statusText');
     
     if (statusMessage && statusTitle && statusText) {
+        // Clear first
         statusTitle.innerHTML = '';
         statusText.innerHTML = '';
         
+        // Set new values
         statusTitle.textContent = title;
         statusText.textContent = text;
         
-        // Reset any existing styles
+        // Reset all styles
         statusMessage.style.borderColor = '';
         statusMessage.style.background = '';
         statusMessage.style.boxShadow = '';
+        statusTitle.style.color = ''; // Reset title color
+        statusText.style.color = ''; // Reset text color
         
         // Apply colors based on message type
         switch(type) {
             case 'success':
                 statusMessage.style.borderColor = '#00ff00';
-                statusMessage.style.background = 'rgba(0, 255, 0, 0.1)';
+                statusMessage.style.background = 'rgba(0, 255, 0, 0.3)'; // More opaque
                 statusMessage.style.boxShadow = '0 0 20px rgba(0, 255, 0, 0.4)';
+                statusTitle.style.color = '#00ff00'; // Green title
+                statusText.style.color = '#ffffff'; // White text
                 break;
             case 'error':
                 statusMessage.style.borderColor = '#ff0000';
-                statusMessage.style.background = 'rgba(255, 0, 0, 0.1)';
+                statusMessage.style.background = 'rgba(255, 0, 0, 0.3)'; // More opaque
                 statusMessage.style.boxShadow = '0 0 20px rgba(255, 0, 0, 0.4)';
+                statusTitle.style.color = '#ff0000'; // Red title
+                statusText.style.color = '#ffffff'; // White text
                 break;
             case 'warning':
                 statusMessage.style.borderColor = '#ffaa00';
-                statusMessage.style.background = 'rgba(255, 170, 0, 0.1)';
+                statusMessage.style.background = 'rgba(255, 170, 0, 0.3)'; // More opaque
                 statusMessage.style.boxShadow = '0 0 20px rgba(255, 170, 0, 0.4)';
+                statusTitle.style.color = '#ffaa00'; // Orange title
+                statusText.style.color = '#ffffff'; // White text
                 break;
             case 'eliminated':
                 statusMessage.style.borderColor = '#ff0000';
-                statusMessage.style.background = 'rgba(255, 0, 0, 0.9)';
+                statusMessage.style.background = 'rgba(255, 0, 0, 0.5)'; // Very opaque
                 statusMessage.style.boxShadow = '0 0 30px rgba(255, 0, 0, 0.6)';
+                statusTitle.style.color = '#ffffff'; // White title for contrast
+                statusText.style.color = '#ffcccc'; // Light pink text
                 break;
             case 'hit':
                 statusMessage.style.borderColor = '#ff6600';
-                statusMessage.style.background = 'rgba(255, 102, 0, 0.1)';
+                statusMessage.style.background = 'rgba(255, 102, 0, 0.3)'; // More opaque
                 statusMessage.style.boxShadow = '0 0 20px rgba(255, 102, 0, 0.4)';
+                statusTitle.style.color = '#ff6600'; // Orange title
+                statusText.style.color = '#ffffff'; // White text
                 break;
             default: // 'info'
                 statusMessage.style.borderColor = '#00ffff';
-                statusMessage.style.background = 'rgba(0, 0, 0, 0.9)';
+                statusMessage.style.background = 'rgba(0, 0, 0, 0.8)'; // More opaque
                 statusMessage.style.boxShadow = '0 0 15px rgba(0, 255, 255, 0.3)';
+                statusTitle.style.color = '#00ffff'; // Cyan title
+                statusText.style.color = '#ffffff'; // White text
         }
         
         statusMessage.classList.add('show');
         
         // Auto hide based on message type
-        let duration = 1000; // default
+        let duration = 2000; // default
         if (type === 'eliminated' || type === 'error') {
-            duration = 3000; // longer for critical messages
+            duration = 4000; // longer for critical messages
         } else if (type === 'hit' || type === 'success') {
-            duration = 500; // shorter for action feedback
+            duration = 1500; // shorter for action feedback
         }
         
         setTimeout(() => {
@@ -115,9 +131,12 @@ function showStatusMessage(title, text, type = 'info') {
             statusMessage.style.borderColor = '#00ffff';
             statusMessage.style.background = 'rgba(0, 0, 0, 0.9)';
             statusMessage.style.boxShadow = '';
+            statusTitle.style.color = '#00ffff'; // Reset to default
+            statusText.style.color = '#ffffff'; // Reset to default
         }, duration);
     }
 }
+
 
 // Updated showNotification to use proper types
 function showNotification(message, type = 'info') {
@@ -150,9 +169,7 @@ socket.on('player-damaged', (data) => {
         updatePlayerHealth(data.health);
         triggerHitIndicator();
         showStatusMessage('💥 HIT!', `Hit by ${data.shooterName}! -${data.damage} HP (${data.health}% remaining)`, 'hit');
-        showStatusMessage('💥 HIT!', `Hit by ${data.shooterName}! -${data.damage} HP (${data.health}% remaining)`, 'hit');
     } else {
-        showStatusMessage('🎯 Direct Hit!', `You hit ${data.playerName} for ${data.damage} damage!`, 'success');
         showStatusMessage('🎯 Direct Hit!', `You hit ${data.playerName} for ${data.damage} damage!`, 'success');
     }
 });
@@ -993,9 +1010,6 @@ function initializeGameSession(gameData) {
     updatePlayerHealth(100);
     updatePlayerScore(0);
     updateGameTimer(gameData.duration * 60, gameState.lobbyData?.settings.numPlayers || 4);
-    
-    // Show initial status message
-    showStatusMessage('Game Started!', 'Hunt for treasures and eliminate opponents');
     
     // Initialize forfeit modal
     initializeForfeitModal();
