@@ -517,7 +517,26 @@ socket.on('game-timer', (data) => {
 socket.on('game-ended', (results) => {
     console.log('Game ended:', results);
     gameState.gameActive = false;
-    showGameResults(results);
+    
+    if (gameState.currentScreen === 'spectatorMode') {
+        // Spectators: Update to final leaderboard but stay in spectator mode
+        console.log('📊 Game ended - updating spectator view with final results');
+        
+        // Update lobby data with final results
+        if (gameState.lobbyData && results.results) {
+            gameState.lobbyData.players = results.results;
+            updateSpectatorLeaderboard(gameState.lobbyData);
+        }
+              
+        // Update leaderboard title to show it's final
+        const leaderboardTitle = document.getElementById('leaderboardTitle');
+        const leaderboardSubtitle = document.getElementById('leaderboardSubtitle');
+        if (leaderboardTitle) leaderboardTitle.textContent = 'Final Results';
+        if (leaderboardSubtitle) leaderboardSubtitle.textContent = 'Game completed! Tap back for detailed view';        
+    } else {
+        // Players: Show results screen as normal
+        showGameResults(results);
+    }
 });
 
 // Screen-specific Functions
@@ -1232,6 +1251,10 @@ function handleGameQRScan(qrData) {
 
 function cancelQRScanning() {
     hideQRScannerModal();
+    const assignmentOverlay = document.getElementById('qrAssignmentOverlay');
+    if (assignmentOverlay) {
+        assignmentOverlay.classList.remove('show');
+    }
     socket.emit('leave-lobby');
     showScreen("joinLobby")
 }
@@ -1565,6 +1588,7 @@ function startSpectatorUpdates() {
             gameState.lobbyData = lobbyData;
             updateSpectatorLeaderboard(lobbyData);
             updateEliminatedPlayerStats(lobbyData);
+            updateCameraViewIfActive();
         }
     });
     // Listen for game timer updates
@@ -1582,12 +1606,14 @@ function startSpectatorUpdates() {
         if (gameState.currentScreen === 'spectatorMode') {
             // Update the damaged player's health in spectator view
             updateSpectatorLeaderboard(gameState.lobbyData);
+            updateCameraViewIfActive();
         }
     });
     
     socket.on('player-eliminated', (data) => {
         if (gameState.currentScreen === 'spectatorMode') {
             updateSpectatorLeaderboard(gameState.lobbyData);
+            updateCameraViewIfActive();
             if (data.playerId === socket.id) {
                 updateEliminatedPlayerStats(gameState.lobbyData);
             }
@@ -1624,6 +1650,33 @@ function updateEliminatedPlayerStats(lobbyData) {
         if (viewerBadge) {
             viewerBadge.textContent = '💀 ELIMINATED';
             viewerBadge.className = 'viewer-badge eliminated';
+        }
+    }
+}
+
+function updateCameraViewIfActive() {
+    const cameraView = document.getElementById('cameraView');
+    const viewingPlayer = document.getElementById('viewingPlayer');
+    
+    // Check if camera view is currently active
+    if (cameraView && cameraView.classList.contains('active') && viewingPlayer) {
+        const playerName = viewingPlayer.textContent;
+        
+        // Find the player by name and update their stats
+        if (gameState.lobbyData && gameState.lobbyData.players) {
+            const player = gameState.lobbyData.players.find(p => p.name === playerName);
+            if (player) {
+                console.log(`📹 Updating camera view for ${playerName} in real-time`);
+                updateCameraPlayerStats(player.id);
+                
+                if (!player.isAlive) {
+                    const cameraPlayerName = document.getElementById('cameraPlayerName');
+                    if (cameraPlayerName) {
+                        cameraPlayerName.textContent = `${playerName} 💀`;
+                        cameraPlayerName.style.color = '#ff6666';
+                    }
+                }
+            }
         }
     }
 }
