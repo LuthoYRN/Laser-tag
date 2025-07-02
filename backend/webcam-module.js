@@ -349,8 +349,7 @@ class WebcamModule {
         // Combined prediction output
         this.bodyPrediction.textContent = ''; // Clear body prediction
         if (bodyDetected && colorPresence.length > 0) {
-            const combinedText = colorPresence.map(color => `Body with ${color} present`).join(', ');
-            this.colorPrediction.textContent = combinedText;
+            this.colorPrediction.textContent = colorPresence.join(', ');
         } else {
             this.colorPrediction.textContent = 'No body or colors detected';
         }
