@@ -289,11 +289,6 @@ io.on('connection', (socket) => {
             reason: 'forfeit'
         });
         updateSpectators(player.lobbyCode, 'lobby-updated', getLobbyState(player.lobbyCode));
-
-        // Remove player from lobby
-        removePlayerFromLobby(socket.id);
-        socket.leave(player.lobbyCode);
-
         // Check if game should end
         checkGameEnd(player.lobbyCode);
 

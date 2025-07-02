@@ -214,11 +214,7 @@ socket.on('qr-assignment-phase', (data) => {
     if (gameState.playerType === 'player') {
         showScreen('gameSession');
         initializeQRAssignmentPhase(data);
-    } else if (gameState.playerType === 'spectator') {
-        showScreen('spectatorMode');
-        // Spectators just wait during QR assignment
-        showSpectatorQRWaiting();
-    }
+    } 
 });
 
 // New socket event for QR assignment progress
@@ -237,18 +233,10 @@ socket.on('game-actually-started', (gameData) => {
     
     if (gameState.playerType === 'player') {
         initializeActualGameSession(gameData);
-    } else if (gameState.playerType === 'spectator') {
-        initializeSpectatorMode(gameData);
-    }
+    } 
     
     // Show game start message
     showStatusMessage('🎯 GAME BEGINS!', 'All players ready - hunt begins now!');
-});
-
-// Modified game-started handler (now just for QR assignment phase)
-socket.on('game-started', (gameData) => {
-    console.log('Entering QR assignment phase');
-    // This now triggers QR assignment phase, not actual game start
 });
 
 // Initialize QR assignment phase
@@ -518,29 +506,8 @@ socket.on('game-ended', (results) => {
     console.log('Game ended:', results);
     gameState.gameActive = false;
     
-    if (gameState.currentScreen === 'spectatorMode') {
-        // Spectators: Update to final leaderboard but stay in spectator mode
-        console.log('📊 Game ended - updating spectator view with final results');
-        
-        // Update lobby data with final results
-        if (gameState.lobbyData && results.results) {
-            gameState.lobbyData.players = results.results;
-            updateSpectatorLeaderboard(gameState.lobbyData);
-        }
-              
-        // Update leaderboard title to show it's final
-        const leaderboardTitle = document.getElementById('leaderboardTitle');
-        const leaderboardSubtitle = document.getElementById('leaderboardSubtitle');
-        if (leaderboardTitle) leaderboardTitle.textContent = 'Final Results';
-        if (leaderboardSubtitle) leaderboardSubtitle.textContent = 'Game completed! Tap back for detailed view';        
-    } else {
-        // Players: Show results screen as normal
-        showGameResults(results);
-    }
+    showGameResults(results);
 });
-
-// Screen-specific Functions
-
 // Home Screen
 function initializeHome() {
     const createButton = document.querySelector('.create-mode');
@@ -1044,18 +1011,6 @@ function updateCountdown(count) {
 // Game Session Functions
 let qrScanner = null;
 
-function initializeGameSession(gameData) {
-    console.log('Initializing game session with data:', gameData);
-    
-    // Initialize player stats
-    updatePlayerHealth(100);
-    updatePlayerScore(0);
-    updateGameTimer(gameData.duration * 60, gameState.lobbyData?.settings.numPlayers || 4);
-    
-    // Initialize forfeit modal
-    initializeForfeitModal();
-}
-
 function showQRScannerModal() {
     const modal = document.getElementById('qrScannerModal');
     if (modal) {
@@ -1193,11 +1148,6 @@ function stopMainGameCamera() {
     } catch (err) {
         console.log('Error stopping camera:', err);
     }
-}
-
-function showSpectatorQRWaiting() {
-    // Simple placeholder for spectators during QR assignment
-    showStatusMessage('⏳ QR Assignment Phase', 'Waiting for all players to scan their QR codes...');
 }
 function stopQRScanner() {
     if (qrScanner) {
@@ -1367,8 +1317,12 @@ function showGameResults(results) {
     
     const { results: players, winner, finalStats } = results;
     
+    const currentUserAsPlayer = players ? players.find(p => p.id === socket.id) : null;
+    const isPureSpectator = !currentUserAsPlayer; // True if user wasn't in the game
+    
+    console.log('Current user type:', isPureSpectator ? 'Pure Spectator' : 'Player/Eliminated Player');
+    
     // Update winner section
-    const winnerCrown = document.querySelector('.winner-crown');
     const winnerName = document.querySelector('.winner-name');
     const winnerScore = document.querySelector('.winner-score');
     
@@ -1377,21 +1331,24 @@ function showGameResults(results) {
         winnerScore.textContent = `Final Score: ${winner.score.toLocaleString()}`;
     }
     
-    // Update leaderboard
     const playerStatsContainer = document.querySelector('.player-stats');
     if (playerStatsContainer && players) {
         playerStatsContainer.innerHTML = players.map(player => {
             const isCurrentPlayer = player.id === socket.id;
             const isWinner = player.rank === 1;
+            
+            // Format survival time
             const survivalMinutes = Math.floor(player.survivalTime / 60);
             const survivalSeconds = player.survivalTime % 60;
             const survivalFormatted = `${survivalMinutes}:${survivalSeconds.toString().padStart(2, '0')}`;
             
+            const youLabel = (isCurrentPlayer && !isPureSpectator) ? ' (You)' : '';
+            
             return `
-                <div class="player-stat-item ${isWinner ? 'winner' : ''} ${isCurrentPlayer ? 'you' : ''}">
+                <div class="player-stat-item ${isWinner ? 'winner' : ''} ${isCurrentPlayer && !isPureSpectator ? 'you' : ''}">
                     <div class="rank-badge ${player.rank === 1 ? 'rank-1' : player.rank === 2 ? 'rank-2' : player.rank === 3 ? 'rank-3' : 'rank-other'}">${player.rank}</div>
                     <div class="player-info">
-                        <div class="player-name ${isWinner ? 'winner' : ''} ${isCurrentPlayer ? 'you' : ''}">${player.name}${isCurrentPlayer ? ' (You)' : ''}</div>
+                        <div class="player-name ${isWinner ? 'winner' : ''} ${isCurrentPlayer && !isPureSpectator ? 'you' : ''}">${player.name}${youLabel}</div>
                         <div class="player-details">
                             <div class="detail-item">
                                 <div class="detail-label">Score</div>
@@ -1412,7 +1369,6 @@ function showGameResults(results) {
         }).join('');
     }
     
-    // Add home button functionality
     const homeButton = document.querySelector('.lobby-button');
     if (homeButton) {
         homeButton.onclick = () => {
@@ -1422,8 +1378,9 @@ function showGameResults(results) {
             gameState.lobbyData = null;
             gameState.playerType = null;
         };
-    }
-}
+    }  
+  }
+
 function initializeSpectatorMode(gameData) {
     console.log('Initializing spectator mode with data:', gameData);
    
