@@ -46,6 +46,9 @@ function showScreen(screenName) {
             loadActiveLiveLobbies();
             startLiveLobbiesUpdates();
         }
+        if (screenName === 'waitingRoom') {
+            document.getElementById('gameStartSection').classList.remove("show");
+        }
     }
 }
 function showStatusMessage(title, text, type = 'info') {
@@ -597,7 +600,6 @@ function initializeJoinLobby() {
     }
     
     if (lobbyInput) {
-        lobbyInput.value =''
         lobbyInput.addEventListener('input', (e) => {
             const code = e.target.value.toUpperCase();
             e.target.value = code;
@@ -907,8 +909,6 @@ function updatePlayerList(lobbyState = gameState.lobbyData) {
 function initializeWaitingRoom() {
     const readyButton = document.getElementById('readyButton');
     const leaveButton = document.querySelector('.container.wait .leave-button');
-    const countdownSection = document.getElementById('gameStartSection');
-    countdownSection.classList.remove("show");
     
     if (leaveButton) {
         leaveButton.addEventListener('click', () => {
