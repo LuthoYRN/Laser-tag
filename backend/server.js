@@ -274,26 +274,15 @@ io.on('connection', (socket) => {
 
         const lobbyPlayer = lobby.players.get(socket.id);
         if (!lobbyPlayer) return;
-
-        // Mark player as eliminated (forfeit)
-        lobbyPlayer.isAlive = false;
-        lobbyPlayer.health = 0;
-        lobbyPlayer.eliminatedAt = Date.now();
-
-        // Notify all players of forfeit
-        io.to(player.lobbyCode).emit('player-eliminated', {
-            playerId: socket.id,
-            playerName: lobbyPlayer.name,
-            shooterId: null, // No shooter for forfeit
-            shooterName: 'Forfeit',
-            reason: 'forfeit'
-        });
-        updateSpectators(player.lobbyCode, 'lobby-updated', getLobbyState(player.lobbyCode));
-        // Check if game should end
-        checkGameEnd(player.lobbyCode);
-
-        console.log(`${lobbyPlayer.name} forfeited the game in lobby ${player.lobbyCode}`);
-        });
+        //handle elimination
+         handlePlayerElimination(
+            player.lobbyCode, 
+            socket.id, 
+            null, 
+            'Forfeit', 
+            'forfeit'
+        );
+    });
 
     socket.on('assign-qr-code', (data) => {
         const player = players.get(socket.id);
@@ -415,27 +404,18 @@ io.on('connection', (socket) => {
             newScore: scannerPlayer.score,
             scannerId: socket.id
         });
-        
-        // Check if target was eliminated
+
         if (targetPlayer.health <= 0) {
-            targetPlayer.isAlive = false;
             scannerPlayer.eliminations += 1;
-            scannerPlayer.score += 100; // Bonus for elimination
-            targetPlayer.eliminatedAt = Date.now();
-            
-            console.log(`Player eliminated: ${targetPlayer.name} by ${scannerPlayer.name}`);
-            
-            // Notify all players of elimination
-            io.to(player.lobbyCode).emit('player-eliminated', {
-                playerId: targetPlayer.id,
-                playerName: targetPlayer.name,
-                shooterId: socket.id,
-                shooterName: scannerPlayer.name
-            });
-            updateSpectators(player.lobbyCode, 'lobby-updated', getLobbyState(player.lobbyCode));
-            
-            checkGameEnd(player.lobbyCode);
-        } else {
+            scannerPlayer.score += 100;
+            //handle elimination
+            handlePlayerElimination(
+                player.lobbyCode, 
+                targetPlayer.id, 
+                socket.id, 
+                scannerPlayer.name
+            );
+        }else {
             // Notify all players of damage
             io.to(player.lobbyCode).emit('player-damaged', {
                 playerId: targetPlayer.id,
@@ -445,6 +425,7 @@ io.on('connection', (socket) => {
                 shooterId: socket.id,
                 shooterName: scannerPlayer.name
             });
+            io.to(player.lobbyCode).emit('lobby-updated', getLobbyState(player.lobbyCode));
             updateSpectators(player.lobbyCode, 'lobby-updated', getLobbyState(player.lobbyCode));
         }
         
@@ -459,6 +440,40 @@ io.on('connection', (socket) => {
         }
     });
 });
+
+function handlePlayerElimination(lobbyCode, eliminatedPlayerId, shooterId = null, shooterName = 'Unknown', reason = null) {
+    const lobby = lobbies.get(lobbyCode);
+    if (!lobby) return;
+
+    const eliminatedPlayer = lobby.players.get(eliminatedPlayerId);
+    if (!eliminatedPlayer) return;
+
+    // Mark player as eliminated
+    eliminatedPlayer.isAlive = false;
+    eliminatedPlayer.health = 0;
+    eliminatedPlayer.eliminatedAt = Date.now();
+
+    console.log(`Player eliminated: ${eliminatedPlayer.name} by ${shooterName}`);
+
+    io.to(lobbyCode).emit('lobby-updated', getLobbyState(lobbyCode));
+    updateSpectators(lobbyCode, 'lobby-updated', getLobbyState(lobbyCode));
+
+    // Send elimination event
+    io.to(lobbyCode).emit('player-eliminated', {
+        playerId: eliminatedPlayerId,
+        playerName: eliminatedPlayer.name,
+        shooterId: shooterId,
+        shooterName: shooterName,
+        reason: reason
+    });
+
+    // Check if game ends and handle accordingly
+    const alivePlayers = Array.from(lobby.players.values()).filter(p => p.isAlive);
+    if (alivePlayers.length <= 1) {
+        console.log(`Game ending due to ${reason || 'elimination'}`);
+        setTimeout(() => endGame(lobbyCode), 50); // Very short delay
+    }
+}
 
 function startGameCountdown(lobbyCode) {
     const lobby = lobbies.get(lobbyCode);
@@ -563,18 +578,6 @@ function startActualGame(lobbyCode) {
 
     console.log(`Actual game started for lobby ${lobbyCode} - all QR codes assigned`);
 }
-
-function checkGameEnd(lobbyCode) {
-    const lobby = lobbies.get(lobbyCode);
-    if (!lobby) return;
-
-    const alivePlayers = Array.from(lobby.players.values()).filter(p => p.isAlive);
-    
-    if (alivePlayers.length <= 1) {
-        endGame(lobbyCode);
-    }
-}
-
 function endGame(lobbyCode) {
     const lobby = lobbies.get(lobbyCode);
     if (!lobby) return;
