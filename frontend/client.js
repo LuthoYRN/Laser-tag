@@ -196,7 +196,7 @@ socket.on('player-eliminated', (data) => {
                 gameState.playerType = 'spectator';
                 stopMainGameCamera();
                 showScreen('spectatorMode');
-                if ((gameState.lobbyData) && (!isLastEliminated)) {
+                if ((gameState.lobbyData) && (!data.isLastEliminated)) {
                     initializeSpectatorMode(gameState.lobbyData);
                 }
             }, 1000);
@@ -1294,7 +1294,7 @@ function confirmForfeit() {
             gameState.playerType = 'spectator';
             stopMainGameCamera();
             showScreen('spectatorMode');
-            if (gameState.lobbyData) {
+            if (gameState.lobbyData && !data.isLastEliminated) {
                 initializeSpectatorMode(gameState.lobbyData);
             }
         }, 1000);
