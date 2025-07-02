@@ -398,7 +398,7 @@ function endGame(lobbyCode) {
     console.log(`Game ended in lobby ${lobbyCode}`);
 }
 
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => {
     console.log(`🎯 CV Laser Tag Server running on http://localhost:${PORT}`);
     console.log(`📡 Socket.io server ready for connections`);

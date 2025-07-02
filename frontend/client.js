@@ -1,6 +1,19 @@
 // Initialize Socket.io connection
 const socket = io();
 
+// new added about sounds : Sound management
+const sounds = {
+    gunshot: new Audio('./public/sounds/gunshot.wav'),
+    eliminated: new Audio('./public/sounds/eliminated.wav'),
+    gameSound: new Audio('./public/sounds/games_sound.wav')
+};
+function playSound(soundKey) {
+    const sound = sounds[soundKey];
+    sound.currentTime = 0; // Reset to start
+    sound.play().catch(error => console.log(`Audio play failed for ${soundKey}:`, error));
+}
+// end of new added
+
 // Game state management
 let gameState = {
     currentScreen: 'home',
@@ -86,6 +99,12 @@ function goBack() {
 socket.on('connect', () => {
     console.log('🔗 Connected to server:', socket.id);
     showNotification('Connected to game server', 'success');
+
+    // new added for game sound
+    sounds.gameSound.muted = true;
+    sounds.gameSound.play().then(() => {
+        sounds.gameSound.muted=false;
+    }).catch(error => console.log('Initial sound play failed:' , error))
 });
 
 socket.on('disconnect', () => {
@@ -155,15 +174,19 @@ socket.on('player-shot', (data) => {
     console.log('Player shot:', data);
     // Handle shooting animation/feedback
 
-    // new add
-    let gunshot =new Audio("./public/sounds/gunshot.wav");
-    gunshot.play();
+    // new add gunshot sound
+    playSound('gunshot'); // play gunshot sound for shooter
+ 
 });
 
 socket.on('player-eliminated', (data) => {
     console.log('Player eliminated:', data);
     showNotification(`${data.playerName} was eliminated!`, 'info');
+    // elimination sound
+   playSound('eliminated');
     updatePlayerList();
+
+     
 });
 
 socket.on('player-damaged', (data) => {
