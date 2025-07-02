@@ -52,7 +52,8 @@ function createLobby(hostSocketId, settings = {}) {
             endTime: null,
             scores: new Map(),
             eliminations: new Map()
-        }
+        },
+        gameTimer:null
     };
 
     lobbies.set(lobbyCode, lobby);
@@ -143,6 +144,10 @@ function removePlayerFromLobby(socketId) {
             if (countdownInterval) {
                 clearInterval(countdownInterval);
                 countdownTimers.delete(player.lobbyCode);
+            }
+            if (lobby.gameTimer) {
+                clearInterval(lobby.gameTimer);
+                lobby.gameTimer = null;
             }
             lobbies.delete(player.lobbyCode);
         }
@@ -578,7 +583,6 @@ function startGame(lobbyCode) {
 
     console.log(`QR Assignment phase started for lobby ${lobbyCode}`);
 }
-
 // New function to start the actual game after QR assignment
 function startActualGame(lobbyCode) {
     const lobby = lobbies.get(lobbyCode);
@@ -595,13 +599,16 @@ function startActualGame(lobbyCode) {
         duration: lobby.settings.duration,
         message: 'All QR codes assigned! Game begins now!'
     });
-
+    
+    if (lobby.gameTimer) {
+        clearInterval(lobby.gameTimer);
+    }
     // Start game timer ONLY after QR assignment is complete
-    const gameTimer = setInterval(() => {
-        const timeLeft = lobby.gameData.endTime - Date.now();
-        
+    lobby.gameTimer = setInterval(() => {
+        const timeLeft = lobby.gameData.endTime - Date.now();    
         if (timeLeft <= 0) {
-            clearInterval(gameTimer);
+            clearInterval(lobby.gameTimer);  
+            lobby.gameTimer = null;  
             endGame(lobbyCode);
         } else {
             io.to(lobbyCode).emit('game-timer', {
@@ -617,6 +624,11 @@ function startActualGame(lobbyCode) {
 function endGame(lobbyCode) {
     const lobby = lobbies.get(lobbyCode);
     if (!lobby) return;
+    
+    if (lobby.gameTimer) {
+        clearInterval(lobby.gameTimer);
+        lobby.gameTimer = null;
+    }
 
     lobby.status = 'finished';
     const gameEndTime = Date.now();

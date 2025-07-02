@@ -50,11 +50,12 @@ function showScreen(screenName) {
             document.getElementById('gameStartSection').classList.remove("show");
         }
         if (screenName === 'gameSession') {
-            document.getElementById('gameTimer').textContent = '--';
-            document.getElementById('playersLeft').textContent = '--'
-            document.getElementById('healthText').textContent = '100%'
-            document.getElementById('healthBar').className = `health-bar high`
-            document.getElementById('healthBar').style.width = `100%`
+            document.getElementById('gameTimer').textContent = '--:--';
+            document.getElementById('playersLeft').textContent = '--/--';
+            document.getElementById('playerScore').textContent = '0';
+            document.getElementById('healthText').textContent = '100%';
+            document.getElementById('healthBar').style.width = '100%';
+            document.getElementById('healthBar').className = 'health-bar high';
         }
     }
 }
@@ -337,7 +338,7 @@ function hideQRAssignmentPhase() {
 // Initialize actual game session (after QR assignment)
 function initializeActualGameSession(gameData) {
     console.log('Initializing actual game session with data:', gameData);
-    
+    resetGameState();
     // Initialize player stats
     updatePlayerHealth(100);
     updatePlayerScore(0);
@@ -476,7 +477,6 @@ socket.on('lobby-updated', (lobbyState) => {
 
 socket.on('spectator-joined', (data) => {
     console.log('Spectator joined:', data.name);
-    showNotification(`${data.name} is now spectating`, 'info');
 });
 
 // Game Events
@@ -513,8 +513,10 @@ socket.on('game-timer', (data) => {
 socket.on('game-ended', (results) => {
     console.log('Game ended:', results);
     gameState.gameActive = false;
-    document.getElementById('qrAssignmentOverlay').classList.remove('show')
-    document.getElementById('qrScannerModal').classList.remove('show')
+    const overlay = document.getElementById('qrAssignmentOverlay')
+    if (overlay)overlay.classList.remove('show')
+    const scanner = document.getElementById('qrScannerModal')
+    if(scanner)scanner.classList.remove('show')
     showGameResults(results);
 });
 // Home Screen
@@ -1649,6 +1651,33 @@ function updateEliminatedPlayerStats(lobbyData) {
             viewerBadge.textContent = '💀 ELIMINATED';
             viewerBadge.className = 'viewer-badge eliminated';
         }
+    }
+}
+
+function resetGameState() {
+    console.log('🔄 Resetting game state');
+    
+    // Reset UI elements
+    updatePlayerHealth(100);
+    updatePlayerScore(0);
+    document.getElementById('gameTimer').textContent = '--:--';
+    document.getElementById('playersLeft').textContent = '--/--';
+    
+    // Reset game flags
+    gameState.gameActive = false;
+    
+    // Clear any modals/overlays
+    document.getElementById('qrAssignmentOverlay')?.classList.remove('show');
+    document.getElementById('qrScannerModal')?.classList.remove('show');
+    document.getElementById('forfeitModal')?.classList.remove('show');
+    
+    // Stop camera if running
+    stopMainGameCamera();
+    
+    // Clear any status messages
+    const statusMessage = document.getElementById('statusMessage');
+    if (statusMessage) {
+        statusMessage.classList.remove('show');
     }
 }
 
