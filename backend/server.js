@@ -458,18 +458,19 @@ function handlePlayerElimination(lobbyCode, eliminatedPlayerId, shooterId = null
     io.to(lobbyCode).emit('lobby-updated', getLobbyState(lobbyCode));
     updateSpectators(lobbyCode, 'lobby-updated', getLobbyState(lobbyCode));
 
+    const alivePlayers = Array.from(lobby.players.values()).filter(p => p.isAlive);
+    const isLastEliminated = (alivePlayers.length <= 1);
     // Send elimination event
     io.to(lobbyCode).emit('player-eliminated', {
         playerId: eliminatedPlayerId,
         playerName: eliminatedPlayer.name,
         shooterId: shooterId,
         shooterName: shooterName,
-        reason: reason
+        reason: reason,
+        isLastEliminated : isLastEliminated
     });
-
-    // Check if game ends and handle accordingly
-    const alivePlayers = Array.from(lobby.players.values()).filter(p => p.isAlive);
-    if (alivePlayers.length <= 1) {
+    
+    if (isLastEliminated) {
         console.log(`Game ending due to ${reason || 'elimination'}`);
         setTimeout(() => endGame(lobbyCode), 50); // Very short delay
     }
