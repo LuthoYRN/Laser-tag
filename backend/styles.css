@@ -81,37 +81,6 @@ h1 {
     flex-wrap: wrap;
 }
 
-#monitorCanvasOriginal,
-#monitorCanvasMasked,
-#monitorCanvasBinary {
-    width: 200px;
-    height: 200px;
-    image-rendering: pixelated;
-    border: 2px solid #333;
-    border-radius: 4px;
-    background-color: #000;
-}
-
-#monitorCanvasUpperBody {
-    width: 500px;
-    height: 300px;
-    image-rendering: pixelated;
-    border: 2px solid #333;
-    border-radius: 4px;
-    background-color: #000;
-}
-
-#monitorLabel,
-#monitorLabelMasked,
-#monitorLabelBinary,
-#monitorLabelUpperBody {
-    font-size: 12px;
-    font-weight: bold;
-    color: #333;
-    margin-bottom: 5px;
-    text-align: center;
-}
-
 .prediction-section {
     text-align: center;
     margin-top: 20px;
@@ -235,22 +204,6 @@ h1 {
     #centerMarker::after {
         width: 2px;
         height: 15px;
-    }
-    
-    #monitorCanvasOriginal,
-    #monitorCanvasMasked,
-    #monitorCanvasBinary {
-        width: 150px;
-        height: 150px;
-    }
-    
-    #monitorCanvasUpperBody {
-        width: 300px;
-        height: 180px;
-    }
-    
-    .monitor-section {
-        gap: 10px;
     }
     
     #bodyPrediction,

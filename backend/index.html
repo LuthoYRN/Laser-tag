@@ -5,14 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Webcam Color and Body Detection</title>
     <link rel="stylesheet" href="styles.css">
-    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-core"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-converter"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-backend-webgl"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/pose-detection"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/pose-detection@latest"></script>
 </head>
 <body>
     <div class="container">
-        <h1>Webcam Color and Body Detection</h1>
         <div class="controls">
             <button id="toggleButton">Start Camera</button>
             <button id="pickColorButton">Pick Color</button>
@@ -30,34 +27,33 @@
                 </div>
             </div>
         </div>
+
         <div class="camera-section">
             <div class="video-container">
                 <video id="videoElement" autoplay></video>
             </div>
         </div>
+
         <div class="monitor-section">
-            <div>
-                <div id="monitorLabel">Original</div>
-                <canvas id="monitorCanvasOriginal"></canvas>
-            </div>
-            <div>
+            <!-- Hidden canvas for color mask processing -->
+            <div style="display: none;">
                 <div id="monitorLabelMasked">Color Mask</div>
                 <canvas id="monitorCanvasMasked"></canvas>
             </div>
-            <div>
-                <div id="monitorLabelBinary">Binary</div>
-                <canvas id="monitorCanvasBinary"></canvas>
-            </div>
-            <div>
+            <!-- Hidden canvas for body detection processing -->
+            <div style="display: none;">
                 <div id="monitorLabelUpperBody">Body Detection</div>
                 <canvas id="monitorCanvasUpperBody"></canvas>
             </div>
         </div>
+
         <div class="prediction-section">
             <div id="bodyPrediction"></div>
             <div id="colorPrediction"></div>
         </div>
     </div>
+
     <script src="webcam-module.js"></script>
+    <script src="color-recognition.js"></script>
 </body>
 </html>

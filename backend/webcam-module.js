@@ -10,13 +10,9 @@ class WebcamModule {
         this.bodyPrediction = document.getElementById('bodyPrediction');
         this.colorPrediction = document.getElementById('colorPrediction');
         this.stream = null;
-        this.monitorCanvasOriginal = null;
         this.monitorCanvasMasked = null;
-        this.monitorCanvasBinary = null;
         this.monitorCanvasUpperBody = null;
-        this.monitorCtxOriginal = null;
         this.monitorCtxMasked = null;
-        this.monitorCtxBinary = null;
         this.monitorCtxUpperBody = null;
         this.boundingBoxSize = 200;
         this.animationFrameId = null;
@@ -156,9 +152,9 @@ class WebcamModule {
     updateColorDisplay() {
         this.colorSwatches.innerHTML = ''; // Clear existing swatches
         if (this.selectedColorsHSV.length > 0) {
-            const hsvText = this.selectedColorsHSV.map((hsv, i) => `color${i + 1}: HSV(${hsv[0]}, ${hsv[1]}%, ${hsv[2]}%)`).join(', ');
+            const hsvText = this.selectedColorsHSV.map((hsv) => `Color${hsv[0]}${hsv[1]}${hsv[2]}`).join(', ');
             this.colorValue.textContent = hsvText;
-            this.selectedColorsHSV.forEach((hsv, i) => {
+            this.selectedColorsHSV.forEach((hsv) => {
                 const [r, g, b] = this.hsvToRgb(hsv[0], hsv[1], hsv[2]);
                 const swatch = document.createElement('div');
                 swatch.className = 'color-swatch';
@@ -193,17 +189,9 @@ class WebcamModule {
         if (existingMarker) {
             existingMarker.remove();
         }
-        const existingCanvasOriginal = document.getElementById('monitorCanvasOriginal');
-        if (existingCanvasOriginal) {
-            existingCanvasOriginal.remove();
-        }
         const existingCanvasMasked = document.getElementById('monitorCanvasMasked');
         if (existingCanvasMasked) {
             existingCanvasMasked.remove();
-        }
-        const existingCanvasBinary = document.getElementById('monitorCanvasBinary');
-        if (existingCanvasBinary) {
-            existingCanvasBinary.remove();
         }
         const existingCanvasUpperBody = document.getElementById('monitorCanvasUpperBody');
         if (existingCanvasUpperBody) {
@@ -218,30 +206,22 @@ class WebcamModule {
         videoContainer.appendChild(centerMarker);
 
         const monitorSection = document.querySelector('.monitor-section');
-        const monitorCanvasOriginal = this.createMonitor('monitorCanvasOriginal');
         const monitorCanvasMasked = this.createMonitor('monitorCanvasMasked');
-        const monitorCanvasBinary = this.createMonitor('monitorCanvasBinary');
         const monitorCanvasUpperBody = this.createMonitor('monitorCanvasUpperBody', true);
-        this.monitorCanvasOriginal = monitorCanvasOriginal;
         this.monitorCanvasMasked = monitorCanvasMasked;
-        this.monitorCanvasBinary = monitorCanvasBinary;
         this.monitorCanvasUpperBody = monitorCanvasUpperBody;
-        this.monitorCtxOriginal = monitorCanvasOriginal.getContext('2d');
         this.monitorCtxMasked = monitorCanvasMasked.getContext('2d');
-        this.monitorCtxBinary = monitorCanvasBinary.getContext('2d');
         this.monitorCtxUpperBody = monitorCanvasUpperBody.getContext('2d');
 
-        monitorSection.children[0].appendChild(monitorCanvasOriginal);
-        monitorSection.children[1].appendChild(monitorCanvasMasked);
-        monitorSection.children[2].appendChild(monitorCanvasBinary);
-        monitorSection.children[3].appendChild(monitorCanvasUpperBody);
+        monitorSection.children[0].appendChild(monitorCanvasMasked);
+        monitorSection.children[1].appendChild(monitorCanvasUpperBody);
 
         this.updateColorDisplay();
         this.updateMonitor();
     }
 
     async updateMonitor() {
-        if (!this.stream || !this.monitorCtxOriginal || !this.monitorCtxMasked || !this.monitorCtxBinary || !this.monitorCtxUpperBody || this.video.readyState !== 4) {
+        if (!this.stream || !this.monitorCtxMasked || !this.monitorCtxUpperBody || this.video.readyState !== 4) {
             return;
         }
 
@@ -250,14 +230,7 @@ class WebcamModule {
         const cropX = (videoDisplayWidth - this.boundingBoxSize) / 2;
         const cropY = (videoDisplayHeight - this.boundingBoxSize) / 2;
 
-        // Original Canvas (cropped)
-        this.monitorCtxOriginal.drawImage(
-            this.video,
-            cropX, cropY, this.boundingBoxSize, this.boundingBoxSize,
-            0, 0, this.boundingBoxSize, this.boundingBoxSize
-        );
-
-        // Color Mask Canvas (cropped)
+        // Color Mask Canvas (hidden, used for color detection)
         const maskCanvas = document.createElement('canvas');
         maskCanvas.width = this.boundingBoxSize;
         maskCanvas.height = this.boundingBoxSize;
@@ -302,7 +275,8 @@ class WebcamModule {
             // Determine which colors are present
             pixelCounts.forEach((count, index) => {
                 if (count >= pixelThreshold) {
-                    colorPresence.push(`color${index + 1}`);
+                    const [h, s, v] = this.selectedColorsHSV[index];
+                    colorPresence.push(`Color${h}${s}${v}`);
                 }
             });
         } else {
@@ -311,33 +285,8 @@ class WebcamModule {
             maskCtx.fillRect(0, 0, this.boundingBoxSize, this.boundingBoxSize);
         }
         this.monitorCtxMasked.drawImage(maskCanvas, 0, 0);
-        // Update color prediction text
-        this.colorPrediction.textContent = colorPresence.length > 0 ? `Colors seen: ${colorPresence.join(', ')}` : 'No selected colors present';
 
-        // Binary Canvas (cropped)
-        const binaryCanvas = document.createElement('canvas');
-        binaryCanvas.width = this.boundingBoxSize;
-        binaryCanvas.height = this.boundingBoxSize;
-        const binaryCtx = binaryCanvas.getContext('2d');
-        binaryCtx.drawImage(
-            this.video,
-            cropX, cropY, this.boundingBoxSize, this.boundingBoxSize,
-            0, 0, this.boundingBoxSize, this.boundingBoxSize
-        );
-        const imageData = binaryCtx.getImageData(0, 0, this.boundingBoxSize, this.boundingBoxSize);
-        const data = imageData.data;
-        for (let i = 0; i < data.length; i += 4) {
-            // Grayscale using luminance: 0.299R + 0.587G + 0.114B
-            const gray = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
-            const value = gray > 100 ? 255 : 0; // Threshold at 100
-            data[i] = value;
-            data[i + 1] = value;
-            data[i + 2] = value;
-        }
-        binaryCtx.putImageData(imageData, 0, 0);
-        this.monitorCtxBinary.drawImage(binaryCanvas, 0, 0);
-
-        // Body Detection with MoveNet (waist-up only)
+        // Body Detection with MoveNet (hidden, used for body detection)
         let bodyDetected = false;
         const fullCanvas = document.createElement('canvas');
         fullCanvas.width = videoDisplayWidth;
@@ -364,7 +313,7 @@ class WebcamModule {
 
                 if (poses.length > 0) {
                     const keypoints = poses[0].keypoints;
-                    bodyDetected = upperBodyKeypointIndices.some(i => keypoints[i].score > 0.5); // Waist-up detected if any keypoint has confidence31confidence > 0.5
+                    bodyDetected = upperBodyKeypointIndices.some(i => keypoints[i].score > 0.5); // Waist-up detected if any keypoint has confidence > 0.5
                     upperBodyKeypointIndices.forEach(i => {
                         const kp = keypoints[i];
                         if (kp.score > 0.5) {
@@ -397,9 +346,14 @@ class WebcamModule {
             this.monitorCtxUpperBody.drawImage(this.video, 0, 0, videoDisplayWidth, videoDisplayHeight);
         }
 
-        // Update prediction text in separate divs
-        this.bodyPrediction.textContent = bodyDetected ? 'Body detected' : 'No body detected';
-        this.colorPrediction.textContent = colorPresence.length > 0 ? `Colors seen: ${colorPresence.join(', ')}` : 'No selected colors present';
+        // Combined prediction output
+        this.bodyPrediction.textContent = ''; // Clear body prediction
+        if (bodyDetected && colorPresence.length > 0) {
+            const combinedText = colorPresence.map(color => `Body with ${color} present`).join(', ');
+            this.colorPrediction.textContent = combinedText;
+        } else {
+            this.colorPrediction.textContent = 'No body or colors detected';
+        }
 
         this.animationFrameId = requestAnimationFrame(() => this.updateMonitor());
     }
@@ -447,17 +401,9 @@ class WebcamModule {
             if (centerMarker) {
                 centerMarker.remove();
             }
-            const monitorCanvasOriginal = document.getElementById('monitorCanvasOriginal');
-            if (monitorCanvasOriginal) {
-                monitorCanvasOriginal.remove();
-            }
             const monitorCanvasMasked = document.getElementById('monitorCanvasMasked');
             if (monitorCanvasMasked) {
                 monitorCanvasMasked.remove();
-            }
-            const monitorCanvasBinary = document.getElementById('monitorCanvasBinary');
-            if (monitorCanvasBinary) {
-                monitorCanvasBinary.remove();
             }
             const monitorCanvasUpperBody = document.getElementById('monitorCanvasUpperBody');
             if (monitorCanvasUpperBody) {
