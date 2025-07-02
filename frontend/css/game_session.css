@@ -491,7 +491,6 @@
     left: 50%;
     transform: translate(-50%, -50%);
     background: rgba(0, 0, 0, 0.9);
-    border: 2px solid #00ffff;
     border-radius: 15px;
     padding: 20px 30px;
     text-align: center;
@@ -518,13 +517,11 @@
 .game-container .status-title {
     font-size: 1.5rem;
     font-weight: bold;
-    color: #00ffff;
     margin-bottom: 10px;
 }
 
 .game-container .status-text {
     font-size: 1rem;
-    color: #ffffff;
 }
 
 .qr-scanner-modal {
@@ -641,6 +638,143 @@
     justify-content: center;
     z-index: 2100;
     backdrop-filter: blur(15px);
+}
+
+.qr-assignment-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.95);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 1500;
+    backdrop-filter: blur(20px);
+}
+
+.qr-assignment-overlay.show {
+    display: flex;
+}
+
+.assignment-container {
+    background: linear-gradient(135deg, rgba(20, 20, 20, 0.95), rgba(40, 40, 40, 0.95));
+    border: 3px solid #00ffff;
+    border-radius: 20px;
+    padding: 40px;
+    max-width: 400px;
+    width: 90%;
+    text-align: center;
+    box-shadow: 0 0 50px rgba(0, 255, 255, 0.6);
+    animation: assignmentAppear 0.6s ease-out;
+}
+
+@keyframes assignmentAppear {
+    0% {
+        transform: scale(0.8) translateY(50px);
+        opacity: 0;
+    }
+    100% {
+        transform: scale(1) translateY(0);
+        opacity: 1;
+    }
+}
+
+.assignment-icon {
+    font-size: 4rem;
+    margin-bottom: 20px;
+    animation: assignmentPulse 2s infinite;
+}
+
+@keyframes assignmentPulse {
+    0%, 100% { 
+        transform: scale(1);
+        opacity: 1;
+    }
+    50% { 
+        transform: scale(1.1);
+        opacity: 0.8;
+    }
+}
+
+.assignment-title {
+    font-size: 1.8rem;
+    color: #00ffff;
+    font-weight: bold;
+    margin-bottom: 15px;
+    text-transform: uppercase;
+    text-shadow: 0 0 20px rgba(0, 255, 255, 0.8);
+    letter-spacing: 2px;
+}
+
+.assignment-message {
+    font-size: 1.1rem;
+    color: #ffffff;
+    margin-bottom: 20px;
+    line-height: 1.4;
+}
+
+.assignment-progress {
+    font-size: 1rem;
+    color: #ffff00;
+    font-weight: bold;
+    margin-bottom: 25px;
+    transition: color 0.3s ease;
+}
+
+.assignment-players-status {
+    background: rgba(0, 0, 0, 0.6);
+    border: 2px solid #333;
+    border-radius: 15px;
+    padding: 20px;
+    margin-top: 20px;
+}
+
+.status-text {
+    font-size: 1.2rem;
+    color: #ffffff;
+    margin-bottom: 15px;
+    font-weight: bold;
+}
+
+.status-text span {
+    color: #00ff00;
+    font-family: 'Courier New', monospace;
+}
+
+.progress-bar-container {
+    width: 100%;
+    height: 12px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 6px;
+    overflow: hidden;
+    border: 1px solid #555;
+}
+
+.progress-bar {
+    height: 100%;
+    background: linear-gradient(90deg, #00ffff, #00ff00);
+    width: 0%;
+    transition: width 0.5s ease;
+    box-shadow: 0 0 15px rgba(0, 255, 255, 0.5);
+    position: relative;
+}
+
+.progress-bar::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+    animation: progressShimmer 2s infinite;
+}
+
+@keyframes progressShimmer {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
 }
 
 .player-assignment-modal.show {
@@ -779,6 +913,32 @@
         padding: 30px;
         margin: 20px;
     }
+    
+    .assignment-container {
+        padding: 30px 20px;
+        margin: 20px;
+    }
+    
+    .assignment-icon {
+        font-size: 3rem;
+    }
+    
+    .assignment-title {
+        font-size: 1.5rem;
+        letter-spacing: 1px;
+    }
+    
+    .assignment-message {
+        font-size: 1rem;
+    }
+    
+    .assignment-players-status {
+        padding: 15px;
+    }
+    
+    .status-text {
+        font-size: 1.1rem;
+    }
 }
 
 @media (max-width: 480px) {
@@ -826,5 +986,25 @@
     .qr-scanner-container {
         padding: 15px 10px;
         margin: 5px;
+    }
+    .assignment-container {
+        padding: 25px 15px;
+        margin: 15px;
+    }
+    
+    .assignment-icon {
+        font-size: 2.5rem;
+    }
+    
+    .assignment-title {
+        font-size: 1.3rem;
+    }
+    
+    .assignment-message {
+        font-size: 0.9rem;
+    }
+    
+    .status-text {
+        font-size: 1rem;
     }
 }

@@ -46,28 +46,142 @@ function showScreen(screenName) {
             loadActiveLiveLobbies();
             startLiveLobbiesUpdates();
         }
+        if (screenName === 'waitingRoom') {
+            document.getElementById('gameStartSection').classList.remove("show");
+        }
+        if (screenName === 'gameSession') {
+            document.getElementById('gameTimer').textContent = '--:--';
+            document.getElementById('playersLeft').textContent = '--/--';
+            document.getElementById('playerScore').textContent = '0';
+            document.getElementById('healthText').textContent = '100%';
+            document.getElementById('healthBar').style.width = '100%';
+            document.getElementById('healthBar').className = 'health-bar high';
+        }
+    }
+}
+function showStatusMessage(title, text, type = 'info') {
+    console.log('🐛 showStatusMessage called:', { title, text, type }); // Debug line
+    
+    const statusMessage = document.getElementById('statusMessage');
+    const statusTitle = document.getElementById('statusTitle');
+    const statusText = document.getElementById('statusText');
+    
+    if (statusMessage && statusTitle && statusText) {
+        // FORCE CLEAR FIRST
+        statusTitle.innerHTML = '';
+        statusText.innerHTML = '';
+        
+        // SET NEW VALUES
+        statusTitle.textContent = title;
+        statusText.textContent = text;
+        
+        console.log('🐛 Set title to:', statusTitle.textContent); // Debug line
+        console.log('🐛 Set text to:', statusText.textContent); // Debug line
+        
+        // Reset all styles first
+        statusMessage.style.borderColor = '';
+        statusMessage.style.background = '';
+        statusMessage.style.boxShadow = '';
+        statusTitle.style.color = ''; // Clear any existing color
+        statusText.style.color = ''; // Clear any existing color
+        
+        // Apply colors based on message type with !important equivalent (direct style setting)
+        switch(type) {
+            case 'success':
+                statusMessage.style.borderColor = '#00ff00';
+                statusMessage.style.background = 'rgba(0, 255, 0, 0.3)';
+                statusMessage.style.boxShadow = '0 0 20px rgba(0, 255, 0, 0.4)';
+                statusTitle.style.setProperty('color', '#00ff00', 'important'); // Force green title
+                statusText.style.setProperty('color', '#ffffff', 'important'); // Force white text
+                break;
+            case 'error':
+                statusMessage.style.borderColor = '#ff0000';
+                statusMessage.style.background = 'rgba(255, 0, 0, 0.3)';
+                statusMessage.style.boxShadow = '0 0 20px rgba(255, 0, 0, 0.4)';
+                statusTitle.style.setProperty('color', '#ff0000', 'important'); // Force red title
+                statusText.style.setProperty('color', '#ffffff', 'important'); // Force white text
+                break;
+            case 'warning':
+                statusMessage.style.borderColor = '#ffaa00';
+                statusMessage.style.background = 'rgba(255, 170, 0, 0.3)';
+                statusMessage.style.boxShadow = '0 0 20px rgba(255, 170, 0, 0.4)';
+                statusTitle.style.setProperty('color', '#ffaa00', 'important'); // Force orange title
+                statusText.style.setProperty('color', '#ffffff', 'important'); // Force white text
+                break;
+            case 'eliminated':
+                statusMessage.style.borderColor = '#ff0000';
+                statusMessage.style.background = 'rgba(255, 0, 0, 0.8)';
+                statusMessage.style.boxShadow = '0 0 30px rgba(255, 0, 0, 0.6)';
+                statusTitle.style.setProperty('color', '#ffffff', 'important'); // Force white title
+                statusText.style.setProperty('color', '#ffcccc', 'important'); // Force light pink text
+                break;
+            case 'hit':
+                statusMessage.style.borderColor = '#ff6600';
+                statusMessage.style.background = 'rgba(255, 102, 0, 0.3)';
+                statusMessage.style.boxShadow = '0 0 20px rgba(255, 102, 0, 0.4)';
+                statusTitle.style.setProperty('color', '#ff6600', 'important'); // Force orange title
+                statusText.style.setProperty('color', '#ffffff', 'important'); // Force white text
+                break;
+            default: // 'info'
+                statusMessage.style.borderColor = '#00ffff';
+                statusMessage.style.background = 'rgba(0, 0, 0, 0.8)';
+                statusMessage.style.boxShadow = '0 0 15px rgba(0, 255, 255, 0.3)';
+                statusTitle.style.setProperty('color', '#00ffff', 'important'); // Force cyan title
+                statusText.style.setProperty('color', '#ffffff', 'important'); // Force white text
+        }
+        
+        console.log('🐛 Applied colors:', {
+            titleColor: statusTitle.style.color,
+            textColor: statusText.style.color,
+            type: type
+        }); // Debug line
+        
+        statusMessage.classList.add('show');
+        
+        // Auto hide based on message type
+        let duration = 2000; // default
+        if (type === 'eliminated' || type === 'error') {
+            duration = 5000; // longer for critical messages
+        } else if (type === 'hit' || type === 'success') {
+            duration = 1500; // shorter for action feedback
+        }
+        
+        setTimeout(() => {
+            statusMessage.classList.remove('show');
+            // Reset styles when hiding
+            statusMessage.style.borderColor = '#00ffff';
+            statusMessage.style.background = 'rgba(0, 0, 0, 0.9)';
+            statusMessage.style.boxShadow = '';
+            statusTitle.style.color = '#00ffff'; // Reset to default
+            statusText.style.color = '#ffffff'; // Reset to default
+        }, duration);
+    } else {
+        console.error('🐛 Status message elements not found!', { statusMessage, statusTitle, statusText });
     }
 }
 
-// Keep the original simple showNotification function in client.js
+// Updated showNotification to use proper types
 function showNotification(message, type = 'info') {
     console.log(`[${type.toUpperCase()}] ${message}`);
     
-    // You could add a proper notification UI element here
+    // Map notification types to status message types
     if (type === 'error') {
-        alert(`Error: ${message}`);
+        showStatusMessage('⚠️ Error', message, 'error');
+    } else if (type === 'success') {
+        showStatusMessage('✅ Success', message, 'success');
+    } else {
+        showStatusMessage('ℹ️ Info', message, 'info');
     }
 }
 
-// Simplified socket event handlers - just use existing red flash indicator
+// Update all socket handlers to use specific types
 socket.on('scan-result', (data) => {
     console.log('Scan result received:', data);
     if (data.success) {
         updatePlayerScore(data.newScore);
         triggerShootIndicator();
-        showNotification(`Hit ${data.targetPlayerName} for ${data.pointsEarned} points!`, 'success');
     } else {
-        showNotification(data.message, 'error');
+         showStatusMessage('⚠️ Scan Failed', data.message, 'error');
     }
 });
 
@@ -75,23 +189,212 @@ socket.on('player-damaged', (data) => {
     console.log('Player damaged:', data);
     if (data.playerId === socket.id) {
         updatePlayerHealth(data.health);
-        triggerHitIndicator(); // Use existing red flash indicator
-        showNotification(`Hit by ${data.shooterName}! -${data.damage} HP`, 'info');
+        triggerHitIndicator();
+        showStatusMessage('💥 HIT!', `Hit by ${data.shooterName}! -${data.damage} HP (${data.health}% remaining)`, 'hit');
+    } else if (data.shooterId === socket.id){
+        showStatusMessage('🎯 Direct Hit!', `You hit ${data.playerName} for ${data.damage} damage!`, 'success');
     }
 });
 
 socket.on('player-eliminated', (data) => {
     console.log('Player eliminated:', data);
     if (data.playerId === socket.id) {
-        // You were eliminated - trigger red flash
+        updatePlayerHealth(0)
         triggerHitIndicator();
-        showNotification('💀 YOU WERE ELIMINATED!', 'error');
-        showEliminationPopup();
+        showStatusMessage('💀 YOU WERE ELIMINATED!', 'You have been eliminated from the game', 'eliminated');
+        if (gameState.gameActive && gameState.currentScreen === 'gameSession' && gameState.playerType === 'player' && !data.isLastEliminated) {
+            setTimeout(() => {
+                gameState.playerType = 'spectator';
+                stopMainGameCamera();
+                showScreen('spectatorMode');
+                if (gameState.lobbyData) {
+                    initializeSpectatorMode(gameState.lobbyData);
+                }
+            }, 1000);
+        }
     } else {
-        // Someone else was eliminated
-        showNotification(`${data.playerName} was eliminated by ${data.shooterName}!`, 'info');
+        showStatusMessage('🎯 Player Eliminated', `${data.playerName} was eliminated by ${data.shooterName}!`, 'warning');
     }
 });
+
+// New socket event for QR assignment phase
+socket.on('qr-assignment-phase', (data) => {
+    console.log('Entering QR assignment phase:', data);
+    gameState.gameActive = false; // Game not yet active
+    
+    if (gameState.playerType === 'player') {
+        showScreen('gameSession');
+        initializeQRAssignmentPhase(data);
+    } 
+});
+
+// New socket event for QR assignment progress
+socket.on('qr-assignment-progress', (data) => {
+    console.log('QR assignment progress:', data);
+    updateQRAssignmentProgress(data.assigned, data.total, data.playerName);
+});
+
+// New socket event for actual game start (after QR assignment)
+socket.on('game-actually-started', (gameData) => {
+    console.log('Game actually started!', gameData);
+    gameState.gameActive = true;
+    
+    // Hide QR assignment UI and show actual game
+    hideQRAssignmentPhase();
+    
+    if (gameState.playerType === 'player') {
+        initializeActualGameSession(gameData);
+    } 
+    
+    // Show game start message
+    showStatusMessage('🎯 GAME BEGINS!', 'All players ready - hunt begins now!');
+});
+
+// Initialize QR assignment phase
+function initializeQRAssignmentPhase(data) {
+    console.log('Initializing QR assignment phase');
+    
+    // Show QR scanner modal for assignment
+    setTimeout(() => {
+        showQRScannerModal();
+        showQRAssignmentOverlay(data.message);
+    }, 1000);
+}
+
+// Show QR assignment overlay
+function showQRAssignmentOverlay(message) {
+    const overlay = document.getElementById('qrAssignmentOverlay') || createQRAssignmentOverlay();
+    const messageEl = overlay.querySelector('.assignment-message');
+    const progressEl = overlay.querySelector('.assignment-progress');
+    
+    messageEl.textContent = message;
+    progressEl.textContent = 'Waiting for all players to scan QR codes...';
+    
+    overlay.classList.add('show');
+}
+
+// Create QR assignment overlay 
+function createQRAssignmentOverlay() {
+    const overlay = document.createElement('div');
+    overlay.id = 'qrAssignmentOverlay';
+    overlay.className = 'qr-assignment-overlay';
+    overlay.innerHTML = `
+        <div class="assignment-container">
+            <div class="assignment-icon">🎯</div>
+            <div class="assignment-title">QR Code Assignment Phase</div>
+            <div class="assignment-message">All players must scan their QR codes</div>
+            <div class="assignment-progress">Waiting for all players...</div>
+            <div class="assignment-players-status" id="playersStatus">
+                <div class="status-text">Players Ready: <span id="readyCount">0</span>/<span id="totalCount">0</span></div>
+                <div class="progress-bar-container">
+                    <div class="progress-bar" id="progressBar"></div>
+                </div>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(overlay);
+    return overlay;
+}
+
+// Update QR assignment progress
+function updateQRAssignmentProgress(assigned, total, playerName) {
+    const overlay = document.getElementById('qrAssignmentOverlay');
+    if (!overlay) return;
+    
+    const readyCount = overlay.querySelector('#readyCount');
+    const totalCount = overlay.querySelector('#totalCount');
+    const progressBar = overlay.querySelector('#progressBar');
+    const progressText = overlay.querySelector('.assignment-progress');
+    
+    if (readyCount) readyCount.textContent = assigned;
+    if (totalCount) totalCount.textContent = total;
+    
+    if (progressBar) {
+        const percentage = (assigned / total) * 100;
+        progressBar.style.width = percentage + '%';
+    }
+    
+    if (progressText) {
+        if (assigned === total) {
+            progressText.textContent = 'All players ready! Starting game...';
+            progressText.style.color = '#00ff00';
+        } else {
+            progressText.textContent = `${playerName} got their QR code! (${assigned}/${total})`;
+        }
+    }
+}
+
+// Hide QR assignment phase
+function hideQRAssignmentPhase() {
+    const overlay = document.getElementById('qrAssignmentOverlay');
+    if (overlay) {
+        overlay.classList.remove('show');
+    }
+    
+    // Hide QR scanner modal if still open
+    hideQRScannerModal();
+}
+
+// Initialize actual game session (after QR assignment)
+function initializeActualGameSession(gameData) {
+    console.log('Initializing actual game session with data:', gameData);
+    resetGameState();
+    // Initialize player stats
+    updatePlayerHealth(100);
+    updatePlayerScore(0);
+    updateGameTimer(gameData.duration * 60, gameState.lobbyData?.settings.numPlayers || 4);
+    
+    // Start main game camera
+    startMainGameCamera();
+    
+    // Initialize forfeit modal
+    initializeForfeitModal();
+}
+
+// Modified QR assignment success handler
+socket.on('qr-assigned', (data) => {
+    console.log('QR Code assigned:', data);
+    if (data.success) {
+        // Hide QR scanner immediately after successful scan
+        hideQRScannerModal();
+        
+        // Show assignment overlay (will be updated by progress event)
+        showQRAssignmentOverlay('Waiting for all players to scan...');
+        
+        // Show quick success message
+        showNotification(`✅ ${data.playerName} QR registered!`, 'success');
+    } else {
+        showNotification(data.message || 'Failed to assign QR code', 'error');
+    }
+});
+function createSuccessMessage() {
+    const msg = document.createElement('div');
+    msg.id = 'qrSuccessMessage';
+    msg.className = 'qr-success-message';
+    msg.style.cssText = `
+        position: absolute;
+        top: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: rgba(0, 255, 0, 0.9);
+        color: #000;
+        padding: 10px 20px;
+        border-radius: 10px;
+        font-weight: bold;
+        z-index: 2200;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+    `;
+    msg.style.opacity = '0';
+    document.querySelector('.qr-scanner-container').appendChild(msg);
+    
+    // Add show class styling
+    const style = document.createElement('style');
+    style.textContent = '.qr-success-message.show { opacity: 1 !important; }';
+    document.head.appendChild(style);
+    
+    return msg;
+}
 
 function updateLobbyCode(code) {
     const lobbyCodeElements = document.querySelectorAll('.lobby-code');
@@ -137,21 +440,20 @@ function goBack() {
     }
 }
 
-// Socket Event Handlers
 socket.on('connect', () => {
     console.log('🔗 Connected to server:', socket.id);
-    showNotification('Connected to game server', 'success');
+    showStatusMessage('🔗 Connected', 'Connected to game server', 'success');
 });
 
 socket.on('disconnect', () => {
     console.log('❌ Disconnected from server');
-    showNotification('Disconnected from server', 'error');
+    showStatusMessage('❌ Disconnected', 'Lost connection to server', 'error');
     showScreen('home');
 });
 
 socket.on('connect_error', (error) => {
     console.error('Connection error:', error);
-    showNotification('Failed to connect to server', 'error');
+    showStatusMessage('❌ Connection Error', 'Failed to connect to server', 'error');
 });
 
 // Lobby Management Events
@@ -175,7 +477,6 @@ socket.on('lobby-updated', (lobbyState) => {
 
 socket.on('spectator-joined', (data) => {
     console.log('Spectator joined:', data.name);
-    showNotification(`${data.name} is now spectating`, 'info');
 });
 
 // Game Events
@@ -205,34 +506,6 @@ socket.on('countdown-canceled', () => {
     showNotification('Countdown canceled - player not ready', 'info');
 });
 
-socket.on('game-started', (gameData) => {
-    console.log('Game started!', gameData);
-    gameState.gameActive = true;
-    
-    if (gameState.playerType === 'player') {
-        showScreen('gameSession');
-        initializeGameSession(gameData);
-        // Show QR scanner modal first, before starting the actual game
-        setTimeout(() => {
-            showQRScannerModal();
-        }, 500);
-    } else if (gameState.playerType === 'spectator') {
-        showScreen('spectatorMode');
-        initializeSpectatorMode(gameData);
-    }
-});
-
-// QR Code Assignment Events
-socket.on('qr-assigned', (data) => {
-    console.log('QR Code assigned:', data);
-    if (data.success) {
-        showPlayerAssignmentSuccess(data);
-        hideQRScannerModal();
-    } else {
-        showNotification(data.message || 'Failed to assign QR code', 'error');
-    }
-});
-
 socket.on('game-timer', (data) => {
     updateGameTimer(data.timeLeft, data.playersAlive);
 });
@@ -240,11 +513,12 @@ socket.on('game-timer', (data) => {
 socket.on('game-ended', (results) => {
     console.log('Game ended:', results);
     gameState.gameActive = false;
+    const overlay = document.getElementById('qrAssignmentOverlay')
+    if (overlay)overlay.classList.remove('show')
+    const scanner = document.getElementById('qrScannerModal')
+    if(scanner)scanner.classList.remove('show')
     showGameResults(results);
 });
-
-// Screen-specific Functions
-
 // Home Screen
 function initializeHome() {
     const createButton = document.querySelector('.create-mode');
@@ -304,11 +578,12 @@ function initializeCreateLobby() {
 function createLobby() {
     const activeMaxButton = document.querySelector('.container.create .option-button.active');
     const durationSlider = document.getElementById('durationSlider');
+    const playerNameInput = document.getElementById('playerNameCreate');
     
     const settings = {
         numPlayers: parseInt(activeMaxButton?.textContent || '4'),
         duration: parseInt(durationSlider?.value || '15'),
-        playerName: 'Host'
+        playerName: playerNameInput?.value.trim() || 'Host'
     };
     
     socket.emit('create-lobby', settings, (response) => {
@@ -329,40 +604,61 @@ function createLobby() {
 function initializeJoinLobby() {
     const joinButton = document.getElementById('joinButton');
     const lobbyInput = document.getElementById('lobbyCodeInput');
+    const nameInput = document.getElementById('playerNameJoin');
     const backButton = document.querySelector('.container.join .back-button');
     
     if (backButton) {
         backButton.addEventListener('click', goBack);
     }
     
+    function updateJoinButton() {
+        if (joinButton && lobbyInput && nameInput) {
+            const code = lobbyInput.value.trim();
+            const name = nameInput.value.trim();
+            
+            // Enable only if BOTH lobby code (6 chars) AND name (at least 1 char) are valid
+            joinButton.disabled = !(code.length === 6 && name.length > 0);
+        }
+    }
+
     if (lobbyInput) {
         lobbyInput.addEventListener('input', (e) => {
             const code = e.target.value.toUpperCase();
             e.target.value = code;
             
-            if (joinButton) {
-                joinButton.disabled = code.length !== 6;
-            }
+            updateJoinButton();
         });
+    }
+    
+    if (nameInput) {
+        nameInput.addEventListener('input', updateJoinButton);
     }
     
     if (joinButton) {
         joinButton.addEventListener('click', joinLobby);
     }
+    updateJoinButton();
 }
 
 function joinLobby() {
     const lobbyInput = document.getElementById('lobbyCodeInput');
+    const playerNameInput = document.getElementById('playerNameJoin');
     const lobbyCode = lobbyInput?.value.toUpperCase();
+    const playerName = playerNameInput?.value.trim();
     
     if (!lobbyCode || lobbyCode.length !== 6) {
         showNotification('Please enter a valid 6-character lobby code', 'error');
         return;
     }
     
+    if (!playerName) {
+        showNotification('Please enter your player name', 'error');
+        return;
+    }
+    
     const joinData = {
         lobbyCode,
-        name: `Player${Math.floor(Math.random() * 1000)}`,
+        name: playerName,
         type: 'player'
     };
     
@@ -371,6 +667,15 @@ function joinLobby() {
             gameState.lobbyData = response.lobby;
             gameState.playerType = response.type;
             updateLobbyCode(response.lobby.code);
+            
+            // Notify user if their name was changed
+            if (response.nameChanged) {
+                showNotification(
+                    `Name "${response.originalName}" was taken. You are now "${response.assignedName}"`, 
+                    'warning'
+                );
+            }
+            
             showScreen('waitingRoom');
             updateWaitingRoom(response.lobby);
         } else {
@@ -378,6 +683,7 @@ function joinLobby() {
         }
     });
 }
+
 
 // Live Lobbies Screen
 let liveLobbiesInterval = null;
@@ -748,38 +1054,6 @@ function updateCountdown(count) {
 // Game Session Functions
 let qrScanner = null;
 
-function initializeGameSession(gameData) {
-    console.log('Initializing game session with data:', gameData);
-    
-    // Initialize player stats
-    updatePlayerHealth(100);
-    updatePlayerScore(0);
-    updateGameTimer(gameData.duration * 60, gameState.lobbyData?.settings.numPlayers || 4);
-    
-    // Show initial status message
-    showStatusMessage('Game Started!', 'Hunt for treasures and eliminate opponents');
-    
-    // Initialize forfeit modal
-    initializeForfeitModal();
-}
-
-function showStatusMessage(title, text) {
-    const statusMessage = document.getElementById('statusMessage');
-    const statusTitle = document.getElementById('statusTitle');
-    const statusText = document.getElementById('statusText');
-    
-    if (statusMessage && statusTitle && statusText) {
-        statusTitle.textContent = title;
-        statusText.textContent = text;
-        statusMessage.classList.add('show');
-        
-        // Auto hide after 3 seconds
-        setTimeout(() => {
-            statusMessage.classList.remove('show');
-        }, 3000);
-    }
-}
-
 function showQRScannerModal() {
     const modal = document.getElementById('qrScannerModal');
     if (modal) {
@@ -797,15 +1071,19 @@ function hideQRScannerModal() {
 }
 
 function startQRScanner() {
-    const qrReader = document.getElementById('qrModalPlaceholder');    
+    const qrReader = document.getElementById('qrModalPlaceholder');  
+    const qrQuit = document.getElementById('qrCancel');  
     qrScanner = new Html5Qrcode("qrModalPlaceholder");
     
+    if (qrQuit) {
+        qrQuit.addEventListener('click',cancelQRScanning)
+    }
     // Make qrbox responsive to screen size
     const screenWidth = window.innerWidth;
     const qrBoxSize = Math.min(screenWidth * 0.8, 300); // 80% of screen width, max 300px
     
     const config = {
-        fps: 10,
+        fps: 20,
         qrbox: qrBoxSize,
         aspectRatio: 1.0 // Square scanning area
     };
@@ -832,6 +1110,7 @@ function startQRScanner() {
         }
     });
 }
+
 function startMainGameCamera() {
     const placeholder = document.getElementById('qrCameraPlaceholder');
     
@@ -845,22 +1124,17 @@ function startMainGameCamera() {
     
     const mainScanner = new Html5Qrcode("qrCameraPlaceholder");
     
-    // Make scanning area MUCH larger for mobile - almost full screen width
     const screenWidth = window.innerWidth;
-    const screenHeight = window.innerHeight;
-    
-    // Use 90% of screen width, but cap at reasonable size for larger screens
-    const qrBoxSize = Math.min(screenWidth * 0.9, 400); // Much larger: 90% width, max 400px
+    const qrBoxSize = Math.min(screenWidth * 0.9, 400);
     
     const config = {
-        fps: 10,
+        fps: 20,
         qrbox: qrBoxSize,
         aspectRatio: 1.0
     };
     
     console.log(`Setting QR box size to: ${qrBoxSize}px for screen width: ${screenWidth}px`);
     
-    // Show loading state
     placeholder.innerHTML = '<div style="color: #00ffff; text-align: center;">📷<br>Starting Camera...</div>';
     
     mainScanner.start(
@@ -883,7 +1157,9 @@ function startMainGameCamera() {
     }).catch(err => {
         console.error("Main game camera failed to start:", err);
         
-        // Show error message if camera fails
+        // Show error message using status system instead of alert
+        showStatusMessage('📷 Camera Error', 'Camera access required - please allow permissions and refresh');
+        
         placeholder.innerHTML = `
             <div style="color: #ff0000; text-align: center; padding: 20px;">
                 ❌<br>
@@ -891,30 +1167,31 @@ function startMainGameCamera() {
                 <small>Please allow camera permissions and refresh</small>
             </div>
         `;
-        
-        // Also show alert to user
-        alert('Camera access is required to play. Please allow camera permissions and try again.');
     });
 }
-// Also add this helper function to stop the main camera when needed
+
 function stopMainGameCamera() {
-    const placeholder = document.getElementById('qrCameraPlaceholder');
-    if (placeholder) {
-        // Try to stop any existing Html5Qrcode instance
-        try {
-            const scannerElement = placeholder.querySelector('video');
-            if (scannerElement) {
-                Html5Qrcode.getCameras().then(() => {
-                    // Clear the placeholder
-                    placeholder.innerHTML = '<div style="color: #00ffff; text-align: center;">📷<br>Camera Stopped</div>';
-                });
+    try {
+        const placeholder = document.getElementById('qrCameraPlaceholder');
+        if (placeholder) {
+            const existingVideo = placeholder.querySelector('video');
+            if (existingVideo) {
+                const stream = existingVideo.srcObject;
+                if (stream) {
+                    stream.getTracks().forEach(track => track.stop());
+                }
             }
-        } catch (err) {
-            console.log('Error stopping camera:', err);
+            placeholder.innerHTML = '<div style="color: #00ffff; text-align: center;">📷<br>Camera Stopped</div>';
         }
+        
+        const crosshair = document.querySelector('.crosshair');
+        if (crosshair) {
+            crosshair.classList.remove('scanning');
+        }
+    } catch (err) {
+        console.log('Error stopping camera:', err);
     }
 }
-
 function stopQRScanner() {
     if (qrScanner) {
         qrScanner.stop().then(() => {
@@ -933,12 +1210,7 @@ function stopQRScanner() {
     }
 }
 
-function handleQRScan(qrData) {
-    // Haptic feedback
-    if (navigator.vibrate) {
-        navigator.vibrate(200);
-    }
-    
+function handleQRScan(qrData) {  
     console.log('QR Code scanned:', qrData);
     
     // Send QR assignment to server
@@ -947,45 +1219,21 @@ function handleQRScan(qrData) {
         playerId: socket.id
     });
 }
-
-function showPlayerAssignmentSuccess(data) {
-    const modal = document.getElementById('playerAssignmentModal');
-    const playerName = document.getElementById('assignmentPlayerName');
-    
-    if (modal) {
-        if (playerName) {
-            playerName.textContent = data.playerName || 'Player';
-        }
-        modal.classList.add('show');
-        
-        // Auto hide after 2 seconds
-        setTimeout(() => {
-            modal.classList.remove('show');
-            // Start the main game camera now
-            startMainGameCamera();
-        }, 2000);
-    }
-}
-
 // Replace the handleGameQRScan function in client.js
 let lastGameScanTime = 0;
 
 function handleGameQRScan(qrData) {
     const now = Date.now();
     
-    // Prevent rapid scanning (2 second cooldown)
-    if (now - lastGameScanTime < 2000) {
+    // Prevent rapid scanning (1 second cooldown)
+    if (now - lastGameScanTime < 1000) {
         console.log('Scan cooldown active, ignoring scan');
         return;
     }
     
     lastGameScanTime = now;
-    
-    // Haptic feedback
-    if (navigator.vibrate) {
-        navigator.vibrate(100);
-    }
-    
+       
+       
     console.log('Game QR Code scanned:', qrData);
     
     // Send scan to server - only need the target QR code
@@ -996,8 +1244,12 @@ function handleGameQRScan(qrData) {
 
 function cancelQRScanning() {
     hideQRScannerModal();
-    // Start main game camera directly
-    socket.emit("player-forfeit")
+    const assignmentOverlay = document.getElementById('qrAssignmentOverlay');
+    if (assignmentOverlay) {
+        assignmentOverlay.classList.remove('show');
+    }
+    socket.emit('leave-lobby');
+    showScreen("joinLobby")
 }
 
 function updateGameTimer(timeLeft, playersAlive) {
@@ -1078,11 +1330,21 @@ function showForfeitConfirm() {
 function confirmForfeit() {
     // Send forfeit to server
     socket.emit('player-forfeit');
-    
     // Hide modal and return to home
     cancelForfeit();
-    showScreen('home');
-    showNotification('You have forfeited the game', 'info');
+    if (gameState.gameActive && gameState.currentScreen === 'gameSession' && gameState.playerType === 'player' && !data.isLastEliminated) {
+        setTimeout(() => {
+            gameState.playerType = 'spectator';
+            stopMainGameCamera();
+            showScreen('spectatorMode');
+            if (gameState.lobbyData) {
+                initializeSpectatorMode(gameState.lobbyData);
+            }
+        }, 1000);
+    }
+    else{
+        showScreen('home');
+    }
 }
 
 function cancelForfeit() {
@@ -1092,29 +1354,358 @@ function cancelForfeit() {
     }
 }
 
-function showEliminationPopup() {
-    const statusMessage = document.getElementById('statusMessage');
-    const statusTitle = document.getElementById('statusTitle');
-    const statusText = document.getElementById('statusText');
-    
-    if (statusMessage && statusTitle && statusText) {
-        statusTitle.textContent = '💀 ELIMINATED!';
-        statusText.textContent = 'Transitioning to spectator mode...';
-        statusMessage.classList.add('show');
-        statusMessage.style.borderColor = '#ff0000';
-    }
-}
-
-// Spectator Mode Functions (basic structure)
-function initializeSpectatorMode(gameData) {
-    console.log('Initializing spectator mode with data:', gameData);
-    // Spectator-specific initialization will be added in next phase
-}
-
 function showGameResults(results) {
     console.log('Showing game results:', results);
     showScreen('results');
-    // Results display will be enhanced in next phase
+    
+    const { results: players, winner, finalStats } = results;
+    
+    const currentUserAsPlayer = players ? players.find(p => p.id === socket.id) : null;
+    const isPureSpectator = !currentUserAsPlayer; // True if user wasn't in the game
+    
+    console.log('Current user type:', isPureSpectator ? 'Pure Spectator' : 'Player/Eliminated Player');
+    
+    // Update winner section
+    const winnerName = document.querySelector('.winner-name');
+    const winnerScore = document.querySelector('.winner-score');
+    
+    if (winner && winnerName && winnerScore) {
+        winnerName.textContent = winner.name;
+        winnerScore.textContent = `Final Score: ${winner.score.toLocaleString()}`;
+    }
+    
+    const playerStatsContainer = document.querySelector('.player-stats');
+    if (playerStatsContainer && players) {
+        playerStatsContainer.innerHTML = players.map(player => {
+            const isCurrentPlayer = player.id === socket.id;
+            const isWinner = player.rank === 1;
+            
+            // Format survival time
+            const survivalMinutes = Math.floor(player.survivalTime / 60);
+            const survivalSeconds = player.survivalTime % 60;
+            const survivalFormatted = `${survivalMinutes}:${survivalSeconds.toString().padStart(2, '0')}`;
+            
+            const youLabel = (isCurrentPlayer && !isPureSpectator) ? ' (You)' : '';
+            
+            return `
+                <div class="player-stat-item ${isWinner ? 'winner' : ''} ${isCurrentPlayer && !isPureSpectator ? 'you' : ''}">
+                    <div class="rank-badge ${player.rank === 1 ? 'rank-1' : player.rank === 2 ? 'rank-2' : player.rank === 3 ? 'rank-3' : 'rank-other'}">${player.rank}</div>
+                    <div class="player-info">
+                        <div class="player-name ${isWinner ? 'winner' : ''} ${isCurrentPlayer && !isPureSpectator ? 'you' : ''}">${player.name}${youLabel}</div>
+                        <div class="player-details">
+                            <div class="detail-item">
+                                <div class="detail-label">Score</div>
+                                <div class="detail-value">${player.score.toLocaleString()}</div>
+                            </div>
+                            <div class="detail-item">
+                                <div class="detail-label">Eliminations</div>
+                                <div class="detail-value">${player.eliminations}</div>
+                            </div>
+                            <div class="detail-item">
+                                <div class="detail-label">Survival</div>
+                                <div class="detail-value">${survivalFormatted}</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }
+    
+    const homeButton = document.querySelector('.lobby-button');
+    if (homeButton) {
+        homeButton.onclick = () => {
+            showScreen('home');
+            // Reset game state
+            gameState.gameActive = false;
+            gameState.lobbyData = null;
+            gameState.playerType = null;
+        };
+    }  
+  }
+
+function initializeSpectatorMode(gameData) {
+    console.log('Initializing spectator mode with data:', gameData);
+   
+    // Update lobby code display
+    const lobbyCodeEl = document.querySelector('.spectator-container .lobby-code');
+    if (lobbyCodeEl && gameData.code) {
+        lobbyCodeEl.textContent = gameData.code;
+    }
+    const currentPlayer = gameData.players ? gameData.players.find(p => p.id === socket.id) : null;
+    const isEliminatedPlayer = currentPlayer && !currentPlayer.isAlive;
+
+    // Update viewer badge
+    const viewerBadge = document.getElementById('viewerBadge');
+    if (viewerBadge) {
+        if (isEliminatedPlayer) {
+            viewerBadge.textContent = '💀 ELIMINATED';
+            viewerBadge.className = 'viewer-badge eliminated';
+        } else {
+            viewerBadge.textContent = '👁️ SPECTATING';
+            viewerBadge.className = 'viewer-badge spectator';
+        }
+    }   
+
+    const yourStats = document.getElementById('yourStats');
+    if (yourStats && isEliminatedPlayer) {
+        yourStats.classList.remove('spectator-mode'); // Show the stats
+        
+        // Calculate rank
+        const sortedPlayers = [...gameData.players].sort((a, b) => {
+            if (a.isAlive !== b.isAlive) return b.isAlive - a.isAlive;
+            return b.score - a.score;
+        });
+        const playerRank = sortedPlayers.findIndex(p => p.id === socket.id) + 1;
+        
+        const finalRankValue = yourStats.querySelector('.final-stat-value');
+        const scoreValue = yourStats.querySelectorAll('.final-stat-value')[1];
+        const elimsValue = yourStats.querySelectorAll('.final-stat-value')[2];
+        
+        if (finalRankValue) finalRankValue.textContent = `#${playerRank}`;
+        if (scoreValue) scoreValue.textContent = currentPlayer.score.toLocaleString();
+        if (elimsValue) elimsValue.textContent = currentPlayer.eliminations;
+    } else if (yourStats) {
+        yourStats.classList.add('spectator-mode'); // Hide the stats
+    }
+    // Initialize back button
+    const backButton = document.querySelector('.spectator-container .back-button');
+    if (backButton) {
+        backButton.onclick = goBack;
+    }
+    
+    // Initialize camera view toggle
+    const cameraBackBtn = document.querySelector('.camera-back-btn');
+    if (cameraBackBtn) {
+        cameraBackBtn.onclick = () => showSpectatorLeaderboard();
+    }
+    
+    // Show leaderboard by default
+    showSpectatorLeaderboard();
+    
+    // Update leaderboard with current game data
+    updateSpectatorLeaderboard(gameData);
+    
+    // Start real-time updates
+    startSpectatorUpdates();
+}
+
+function updateSpectatorLeaderboard(lobbyData) {
+    if (!lobbyData || !lobbyData.players) return;
+    
+    const leaderboardList = document.getElementById('leaderboardList');
+    if (!leaderboardList) return;
+    
+    // Sort players by score, alive status
+    const sortedPlayers = [...lobbyData.players].sort((a, b) => {
+        if (a.isAlive !== b.isAlive) return b.isAlive - a.isAlive; // Alive players first
+        return b.score - a.score; // Then by score
+    });
+    
+    leaderboardList.innerHTML = sortedPlayers.map((player, index) => {
+        const rank = index + 1;
+        const isCurrentUser = player.id === socket.id;
+        
+        return `
+            <div class="leaderboard-item ${player.isAlive ? 'alive' : 'eliminated'} ${isCurrentUser ? 'you' : ''}" 
+                 ${player.isAlive ? `onclick="viewPlayerCamera('${player.id}', '${player.name}')"` : ''}>
+                <div class="rank-badge ${rank === 1 ? 'rank-1' : rank === 2 ? 'rank-2' : rank === 3 ? 'rank-3' : player.isAlive ? 'rank-other' : 'rank-eliminated'}">${rank}</div>
+                <div class="player-info">
+                    <div class="leaderboard-name ${player.isAlive ? 'alive' : 'eliminated'} ${isCurrentUser ? 'you' : ''}">${player.name}${isCurrentUser ? ' (You)' : ''}</div>
+                    <div class="player-details">
+                        <span>Score: <span class="score-value">${player.score.toLocaleString()}</span></span>
+                        <span>Eliminations: <span class="eliminations-value">${player.eliminations}</span></span>
+                    </div>
+                </div>
+                <div class="status-indicator ${player.isAlive ? 'status-alive' : 'status-eliminated'}"></div>
+            </div>
+        `;
+    }).join('');
+    
+    // Update players alive count in top HUD
+    const playersValue = document.querySelector('.spectator-container .players-value');
+    if (playersValue) {
+        const alivePlayers = sortedPlayers.filter(p => p.isAlive).length;
+        playersValue.textContent = `${alivePlayers}/${sortedPlayers.length}`;
+    }
+}
+
+function showSpectatorLeaderboard() {
+    const leaderboardView = document.getElementById('leaderboardView');
+    const cameraView = document.getElementById('cameraView');
+    
+    if (leaderboardView) leaderboardView.classList.remove('hidden');
+    if (cameraView) cameraView.classList.remove('active');
+}
+
+function viewPlayerCamera(playerId, playerName) {
+    const leaderboardView = document.getElementById('leaderboardView');
+    const cameraView = document.getElementById('cameraView');
+    const viewingPlayer = document.getElementById('viewingPlayer');
+    const cameraPlayerName = document.getElementById('cameraPlayerName');
+    
+    if (leaderboardView) leaderboardView.classList.add('hidden');
+    if (cameraView) cameraView.classList.add('active');
+    if (viewingPlayer) viewingPlayer.textContent = playerName;
+    if (cameraPlayerName) cameraPlayerName.textContent = playerName;
+    
+    // Update camera stats for selected player
+    updateCameraPlayerStats(playerId);
+}
+
+function updateCameraPlayerStats(playerId) {
+    if (!gameState.lobbyData || !gameState.lobbyData.players) return;
+    
+    const player = gameState.lobbyData.players.find(p => p.id === playerId);
+    if (!player) return;
+    
+    const scoreEl = document.getElementById('cameraPlayerScore');
+    const elimsEl = document.getElementById('cameraPlayerElims');
+    const rankEl = document.getElementById('cameraPlayerRank');
+    const healthEl = document.getElementById('cameraPlayerHealth');
+    
+    if (scoreEl) scoreEl.textContent = player.score.toLocaleString();
+    if (elimsEl) elimsEl.textContent = player.eliminations;
+    if (healthEl) {
+        healthEl.style.width = `${player.health}%`;
+        healthEl.className = `health-bar ${player.health > 60 ? 'health-high' : player.health > 30 ? 'health-medium' : 'health-low'}`;
+    }
+    
+    // Calculate rank
+    if (rankEl && gameState.lobbyData.players) {
+        const sortedPlayers = [...gameState.lobbyData.players].sort((a, b) => {
+            if (a.isAlive !== b.isAlive) return b.isAlive - a.isAlive;
+            return b.score - a.score;
+        });
+        const rank = sortedPlayers.findIndex(p => p.id === playerId) + 1;
+        rankEl.textContent = `#${rank}`;
+    }
+}
+
+function startSpectatorUpdates() {
+    socket.on('lobby-updated', (lobbyData) => {
+        if (gameState.currentScreen === 'spectatorMode') {
+            gameState.lobbyData = lobbyData;
+            updateSpectatorLeaderboard(lobbyData);
+            updateEliminatedPlayerStats(lobbyData);
+            updateCameraViewIfActive();
+        }
+    });
+    // Listen for game timer updates
+    socket.on('game-timer', (data) => {
+        if (gameState.currentScreen === 'spectatorMode') {
+            const timerValue = document.getElementById('timerValue');
+            if (timerValue) {
+                timerValue.textContent = formatTime(data.timeLeft);
+            }
+        }
+    });
+    
+    // Listen for player updates
+    socket.on('player-damaged', (data) => {
+        if (gameState.currentScreen === 'spectatorMode') {
+            // Update the damaged player's health in spectator view
+            updateSpectatorLeaderboard(gameState.lobbyData);
+            updateCameraViewIfActive();
+        }
+    });
+    
+    socket.on('player-eliminated', (data) => {
+        if (gameState.currentScreen === 'spectatorMode') {
+            updateSpectatorLeaderboard(gameState.lobbyData);
+            updateCameraViewIfActive();
+            if (data.playerId === socket.id) {
+                updateEliminatedPlayerStats(gameState.lobbyData);
+            }
+        }
+    });
+}
+
+function updateEliminatedPlayerStats(lobbyData) {
+    const currentPlayer = lobbyData.players ? lobbyData.players.find(p => p.id === socket.id) : null;
+    const isEliminatedPlayer = currentPlayer && !currentPlayer.isAlive;
+    
+    const yourStats = document.getElementById('yourStats');
+    if (yourStats && isEliminatedPlayer) {
+        yourStats.classList.remove('spectator-mode');
+        
+        // Calculate current rank
+        const sortedPlayers = [...lobbyData.players].sort((a, b) => {
+            if (a.isAlive !== b.isAlive) return b.isAlive - a.isAlive;
+            return b.score - a.score;
+        });
+        const playerRank = sortedPlayers.findIndex(p => p.id === socket.id) + 1;
+        
+        // Update stats with current data
+        const finalRankValue = yourStats.querySelector('.final-stat-value');
+        const scoreValue = yourStats.querySelectorAll('.final-stat-value')[1];
+        const elimsValue = yourStats.querySelectorAll('.final-stat-value')[2];
+        
+        if (finalRankValue) finalRankValue.textContent = `#${playerRank}`;
+        if (scoreValue) scoreValue.textContent = currentPlayer.score.toLocaleString();
+        if (elimsValue) elimsValue.textContent = currentPlayer.eliminations;
+        
+        // Update viewer badge
+        const viewerBadge = document.getElementById('viewerBadge');
+        if (viewerBadge) {
+            viewerBadge.textContent = '💀 ELIMINATED';
+            viewerBadge.className = 'viewer-badge eliminated';
+        }
+    }
+}
+
+function resetGameState() {
+    console.log('🔄 Resetting game state');
+    
+    // Reset UI elements
+    updatePlayerHealth(100);
+    updatePlayerScore(0);
+    document.getElementById('gameTimer').textContent = '--:--';
+    document.getElementById('playersLeft').textContent = '--/--';
+    
+    // Reset game flags
+    gameState.gameActive = false;
+    
+    // Clear any modals/overlays
+    document.getElementById('qrAssignmentOverlay')?.classList.remove('show');
+    document.getElementById('qrScannerModal')?.classList.remove('show');
+    document.getElementById('forfeitModal')?.classList.remove('show');
+    
+    // Stop camera if running
+    stopMainGameCamera();
+    
+    // Clear any status messages
+    const statusMessage = document.getElementById('statusMessage');
+    if (statusMessage) {
+        statusMessage.classList.remove('show');
+    }
+}
+
+function updateCameraViewIfActive() {
+    const cameraView = document.getElementById('cameraView');
+    const viewingPlayer = document.getElementById('viewingPlayer');
+    
+    // Check if camera view is currently active
+    if (cameraView && cameraView.classList.contains('active') && viewingPlayer) {
+        const playerName = viewingPlayer.textContent;
+        
+        // Find the player by name and update their stats
+        if (gameState.lobbyData && gameState.lobbyData.players) {
+            const player = gameState.lobbyData.players.find(p => p.name === playerName);
+            if (player) {
+                console.log(`📹 Updating camera view for ${playerName} in real-time`);
+                updateCameraPlayerStats(player.id);
+                
+                if (!player.isAlive) {
+                    const cameraPlayerName = document.getElementById('cameraPlayerName');
+                    if (cameraPlayerName) {
+                        cameraPlayerName.textContent = `${playerName} 💀`;
+                        cameraPlayerName.style.color = '#ff6666';
+                    }
+                }
+            }
+        }
+    }
 }
 
 // Initialize the application

@@ -597,6 +597,13 @@
     .camera-container {
         padding: 10px;
     }
+    .spectator-container .timer-value {
+        font-size: 1.2rem;  
+        letter-spacing: -0.5px;
+    }
+    .spectator-container .timer-label {
+        font-size: 0.6rem; 
+    }
 }
 
 @media (max-width: 480px) {
@@ -613,5 +620,9 @@
         width: 30px;
         height: 30px;
         font-size: 1rem;
+    }
+    .spectator-container .timer-value {
+        font-size: 0.95rem; 
+        letter-spacing: -1px; 
     }
 }
