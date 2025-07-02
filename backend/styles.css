@@ -79,8 +79,9 @@ h1 {
 }
 
 #monitorCanvas {
-    width: 200px;
-    height: 200px;
+    width: 100px; /* Adjust for visibility */
+    height: 100px;
+    image-rendering: pixelated; /* Preserve pixelated look for small bitmaps */
     border: 2px solid #333;
     border-radius: 4px;
     background-color: #000;
@@ -136,6 +137,7 @@ h1 {
 #toggleButton.stop:hover {
     background-color: #c82333;
 }
+
 
 @media (max-width: 600px) {
     body {

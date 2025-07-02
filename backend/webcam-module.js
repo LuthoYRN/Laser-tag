@@ -5,9 +5,30 @@ class WebcamModule {
         this.stream = null;
         this.monitorCanvas = null;
         this.monitorCtx = null;
-        this.boundingBoxSize = 200; // Default size, adjusted in media query
+        this.boundingBoxSize = 200; // Size for cropping from video
+        this.outputSize = 28; // Output size for monitor view (28x28)
         this.animationFrameId = null;
+        this.opencvReady = false;
+        this.loadOpenCV();
         this.initializeEventListeners();
+    }
+
+    loadOpenCV() {
+        // Create script element for OpenCV.js
+        const script = document.createElement('script');
+        script.src = 'https://docs.opencv.org/4.10.0/opencv.js';
+        script.async = true;
+        script.onload = () => {
+            cv.onRuntimeInitialized = () => {
+                console.log('OpenCV.js loaded successfully');
+                this.opencvReady = true;
+            };
+        };
+        script.onerror = () => {
+            console.error('Failed to load OpenCV.js');
+            alert('Failed to load OpenCV.js. Please check your network connection.');
+        };
+        document.head.appendChild(script);
     }
 
     initializeEventListeners() {
@@ -23,8 +44,8 @@ class WebcamModule {
     createMonitor() {
         const canvas = document.createElement('canvas');
         canvas.id = 'monitorCanvas';
-        canvas.width = this.boundingBoxSize;
-        canvas.height = this.boundingBoxSize;
+        canvas.width = this.outputSize; // Set canvas to 28x28
+        canvas.height = this.outputSize;
         return canvas;
     }
 
@@ -62,15 +83,54 @@ class WebcamModule {
 
         // Use displayed dimensions to match the video's rendered size
         const videoDisplayWidth = this.video.videoWidth;
-        const videoDisplayHeight = this.video.videoHeight; // Fixed typo from videoWidth
+        const videoDisplayHeight = this.video.videoHeight;
         const cropX = (videoDisplayWidth - this.boundingBoxSize) / 2;
         const cropY = (videoDisplayHeight - this.boundingBoxSize) / 2;
 
-        this.monitorCtx.drawImage(
-            this.video,
-            cropX, cropY, this.boundingBoxSize, this.boundingBoxSize,
-            0, 0, this.boundingBoxSize, this.boundingBoxSize
-        );
+        if (this.opencvReady) {
+            // Create a temporary canvas to capture the cropped frame
+            const tempCanvas = document.createElement('canvas');
+            tempCanvas.width = this.boundingBoxSize;
+            tempCanvas.height = this.boundingBoxSize;
+            const tempCtx = tempCanvas.getContext('2d');
+            tempCtx.drawImage(
+                this.video,
+                cropX, cropY, this.boundingBoxSize, this.boundingBoxSize,
+                0, 0, this.boundingBoxSize, this.boundingBoxSize
+            );
+
+            // Process with OpenCV.js
+            let src = cv.imread(tempCanvas);
+            let gray = new cv.Mat();
+            let resized = new cv.Mat();
+            let binary = new cv.Mat();
+
+            // Convert to grayscale
+            cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY);
+
+            // Resize to 28x28
+            let dsize = new cv.Size(this.outputSize, this.outputSize);
+            cv.resize(gray, resized, dsize, 0, 0, cv.INTER_AREA);
+
+            // Apply binary thresholding
+            cv.threshold(resized, binary, 100, 255, cv.THRESH_BINARY);
+
+            // Display on monitor canvas
+            cv.imshow(this.monitorCanvas, binary);
+
+            // Clean up
+            src.delete();
+            gray.delete();
+            resized.delete();
+            binary.delete();
+        } else {
+            // Fallback rendering if OpenCV.js is not ready
+            this.monitorCtx.drawImage(
+                this.video,
+                cropX, cropY, this.boundingBoxSize, this.boundingBoxSize,
+                0, 0, this.outputSize, this.outputSize
+            );
+        }
 
         this.animationFrameId = requestAnimationFrame(() => this.updateMonitor());
     }
