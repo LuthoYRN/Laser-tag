@@ -6,13 +6,10 @@
     <title>Webcam Capture</title>
     <link rel="stylesheet" href="styles.css">
     <script src="https://cdn.jsdelivr.net/npm/onnxjs/dist/onnx.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
-    <script src="webcam-module.js" defer></script>
-    <script src="digit-recognition.js" defer></script>
 </head>
 <body>
     <div class="container">
-        <h1>Webcam Capture</h1>
+        <h1>Webcam Digit Recognition</h1>
         <div class="camera-section">
             <div class="video-container">
                 <video id="videoElement" autoplay playsinline></video>
@@ -20,14 +17,31 @@
         </div>
         <div class="controls">
             <button id="toggleButton">Start Camera</button>
+            <button id="pickColorButton">Pick Color</button>
         </div>
         <div class="monitor-section">
-            <div id="monitorLabel">Cropped View</div>
-            <canvas id="monitorCanvas"></canvas>
+            <div>
+                <div id="monitorLabel">Grayscale (28x28)</div>
+                <canvas id="monitorCanvasGrayscale"></canvas>
+            </div>
+            <div>
+                <div id="monitorLabelBinary">Binary</div>
+                <canvas id="monitorCanvasBinary"></canvas>
+            </div>
+            <div>
+                <div id="monitorLabelInverted">Inverted Binary</div>
+                <canvas id="monitorCanvasInverted"></canvas>
+            </div>
+            <div>
+                <div id="monitorLabelMasked">Color Mask</div>
+                <canvas id="monitorCanvasMasked"></canvas>
+            </div>
         </div>
         <div class="prediction-section">
             <div id="predictionArea"></div>
         </div>
     </div>
+    <script src="webcam-module.js"></script>
+    <script src="digit-recognition.js"></script>
 </body>
 </html>
