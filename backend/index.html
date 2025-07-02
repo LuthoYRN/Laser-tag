@@ -3,23 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Webcam Digit Recognition</title>
+    <title>Webcam Color and Body Detection</title>
     <link rel="stylesheet" href="styles.css">
-    <script src="https://cdn.jsdelivr.net/npm/onnxjs/dist/onnx.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-core"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-converter"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-backend-webgl"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/pose-detection"></script>
 </head>
 <body>
     <div class="container">
-        <h1>Webcam Digit Recognition</h1>
-        <div class="camera-section">
-            <div class="video-container">
-                <video id="videoElement" autoplay playsinline></video>
-            </div>
-        </div>
+        <h1>Webcam Color and Body Detection</h1>
         <div class="controls">
             <button id="toggleButton">Start Camera</button>
-            <button id="pickColorButton">Pick Color from Video</button>
+            <button id="pickColorButton">Pick Color</button>
             <div class="color-selection">
-                <label for="colorPicker">Select Color:</label>
                 <input type="color" id="colorPicker">
                 <div class="color-display">
                     <span id="colorValue">No color selected</span>
@@ -27,9 +24,14 @@
                 </div>
             </div>
         </div>
+        <div class="camera-section">
+            <div class="video-container">
+                <video id="videoElement" autoplay></video>
+            </div>
+        </div>
         <div class="monitor-section">
             <div>
-                <div id="monitorLabel">Original (28x28)</div>
+                <div id="monitorLabel">Original</div>
                 <canvas id="monitorCanvasOriginal"></canvas>
             </div>
             <div>
@@ -41,15 +43,15 @@
                 <canvas id="monitorCanvasBinary"></canvas>
             </div>
             <div>
-                <div id="monitorLabelPlaceholder">Placeholder</div>
-                <canvas id="monitorCanvasPlaceholder"></canvas>
+                <div id="monitorLabelUpperBody">Body Detection</div>
+                <canvas id="monitorCanvasUpperBody"></canvas>
             </div>
         </div>
         <div class="prediction-section">
-            <div id="predictionArea"></div>
+            <div id="bodyPrediction"></div>
+            <div id="colorPrediction"></div>
         </div>
     </div>
     <script src="webcam-module.js"></script>
-    <script src="color-recognition.js"></script>
 </body>
 </html>

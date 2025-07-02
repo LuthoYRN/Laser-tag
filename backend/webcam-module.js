@@ -6,40 +6,42 @@ class WebcamModule {
         this.colorPicker = document.getElementById('colorPicker');
         this.colorValue = document.getElementById('colorValue');
         this.colorSwatch = document.getElementById('colorSwatch');
+        this.bodyPrediction = document.getElementById('bodyPrediction');
+        this.colorPrediction = document.getElementById('colorPrediction');
         this.stream = null;
         this.monitorCanvasOriginal = null;
         this.monitorCanvasMasked = null;
         this.monitorCanvasBinary = null;
-        this.monitorCanvasPlaceholder = null;
+        this.monitorCanvasUpperBody = null;
         this.monitorCtxOriginal = null;
         this.monitorCtxMasked = null;
         this.monitorCtxBinary = null;
-        this.monitorCtxPlaceholder = null;
+        this.monitorCtxUpperBody = null;
         this.boundingBoxSize = 200;
-        this.outputSize = 28;
         this.animationFrameId = null;
-        this.opencvReady = false;
+        this.tfjsReady = false;
         this.selectedColorHSV = null;
-        this.colorTolerance = { h: 10, s: 40, v: 40 }; // Tolerance for HSV: ±10 for hue, ±40 for saturation/value
-        this.loadOpenCV();
+        this.colorTolerance = { h: 10, s: 40, v: 40 }; // Tolerance for HSV
+        this.colorThreshold = 0.01; // 1% of pixels for color presence
+        this.detector = null;
+        this.loadTensorFlow();
         this.initializeEventListeners();
     }
 
-    loadOpenCV() {
-        const script = document.createElement('script');
-        script.src = 'https://docs.opencv.org/4.10.0/opencv.js';
-        script.async = true;
-        script.onload = () => {
-            cv.onRuntimeInitialized = () => {
-                console.log('OpenCV.js loaded successfully');
-                this.opencvReady = true;
+    async loadTensorFlow() {
+        try {
+            console.log('Loading TensorFlow.js and MoveNet model...');
+            const model = poseDetection.SupportedModels.MoveNet;
+            const detectorConfig = {
+                modelType: poseDetection.movenet.modelType.SINGLEPOSE_LIGHTNING
             };
-        };
-        script.onerror = () => {
-            console.error('Failed to load OpenCV.js');
-            alert('Failed to load OpenCV.js. Please check your network connection.');
-        };
-        document.head.appendChild(script);
+            this.detector = await poseDetection.createDetector(model, detectorConfig);
+            console.log('MoveNet model loaded successfully');
+            this.tfjsReady = true;
+        } catch (error) {
+            console.error('Failed to load TensorFlow.js or MoveNet model:', error);
+            alert('Failed to load TensorFlow.js or MoveNet model. Please check your network connection.');
+        }
     }
 
     initializeEventListeners() {
@@ -148,11 +150,16 @@ class WebcamModule {
         }
     }
 
-    createMonitor(id) {
+    createMonitor(id, useFullResolution = false) {
         const canvas = document.createElement('canvas');
         canvas.id = id;
-        canvas.width = this.outputSize;
-        canvas.height = this.outputSize;
+        if (useFullResolution) {
+            canvas.width = this.video.videoWidth || 640; // Fallback to ideal width
+            canvas.height = this.video.videoHeight || 480; // Fallback to ideal height
+        } else {
+            canvas.width = this.boundingBoxSize;
+            canvas.height = this.boundingBoxSize;
+        }
         return canvas;
     }
 
@@ -173,9 +180,9 @@ class WebcamModule {
         if (existingCanvasBinary) {
             existingCanvasBinary.remove();
         }
-        const existingCanvasPlaceholder = document.getElementById('monitorCanvasPlaceholder');
-        if (existingCanvasPlaceholder) {
-            existingCanvasPlaceholder.remove();
+        const existingCanvasUpperBody = document.getElementById('monitorCanvasUpperBody');
+        if (existingCanvasUpperBody) {
+            existingCanvasUpperBody.remove();
         }
 
         this.boundingBoxSize = window.innerWidth <= 600 ? 150 : 200;
@@ -189,27 +196,27 @@ class WebcamModule {
         const monitorCanvasOriginal = this.createMonitor('monitorCanvasOriginal');
         const monitorCanvasMasked = this.createMonitor('monitorCanvasMasked');
         const monitorCanvasBinary = this.createMonitor('monitorCanvasBinary');
-        const monitorCanvasPlaceholder = this.createMonitor('monitorCanvasPlaceholder');
+        const monitorCanvasUpperBody = this.createMonitor('monitorCanvasUpperBody', true);
         this.monitorCanvasOriginal = monitorCanvasOriginal;
         this.monitorCanvasMasked = monitorCanvasMasked;
         this.monitorCanvasBinary = monitorCanvasBinary;
-        this.monitorCanvasPlaceholder = monitorCanvasPlaceholder;
+        this.monitorCanvasUpperBody = monitorCanvasUpperBody;
         this.monitorCtxOriginal = monitorCanvasOriginal.getContext('2d');
         this.monitorCtxMasked = monitorCanvasMasked.getContext('2d');
         this.monitorCtxBinary = monitorCanvasBinary.getContext('2d');
-        this.monitorCtxPlaceholder = monitorCanvasPlaceholder.getContext('2d');
+        this.monitorCtxUpperBody = monitorCanvasUpperBody.getContext('2d');
 
         monitorSection.children[0].appendChild(monitorCanvasOriginal);
         monitorSection.children[1].appendChild(monitorCanvasMasked);
         monitorSection.children[2].appendChild(monitorCanvasBinary);
-        monitorSection.children[3].appendChild(monitorCanvasPlaceholder);
+        monitorSection.children[3].appendChild(monitorCanvasUpperBody);
 
         this.updateColorDisplay();
         this.updateMonitor();
     }
 
-    updateMonitor() {
-        if (!this.stream || !this.monitorCtxOriginal || !this.monitorCtxMasked || !this.monitorCtxBinary || !this.monitorCtxPlaceholder || this.video.readyState !== 4) {
+    async updateMonitor() {
+        if (!this.stream || !this.monitorCtxOriginal || !this.monitorCtxMasked || !this.monitorCtxBinary || !this.monitorCtxUpperBody || this.video.readyState !== 4) {
             return;
         }
 
@@ -218,103 +225,142 @@ class WebcamModule {
         const cropX = (videoDisplayWidth - this.boundingBoxSize) / 2;
         const cropY = (videoDisplayHeight - this.boundingBoxSize) / 2;
 
-        if (this.opencvReady) {
-            const tempCanvas = document.createElement('canvas');
-            tempCanvas.width = this.boundingBoxSize;
-            tempCanvas.height = this.boundingBoxSize;
-            const tempCtx = tempCanvas.getContext('2d');
-            tempCtx.drawImage(
-                this.video,
-                cropX, cropY, this.boundingBoxSize, this.boundingBoxSize,
-                0, 0, this.boundingBoxSize, this.boundingBoxSize
-            );
+        // Original Canvas (cropped)
+        this.monitorCtxOriginal.drawImage(
+            this.video,
+            cropX, cropY, this.boundingBoxSize, this.boundingBoxSize,
+            0, 0, this.boundingBoxSize, this.boundingBoxSize
+        );
 
-            let src = cv.imread(tempCanvas);
-            let gray = new cv.Mat();
-            let resized = new cv.Mat();
-            let binary = new cv.Mat();
-
-            cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY);
-            let dsize = new cv.Size(this.outputSize, this.outputSize);
-            cv.resize(gray, resized, dsize, 0, 0, cv.INTER_AREA);
-            cv.threshold(resized, binary, 100, 255, cv.THRESH_BINARY);
-
-            // Original (no filter)
-            let srcColor = cv.imread(tempCanvas);
-            cv.resize(srcColor, srcColor, dsize, 0, 0, cv.INTER_AREA);
-            cv.imshow(this.monitorCanvasOriginal, srcColor);
-
-            // Color Mask
-            if (this.selectedColorHSV) {
-                let hsv = new cv.Mat();
-                cv.cvtColor(srcColor, hsv, cv.COLOR_RGB2HSV);
-                let mask = new cv.Mat();
-                let masked = new cv.Mat.zeros(srcColor.rows, srcColor.cols, srcColor.type());
-                const [h, s, v] = this.selectedColorHSV;
-                // OpenCV HSV: H (0-180), S (0-255), V (0-255)
-                const hOpenCV = h / 2; // Convert hue from 0-360 to 0-180
-                const sOpenCV = (s / 100) * 255; // Convert saturation from 0-100% to 0-255
-                const vOpenCV = (v / 100) * 255; // Convert value from 0-100% to 0-255
-                let lowerBound = new cv.Mat(hsv.rows, hsv.cols, hsv.type(), [
-                    Math.max(hOpenCV - this.colorTolerance.h, 0),
-                    Math.max(sOpenCV - this.colorTolerance.s, 0),
-                    Math.max(vOpenCV - this.colorTolerance.v, 0),
-                    255
-                ]);
-                let upperBound = new cv.Mat(hsv.rows, hsv.cols, hsv.type(), [
-                    Math.min(hOpenCV + this.colorTolerance.h, 180),
-                    Math.min(sOpenCV + this.colorTolerance.s, 255),
-                    Math.min(vOpenCV + this.colorTolerance.v, 255),
-                    255
-                ]);
-                cv.inRange(hsv, lowerBound, upperBound, mask);
-                cv.bitwise_and(srcColor, srcColor, masked, mask);
-                cv.imshow(this.monitorCanvasMasked, masked);
-                hsv.delete();
-                mask.delete();
-                lowerBound.delete();
-                upperBound.delete();
-            } else {
-                let black = new cv.Mat(this.outputSize, this.outputSize, cv.CV_8UC4, [0, 0, 0, 255]);
-                cv.imshow(this.monitorCanvasMasked, black);
-                black.delete();
+        // Color Mask Canvas (cropped)
+        const maskCanvas = document.createElement('canvas');
+        maskCanvas.width = this.boundingBoxSize;
+        maskCanvas.height = this.boundingBoxSize;
+        const maskCtx = maskCanvas.getContext('2d');
+        maskCtx.drawImage(
+            this.video,
+            cropX, cropY, this.boundingBoxSize, this.boundingBoxSize,
+            0, 0, this.boundingBoxSize, this.boundingBoxSize
+        );
+        let colorPixelCount = 0;
+        const totalPixels = this.boundingBoxSize * this.boundingBoxSize;
+        const pixelThreshold = totalPixels * this.colorThreshold; // 1% of pixels
+        if (this.selectedColorHSV) {
+            const [h, s, v] = this.selectedColorHSV;
+            const imageData = maskCtx.getImageData(0, 0, this.boundingBoxSize, this.boundingBoxSize);
+            const data = imageData.data;
+            for (let i = 0; i < data.length; i += 4) {
+                const [pixelH, pixelS, pixelV] = this.rgbToHsv(data[i], data[i + 1], data[i + 2]);
+                if (
+                    (Math.abs(pixelH - h) <= this.colorTolerance.h ||
+                     (pixelH + 360 - h) <= this.colorTolerance.h ||
+                     (h + 360 - pixelH) <= this.colorTolerance.h) &&
+                    Math.abs(pixelS - s) <= this.colorTolerance.s &&
+                    Math.abs(pixelV - v) <= this.colorTolerance.v
+                ) {
+                    colorPixelCount++; // Count matching pixels
+                    continue; // Keep the pixel color
+                }
+                // Set to black
+                data[i] = 0;
+                data[i + 1] = 0;
+                data[i + 2] = 0;
             }
-
-            // Binary
-            cv.imshow(this.monitorCanvasBinary, binary);
-
-            // Placeholder (temporarily black)
-            let black = new cv.Mat(this.outputSize, this.outputSize, cv.CV_8UC4, [0, 0, 0, 255]);
-            cv.imshow(this.monitorCanvasPlaceholder, black);
-            black.delete();
-
-            src.delete();
-            gray.delete();
-            resized.delete();
-            binary.delete();
-            srcColor.delete();
+            maskCtx.putImageData(imageData, 0, 0);
         } else {
-            this.monitorCtxOriginal.drawImage(
-                this.video,
-                cropX, cropY, this.boundingBoxSize, this.boundingBoxSize,
-                0, 0, this.outputSize, this.outputSize
-            );
-            this.monitorCtxMasked.drawImage(
-                this.video,
-                cropX, cropY, this.boundingBoxSize, this.boundingBoxSize,
-                0, 0, this.outputSize, this.outputSize
-            );
-            this.monitorCtxBinary.drawImage(
-                this.video,
-                cropX, cropY, this.boundingBoxSize, this.boundingBoxSize,
-                0, 0, this.outputSize, this.outputSize
-            );
-            this.monitorCtxPlaceholder.drawImage(
-                this.video,
-                cropX, cropY, this.boundingBoxSize, this.boundingBoxSize,
-                0, 0, this.outputSize, this.outputSize
-            );
+            // Clear to black if no color selected
+            maskCtx.fillStyle = 'black';
+            maskCtx.fillRect(0, 0, this.boundingBoxSize, this.boundingBoxSize);
         }
+        this.monitorCtxMasked.drawImage(maskCanvas, 0, 0);
+        const colorPresent = colorPixelCount >= pixelThreshold;
+
+        // Binary Canvas (cropped)
+        const binaryCanvas = document.createElement('canvas');
+        binaryCanvas.width = this.boundingBoxSize;
+        binaryCanvas.height = this.boundingBoxSize;
+        const binaryCtx = binaryCanvas.getContext('2d');
+        binaryCtx.drawImage(
+            this.video,
+            cropX, cropY, this.boundingBoxSize, this.boundingBoxSize,
+            0, 0, this.boundingBoxSize, this.boundingBoxSize
+        );
+        const imageData = binaryCtx.getImageData(0, 0, this.boundingBoxSize, this.boundingBoxSize);
+        const data = imageData.data;
+        for (let i = 0; i < data.length; i += 4) {
+            // Grayscale using luminance: 0.299R + 0.587G + 0.114B
+            const gray = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
+            const value = gray > 100 ? 255 : 0; // Threshold at 100
+            data[i] = value;
+            data[i + 1] = value;
+            data[i + 2] = value;
+        }
+        binaryCtx.putImageData(imageData, 0, 0);
+        this.monitorCtxBinary.drawImage(binaryCanvas, 0, 0);
+
+        // Body Detection with MoveNet (waist-up only)
+        let bodyDetected = false;
+        const fullCanvas = document.createElement('canvas');
+        fullCanvas.width = videoDisplayWidth;
+        fullCanvas.height = videoDisplayHeight;
+        const fullCtx = fullCanvas.getContext('2d');
+        fullCtx.drawImage(this.video, 0, 0, videoDisplayWidth, videoDisplayHeight);
+
+        if (this.tfjsReady && this.detector) {
+            try {
+                const poses = await this.detector.estimatePoses(this.video);
+                fullCtx.drawImage(this.video, 0, 0, videoDisplayWidth, videoDisplayHeight);
+
+                const upperBodyKeypointIndices = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]; // nose to hips
+                const keypointNames = [
+                    'nose', 'left_eye', 'right_eye', 'left_ear', 'right_ear',
+                    'left_shoulder', 'right_shoulder', 'left_elbow', 'right_elbow',
+                    'left_wrist', 'right_wrist', 'left_hip', 'right_hip'
+                ];
+                const connections = [
+                    [0, 1], [0, 2], [1, 3], [2, 4], [0, 5], [0, 6],
+                    [5, 7], [7, 9], [6, 8], [8, 10], [5, 6],
+                    [5, 11], [6, 12], [11, 12]
+                ];
+
+                if (poses.length > 0) {
+                    const keypoints = poses[0].keypoints;
+                    bodyDetected = upperBodyKeypointIndices.some(i => keypoints[i].score > 0.5); // Waist-up detected if any keypoint has confidence > 0.5
+                    upperBodyKeypointIndices.forEach(i => {
+                        const kp = keypoints[i];
+                        if (kp.score > 0.5) {
+                            fullCtx.fillStyle = '#00ff00';
+                            fullCtx.beginPath();
+                            fullCtx.arc(kp.x, kp.y, 5, 0, 2 * Math.PI);
+                            fullCtx.fill();
+                        }
+                    });
+
+                    fullCtx.strokeStyle = '#00ff00';
+                    fullCtx.lineWidth = 2;
+                    connections.forEach(([i, j]) => {
+                        const kp1 = keypoints[i];
+                        const kp2 = keypoints[j];
+                        if (kp1.score > 0.5 && kp2.score > 0.5) {
+                            fullCtx.beginPath();
+                            fullCtx.moveTo(kp1.x, kp1.y);
+                            fullCtx.lineTo(kp2.x, kp2.y);
+                            fullCtx.stroke();
+                        }
+                    });
+                }
+                this.monitorCtxUpperBody.drawImage(fullCanvas, 0, 0, videoDisplayWidth, videoDisplayHeight);
+            } catch (error) {
+                console.error('Error during pose detection:', error);
+                this.monitorCtxUpperBody.drawImage(this.video, 0, 0, videoDisplayWidth, videoDisplayHeight);
+            }
+        } else {
+            this.monitorCtxUpperBody.drawImage(this.video, 0, 0, videoDisplayWidth, videoDisplayHeight);
+        }
+
+        // Update prediction text in separate divs
+        this.bodyPrediction.textContent = bodyDetected ? 'Body detected' : 'No body detected';
+        this.colorPrediction.textContent = colorPresent ? 'Selected color present' : 'Selected color not present';
 
         this.animationFrameId = requestAnimationFrame(() => this.updateMonitor());
     }
@@ -374,10 +420,12 @@ class WebcamModule {
             if (monitorCanvasBinary) {
                 monitorCanvasBinary.remove();
             }
-            const monitorCanvasPlaceholder = document.getElementById('monitorCanvasPlaceholder');
-            if (monitorCanvasPlaceholder) {
-                monitorCanvasPlaceholder.remove();
+            const monitorCanvasUpperBody = document.getElementById('monitorCanvasUpperBody');
+            if (monitorCanvasUpperBody) {
+                monitorCanvasUpperBody.remove();
             }
+            this.bodyPrediction.textContent = '';
+            this.colorPrediction.textContent = '';
         }
     }
 }
