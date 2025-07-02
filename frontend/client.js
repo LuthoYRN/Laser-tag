@@ -180,7 +180,7 @@ socket.on('player-damaged', (data) => {
         updatePlayerHealth(data.health);
         triggerHitIndicator();
         showStatusMessage('💥 HIT!', `Hit by ${data.shooterName}! -${data.damage} HP (${data.health}% remaining)`, 'hit');
-    } else {
+    } else if (data.shooterId === socket.id){
         showStatusMessage('🎯 Direct Hit!', `You hit ${data.playerName} for ${data.damage} damage!`, 'success');
     }
 });
@@ -188,6 +188,7 @@ socket.on('player-damaged', (data) => {
 socket.on('player-eliminated', (data) => {
     console.log('Player eliminated:', data);
     if (data.playerId === socket.id) {
+        updatePlayerHealth(0)
         triggerHitIndicator();
         showStatusMessage('💀 YOU WERE ELIMINATED!', 'You have been eliminated from the game', 'eliminated');
     } else {
