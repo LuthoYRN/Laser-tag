@@ -17,6 +17,38 @@
 	border-color: #00ffff;
   box-shadow: 0 0 15px rgba(0, 255, 255, 0.3);
 }
+.container.create .name-input-section {
+    background: rgba(0, 0, 0, 0.8);
+    border: 2px solid #00ff00;
+    border-radius: 15px;
+    padding: 20px;
+    margin-bottom: 25px;
+    backdrop-filter: blur(10px);
+}
+
+.player-name-input {
+    width: 100%;
+    padding: 12px;
+    background: rgba(0, 0, 0, 0.8);
+    border: 2px solid #333;
+    border-radius: 8px;
+    color: #ffffff;
+    font-size: 1rem;
+    font-family: 'Courier New', monospace;
+    text-align: center;
+    transition: all 0.3s ease;
+    margin-bottom: 8px;
+}
+
+.container.create .player-name-input:focus {
+    outline: none;
+    border-color: #00ff00;
+    box-shadow: 0 0 15px rgba(0, 255, 0, 0.3);
+}
+
+.player-name-input::placeholder {
+    color: #666;
+}
 
 .create-title {
 	text-align: center;

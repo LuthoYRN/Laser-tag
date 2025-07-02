@@ -54,6 +54,7 @@ function showScreen(screenName) {
             document.getElementById('playersLeft').textContent = '--'
             document.getElementById('healthText').textContent = '100%'
             document.getElementById('healthBar').className = `health-bar high`
+            document.getElementById('healthBar').style.width = `100%`
         }
     }
 }
@@ -575,11 +576,12 @@ function initializeCreateLobby() {
 function createLobby() {
     const activeMaxButton = document.querySelector('.container.create .option-button.active');
     const durationSlider = document.getElementById('durationSlider');
+    const playerNameInput = document.getElementById('playerNameCreate');
     
     const settings = {
         numPlayers: parseInt(activeMaxButton?.textContent || '4'),
         duration: parseInt(durationSlider?.value || '15'),
-        playerName: 'Host'
+        playerName: playerNameInput?.value.trim() || 'Host'
     };
     
     socket.emit('create-lobby', settings, (response) => {
@@ -600,40 +602,61 @@ function createLobby() {
 function initializeJoinLobby() {
     const joinButton = document.getElementById('joinButton');
     const lobbyInput = document.getElementById('lobbyCodeInput');
+    const nameInput = document.getElementById('playerNameJoin');
     const backButton = document.querySelector('.container.join .back-button');
     
     if (backButton) {
         backButton.addEventListener('click', goBack);
     }
     
+    function updateJoinButton() {
+        if (joinButton && lobbyInput && nameInput) {
+            const code = lobbyInput.value.trim();
+            const name = nameInput.value.trim();
+            
+            // Enable only if BOTH lobby code (6 chars) AND name (at least 1 char) are valid
+            joinButton.disabled = !(code.length === 6 && name.length > 0);
+        }
+    }
+
     if (lobbyInput) {
         lobbyInput.addEventListener('input', (e) => {
             const code = e.target.value.toUpperCase();
             e.target.value = code;
             
-            if (joinButton) {
-                joinButton.disabled = code.length !== 6;
-            }
+            updateJoinButton();
         });
+    }
+    
+    if (nameInput) {
+        nameInput.addEventListener('input', updateJoinButton);
     }
     
     if (joinButton) {
         joinButton.addEventListener('click', joinLobby);
     }
+    updateJoinButton();
 }
 
 function joinLobby() {
     const lobbyInput = document.getElementById('lobbyCodeInput');
+    const playerNameInput = document.getElementById('playerNameJoin');
     const lobbyCode = lobbyInput?.value.toUpperCase();
+    const playerName = playerNameInput?.value.trim();
     
     if (!lobbyCode || lobbyCode.length !== 6) {
         showNotification('Please enter a valid 6-character lobby code', 'error');
         return;
     }
     
+    if (!playerName) {
+        showNotification('Please enter your player name', 'error');
+        return;
+    }
+    
     const joinData = {
         lobbyCode,
-        name: `Player${Math.floor(Math.random() * 1000)}`,
+        name: playerName,
         type: 'player'
     };
     
@@ -642,6 +665,15 @@ function joinLobby() {
             gameState.lobbyData = response.lobby;
             gameState.playerType = response.type;
             updateLobbyCode(response.lobby.code);
+            
+            // Notify user if their name was changed
+            if (response.nameChanged) {
+                showNotification(
+                    `Name "${response.originalName}" was taken. You are now "${response.assignedName}"`, 
+                    'warning'
+                );
+            }
+            
             showScreen('waitingRoom');
             updateWaitingRoom(response.lobby);
         } else {
@@ -649,6 +681,7 @@ function joinLobby() {
         }
     });
 }
+
 
 // Live Lobbies Screen
 let liveLobbiesInterval = null;

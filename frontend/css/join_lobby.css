@@ -74,6 +74,20 @@
     letter-spacing: 2px;
 }
 
+.container.join .name-input-section {
+    background: rgba(0, 0, 0, 0.8);
+    border: 2px solid #ff00ff;
+    border-radius: 15px;
+    padding: 25px;
+    margin-bottom: 30px;
+    backdrop-filter: blur(10px);
+}
+.container.join .player-name-input:focus {
+    outline: none;
+    border-color: #ff00ff;
+    box-shadow: 0 0 20px rgba(255, 0, 255, 0.3);
+}
+
 .input-hint {
     font-size: 0.8rem;
     color: #999;

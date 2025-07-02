@@ -61,15 +61,35 @@ function createLobby(hostSocketId, settings = {}) {
 
 function addPlayerToLobby(lobbyCode, socketId, playerData) {
     const lobby = lobbies.get(lobbyCode);
-    if (!lobby) return false;
+    if (!lobby) return { success: false, error: 'Lobby not found' };
 
     if (lobby.players.size >= lobby.settings.numPlayers || lobby.status != 'waiting') {
-        return false;
+        return { success: false, error: 'Lobby is full or game already started' };
+    }
+
+    // Check for duplicate names
+    const requestedName = playerData.name || `Player${lobby.players.size + 1}`;
+    const existingNames = Array.from(lobby.players.values()).map(p => p.name.toLowerCase());
+    
+    let finalName = requestedName;
+    if (existingNames.includes(requestedName.toLowerCase())) {
+        // Generate unique name by appending number
+        let counter = 2;
+        do {
+            finalName = `${requestedName}${counter}`;
+            counter++;
+        } while (existingNames.includes(finalName.toLowerCase()) && counter <= 99);
+        
+        // If we still can't find unique name after 99 attempts, use socket ID
+        if (existingNames.includes(finalName.toLowerCase())) {
+            finalName = `Player_${socketId.substring(0, 4)}`;
+        }
     }
 
     const player = {
         id: socketId,
-        name: playerData.name || `Player${lobby.players.size + 1}`,
+        name: finalName,
+        originalRequestedName: requestedName, // Store original for feedback
         isReady: false,
         isHost: socketId === lobby.host,
         health: 100,
@@ -83,9 +103,12 @@ function addPlayerToLobby(lobbyCode, socketId, playerData) {
     lobby.players.set(socketId, player);
     players.set(socketId, { ...player, lobbyCode });
     
-    return true;
+    return { 
+        success: true, 
+        player: player,
+        nameChanged: finalName !== requestedName 
+    };
 }
-
 function removePlayerFromLobby(socketId) {
     const player = players.get(socketId);
     if (!player) return;
@@ -202,15 +225,28 @@ io.on('connection', (socket) => {
                 callback({ success: true, type: 'spectator', lobby: getLobbyState(lobbyCode) });
                 socket.to(lobbyCode).emit('spectator-joined', { name: name || 'Spectator' });
             } else {
-                const success = addPlayerToLobby(lobbyCode, socket.id, { name });
+                const result = addPlayerToLobby(lobbyCode, socket.id, { name });
                 
-                if (!success) {
-                    return callback({ success: false, error: 'Lobby is full' });
+                if (!result.success) {
+                    return callback({ success: false, error: result.error });
                 }
                 
                 socket.join(lobbyCode);
                 
-                callback({ success: true, type: 'player', lobby: getLobbyState(lobbyCode) });
+                const response = { 
+                    success: true, 
+                    type: 'player', 
+                    lobby: getLobbyState(lobbyCode) 
+                };
+                
+                // Notify client if name was changed due to duplicate
+                if (result.nameChanged) {
+                    response.nameChanged = true;
+                    response.originalName = result.player.originalRequestedName;
+                    response.assignedName = result.player.name;
+                }
+                
+                callback(response);
                 socket.to(lobbyCode).emit('player-joined', getLobbyState(lobbyCode));
             }
             
