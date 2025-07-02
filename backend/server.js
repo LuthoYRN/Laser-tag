@@ -399,7 +399,7 @@ io.on('connection', (socket) => {
         }
         
         // Apply damage
-        const damage = 25;
+        const damage = 10;
         const pointsEarned = 50;
         
         targetPlayer.health = Math.max(0, targetPlayer.health - damage);
