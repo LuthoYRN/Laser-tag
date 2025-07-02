@@ -506,7 +506,7 @@ socket.on('game-timer', (data) => {
 socket.on('game-ended', (results) => {
     console.log('Game ended:', results);
     gameState.gameActive = false;
-    
+    document.getElementById('qrAssignmentOverlay').classList.remove('show')
     showGameResults(results);
 });
 // Home Screen
