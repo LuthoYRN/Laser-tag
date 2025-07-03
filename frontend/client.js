@@ -1393,7 +1393,6 @@ function handleGameQRScan(qrData) {
     }
 }
 
-// Add to client.js - powerup result handlers
 socket.on('powerup-result', (data) => {
     console.log('Powerup result:', data);
     
