@@ -11,6 +11,83 @@ let gameState = {
     gameActive: false
 };
 
+// Sound Management Functions
+function initializeAudio() {
+    // Create audio element for background music
+    backgroundAudio = new Audio('./audio/background-music.mp3'); // You'll need to add your MP3 file here
+    backgroundAudio.loop = true;
+    backgroundAudio.volume = 0.3; // Set to 30% volume
+    
+    // Handle audio loading errors gracefully
+    backgroundAudio.addEventListener('error', (e) => {
+        console.log('Background music file not found - sound toggle disabled');
+        const soundToggle = document.getElementById('soundToggle');
+        if (soundToggle) {
+            soundToggle.style.display = 'none';
+        }
+    });
+    
+    // Initialize sound toggle button
+    const soundToggle = document.getElementById('soundToggle');
+    if (soundToggle) {
+        soundToggle.addEventListener('click', toggleSound);
+        updateSoundToggleUI();
+    }
+}
+
+function toggleSound() {
+    if (isSoundEnabled) {
+        pauseBackgroundMusic();
+    } else {
+        playBackgroundMusic();
+    }
+}
+
+function playBackgroundMusic() {
+    if (backgroundAudio) {
+        backgroundAudio.play().then(() => {
+            isSoundEnabled = true;
+            updateSoundToggleUI();
+            console.log('🎵 Background music started');
+        }).catch(err => {
+            console.log('Could not play background music:', err);
+            // Browser may require user interaction before playing audio
+            showStatusMessage('🎵 Music Ready', 'Click the sound button to enable background music', 'info');
+        });
+    }
+}
+
+function pauseBackgroundMusic() {
+    if (backgroundAudio) {
+        backgroundAudio.pause();
+        isSoundEnabled = false;
+        updateSoundToggleUI();
+        console.log('🔇 Background music paused');
+    }
+}
+
+function updateSoundToggleUI() {
+    const soundToggle = document.getElementById('soundToggle');
+    if (soundToggle) {
+        if (isSoundEnabled) {
+            soundToggle.textContent = '🔊';
+            soundToggle.classList.remove('muted');
+            soundToggle.title = 'Mute Background Music';
+        } else {
+            soundToggle.textContent = '🔇';
+            soundToggle.classList.add('muted');
+            soundToggle.title = 'Play Background Music';
+        }
+    }
+};
+
+let gameZoomLevel = 1;
+let gameCameraStream = null;
+
+// Audio management
+let backgroundAudio = null;
+let isSoundEnabled = false;
+
 // Screen elements mapping
 const screens = {
     home: document.querySelector('.container:not(.create):not(.join):not(.wait):not(.live)'),
@@ -181,7 +258,7 @@ socket.on('scan-result', (data) => {
         updatePlayerScore(data.newScore);
         triggerShootIndicator();
     } else {
-         showStatusMessage('⚠️ Scan Failed', data.message, 'error');
+        showStatusMessage('⚠️ Scan Failed', data.message, 'error');
     }
 });
 
@@ -253,6 +330,7 @@ socket.on('game-actually-started', (gameData) => {
 // Initialize QR assignment phase
 function initializeQRAssignmentPhase(data) {
     console.log('Initializing QR assignment phase');
+    resetGameZoom();
     
     // Show QR scanner modal for assignment
     setTimeout(() => {
@@ -338,7 +416,6 @@ function hideQRAssignmentPhase() {
 // Initialize actual game session (after QR assignment)
 function initializeActualGameSession(gameData) {
     console.log('Initializing actual game session with data:', gameData);
-    resetGameState();
     // Initialize player stats
     updatePlayerHealth(100);
     updatePlayerScore(0);
@@ -360,9 +437,6 @@ socket.on('qr-assigned', (data) => {
         
         // Show assignment overlay (will be updated by progress event)
         showQRAssignmentOverlay('Waiting for all players to scan...');
-        
-        // Show quick success message
-        showNotification(`✅ ${data.playerName} QR registered!`, 'success');
     } else {
         showNotification(data.message || 'Failed to assign QR code', 'error');
     }
@@ -1119,9 +1193,7 @@ function startMainGameCamera() {
         return;
     }
     
-    // Clear any existing content
     placeholder.innerHTML = '';
-    
     const mainScanner = new Html5Qrcode("qrCameraPlaceholder");
     
     const screenWidth = window.innerWidth;
@@ -1133,8 +1205,6 @@ function startMainGameCamera() {
         aspectRatio: 1.0
     };
     
-    console.log(`Setting QR box size to: ${qrBoxSize}px for screen width: ${screenWidth}px`);
-    
     placeholder.innerHTML = '<div style="color: #00ffff; text-align: center;">📷<br>Starting Camera...</div>';
     
     mainScanner.start(
@@ -1144,10 +1214,15 @@ function startMainGameCamera() {
             handleGameQRScan(qrCodeMessage);
         },
         error => {
-            // Silently handle scanning errors - don't log every frame
+            // Silent error handling
         }
     ).then(() => {
-        console.log('Main game camera started successfully with QR box size:', qrBoxSize);
+        console.log('Main game camera started successfully');
+        
+        // Get camera stream for zoom control - ADD THIS
+        setTimeout(() => {
+            getGameCameraStream();
+        }, 1000);
         
         const crosshair = document.querySelector('.crosshair');
         if (crosshair) {
@@ -1156,8 +1231,6 @@ function startMainGameCamera() {
         
     }).catch(err => {
         console.error("Main game camera failed to start:", err);
-        
-        // Show error message using status system instead of alert
         showStatusMessage('📷 Camera Error', 'Camera access required - please allow permissions and refresh');
         
         placeholder.innerHTML = `
@@ -1170,6 +1243,102 @@ function startMainGameCamera() {
     });
 }
 
+async function getGameCameraStream() {
+    try {
+        const video = document.querySelector('#qrCameraPlaceholder video');
+        if (video && video.srcObject) {
+            gameCameraStream = video.srcObject;
+            console.log('📹 Game camera stream acquired for zoom control');
+        } else {
+            setTimeout(getGameCameraStream, 500);
+        }
+    } catch (error) {
+        console.log('Could not get game camera stream for zoom:', error);
+    }
+}
+
+async function setGameZoom(zoomLevel) {
+    gameZoomLevel = zoomLevel;
+    
+    // Update button states
+    document.querySelectorAll('.zoom-btn').forEach(btn => {
+        btn.classList.remove('active');
+        if (parseInt(btn.dataset.zoom) === zoomLevel) {
+            btn.classList.add('active');
+        }
+    });
+    
+    // Try hardware zoom first
+    let zoomApplied = false;
+    
+    if (gameCameraStream) {
+        const tracks = gameCameraStream.getVideoTracks();
+        if (tracks.length > 0) {
+            const track = tracks[0];
+            const capabilities = track.getCapabilities();
+            
+            if (capabilities.zoom) {
+                try {
+                    const maxZoom = capabilities.zoom.max;
+                    const minZoom = capabilities.zoom.min;
+                    const targetZoom = Math.min(maxZoom, minZoom + (zoomLevel - 1) * (maxZoom - minZoom) / 4);
+                    
+                    await track.applyConstraints({
+                        advanced: [{ zoom: targetZoom }]
+                    });
+                    
+                    console.log(`🔍 Hardware zoom applied: ${zoomLevel}×`);
+                    zoomApplied = true;
+                    
+                } catch (error) {
+                    console.log('Hardware zoom failed, using digital:', error);
+                }
+            }
+        }
+    }
+    
+    // Apply digital zoom as fallback or enhancement
+    applyGameDigitalZoom(zoomLevel);
+}
+
+function applyGameDigitalZoom(zoomLevel) {
+    const video = document.querySelector('#qrCameraPlaceholder video');
+    
+    if (video) {
+        video.style.transform = `scale(${zoomLevel})`;
+        video.style.transformOrigin = 'center center';
+        console.log(`🔍 Digital zoom applied: ${zoomLevel}×`);
+    }
+}
+
+function resetGameZoom() {
+    gameZoomLevel = 1;
+    gameCameraStream = null;
+    
+    // Reset zoom button states
+    document.querySelectorAll('.zoom-btn').forEach(btn => {
+        btn.classList.remove('active');
+        if (parseInt(btn.dataset.zoom) === 1) {
+            btn.classList.add('active');
+        }
+    });
+    
+    // Reset any digital zoom transforms on video elements
+    const gameVideo = document.querySelector('#qrCameraPlaceholder video');
+    if (gameVideo) {
+        gameVideo.style.transform = 'scale(1)';
+        gameVideo.style.transformOrigin = 'center center';
+    }
+    
+    const modalVideo = document.querySelector('#qrModalPlaceholder video');
+    if (modalVideo) {
+        modalVideo.style.transform = 'scale(1)';
+        modalVideo.style.transformOrigin = 'center center';
+    }
+    
+    console.log('🔄 Zoom reset to 1×');
+}
+// Update stopMainGameCamera to reset zoom
 function stopMainGameCamera() {
     try {
         const placeholder = document.getElementById('qrCameraPlaceholder');
@@ -1184,6 +1353,9 @@ function stopMainGameCamera() {
             placeholder.innerHTML = '<div style="color: #00ffff; text-align: center;">📷<br>Camera Stopped</div>';
         }
         
+        // Reset zoom state
+        resetGameZoom();
+        
         const crosshair = document.querySelector('.crosshair');
         if (crosshair) {
             crosshair.classList.remove('scanning');
@@ -1192,6 +1364,32 @@ function stopMainGameCamera() {
         console.log('Error stopping camera:', err);
     }
 }
+
+function categorizeQRCode(qrCode) {
+    // First check for powerup codes
+    if (/^W[1-3]$/.test(qrCode)) return 'weapon';
+    if (qrCode === 'Health') return 'health';
+    
+    // Anything else is considered a player code during gameplay
+    return 'player';
+}
+
+function getQRCodeInfo(qrCode) {
+    const category = categorizeQRCode(qrCode);
+    
+    const powerupInfo = {
+        'W1': { name: 'Damage Boost I', threshold: 500, damageMultiplier: 1.5 },
+        'W2': { name: 'Damage Boost II', threshold: 1000, damageMultiplier: 2.0 },
+        'W3': { name: 'Damage Boost III', threshold: 1500, damageMultiplier: 3.0 },
+        'Health': { name: 'Health Pack', threshold: 1000, healthRestore: 100 }
+    };
+    
+    return {
+        category,
+        info: powerupInfo[qrCode] || null
+    };
+}
+
 function stopQRScanner() {
     if (qrScanner) {
         qrScanner.stop().then(() => {
@@ -1212,12 +1410,14 @@ function stopQRScanner() {
 
 function handleQRScan(qrData) {  
     console.log('QR Code scanned:', qrData);
-    
+    const qrInfo = getQRCodeInfo(qrData);
     // Send QR assignment to server
-    socket.emit('assign-qr-code', {
-        qrCode: qrData,
-        playerId: socket.id
-    });
+    if (qrInfo.category === 'player') {
+        socket.emit('assign-qr-code', {
+            qrCode: qrData,
+            playerId: socket.id
+        });
+    }
 }
 // Replace the handleGameQRScan function in client.js
 let lastGameScanTime = 0;
@@ -1232,14 +1432,107 @@ function handleGameQRScan(qrData) {
     }
     
     lastGameScanTime = now;
-       
-       
-    console.log('Game QR Code scanned:', qrData);
     
-    // Send scan to server - only need the target QR code
-    socket.emit('qr-scan', {
-        targetQrCode: qrData
-    });
+    const qrInfo = getQRCodeInfo(qrData);
+    console.log('Game QR Code scanned:', qrData, 'Category:', qrInfo.category);
+    
+    if (gameState.gameActive) {
+        // Active Game Phase - accept player codes for combat, powerup codes for purchases
+        if (qrInfo.category === 'player') {
+            // Combat scan
+            socket.emit('qr-scan', {
+                targetQrCode: qrData,
+                scanType: 'combat',
+                scanContext: 'gameplay'
+            });
+        } else if (qrInfo.category === 'weapon' || qrInfo.category === 'health') {
+            // Powerup scan
+            const currentScore = parseInt(document.getElementById('playerScore')?.textContent?.replace(/,/g, '') || '0');
+            const threshold = qrInfo.info.threshold;
+            
+            if (currentScore >= threshold) {
+                socket.emit('qr-scan', {
+                    targetQrCode: qrData,
+                    scanType: 'powerup',
+                    scanContext: 'gameplay',
+                    playerScore: currentScore
+                });
+                showStatusMessage('🎁 Claiming Powerup...', `Attempting to claim ${qrInfo.info.name}`, 'info');
+            } else {
+                const needed = threshold - currentScore;
+                showStatusMessage('🔒 Threshold Not Met', `Need ${threshold} total points for ${qrInfo.info.name} (${needed} more needed)`, 'warning');
+            }
+        } else {
+            showStatusMessage('❌ Invalid Code', 'Unknown QR code type', 'error');
+        }
+    }
+}
+
+socket.on('powerup-result', (data) => {
+    console.log('Powerup result:', data);
+    
+    if (data.success) {
+        if (data.newScore !== undefined) {
+            updatePlayerScore(data.newScore);
+        }
+        
+        if (data.instant) {
+            // Health pack feedback
+            showStatusMessage('💚 Health Restored!', data.effect, 'success');
+            updatePlayerHealth(100); // Visual update
+        } else {
+            // Damage boost feedback
+            showStatusMessage('⚡ Powerup Activated!', data.effect, 'success');
+            showPowerupIndicator(data.powerup, data.duration);
+        }
+    } else {
+        showStatusMessage('❌ Purchase Failed', data.message, 'error');
+    }
+});
+
+socket.on('powerup-expired', (data) => {
+    showStatusMessage('⏰ Powerup Expired', `${data.type} boost has worn off`, 'warning');
+    hidePowerupIndicator();
+});
+
+function showPowerupIndicator(powerupName, duration) {
+    hidePowerupIndicator();
+    
+    const indicator = document.createElement('div');
+    indicator.id = 'powerupIndicator';
+    indicator.className = 'powerup-indicator';
+    indicator.innerHTML = `
+        ⚡
+        ${powerupName}
+        ${Math.ceil(duration/1000)}s
+    `;
+    
+    // Append to game container (position: relative) not bottom HUD (position: absolute)
+    const gameContainer = document.querySelector('.game-container');
+    if (gameContainer) {
+        gameContainer.appendChild(indicator);
+        
+        const timer = setInterval(() => {
+            const timerEl = document.getElementById('powerupTimer');
+            if (timerEl) {
+                const remaining = parseInt(timerEl.textContent);
+                if (remaining <= 1) {
+                    clearInterval(timer);
+                    hidePowerupIndicator();
+                } else {
+                    timerEl.textContent = `${remaining - 1}s`;
+                }
+            } else {
+                clearInterval(timer);
+            }
+        }, 1000);
+    }
+}
+function hidePowerupIndicator() {
+    const indicator = document.getElementById('powerupIndicator');
+    if (indicator) {
+        indicator.remove();
+    }
 }
 
 function cancelQRScanning() {
@@ -1415,11 +1708,12 @@ function showGameResults(results) {
     const homeButton = document.querySelector('.lobby-button');
     if (homeButton) {
         homeButton.onclick = () => {
-            showScreen('home');
+            //showScreen('home');
             // Reset game state
-            gameState.gameActive = false;
-            gameState.lobbyData = null;
-            gameState.playerType = null;
+            //gameState.gameActive = false;
+            //gameState.lobbyData = null;
+            //gameState.playerType = null;
+            window.location.reload();
         };
     }  
   }
@@ -1654,33 +1948,6 @@ function updateEliminatedPlayerStats(lobbyData) {
     }
 }
 
-function resetGameState() {
-    console.log('🔄 Resetting game state');
-    
-    // Reset UI elements
-    updatePlayerHealth(100);
-    updatePlayerScore(0);
-    document.getElementById('gameTimer').textContent = '--:--';
-    document.getElementById('playersLeft').textContent = '--/--';
-    
-    // Reset game flags
-    gameState.gameActive = false;
-    
-    // Clear any modals/overlays
-    document.getElementById('qrAssignmentOverlay')?.classList.remove('show');
-    document.getElementById('qrScannerModal')?.classList.remove('show');
-    document.getElementById('forfeitModal')?.classList.remove('show');
-    
-    // Stop camera if running
-    stopMainGameCamera();
-    
-    // Clear any status messages
-    const statusMessage = document.getElementById('statusMessage');
-    if (statusMessage) {
-        statusMessage.classList.remove('show');
-    }
-}
-
 function updateCameraViewIfActive() {
     const cameraView = document.getElementById('cameraView');
     const viewingPlayer = document.getElementById('viewingPlayer');
@@ -1711,7 +1978,10 @@ function updateCameraViewIfActive() {
 // Initialize the application
 document.addEventListener('DOMContentLoaded', () => {
     console.log('🎮 CV Laser Tag Client initialized');
-    
+    // Initialize audio system
+    console.log('🎵 About to initialize audio...');
+    initializeAudio();  // ← HERE
+    console.log('🎵 Audio initialization completed');
     // Initialize all screens
     initializeHome();
     initializeCreateLobby();
@@ -1730,3 +2000,4 @@ window.cancelQRScanning = cancelQRScanning;
 window.showForfeitConfirm = showForfeitConfirm;
 window.confirmForfeit = confirmForfeit;
 window.cancelForfeit = cancelForfeit;
+window.setGameZoom = setGameZoom;

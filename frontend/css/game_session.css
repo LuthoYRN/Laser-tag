@@ -670,6 +670,47 @@
     animation: assignmentAppear 0.6s ease-out;
 }
 
+/* Add after existing game-session styles */
+.zoom-controls {
+    position: absolute;
+    bottom: 120px; /* Above bottom HUD */
+    right: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    z-index: 25; /* Between camera and status messages */
+}
+
+.zoom-btn {
+    width: 45px;
+    height: 45px;
+    background: rgba(0, 0, 0, 0.8);
+    border: 2px solid #00ffff;
+    border-radius: 50%;
+    color: #00ffff;
+    font-weight: bold;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(10px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.zoom-btn:hover {
+    border-color: #ffffff;
+    color: #ffffff;
+    box-shadow: 0 0 15px rgba(0, 255, 255, 0.4);
+    transform: scale(1.05);
+}
+
+.zoom-btn.active {
+    background: rgba(0, 255, 255, 0.3);
+    border-color: #00ff00;
+    color: #00ff00;
+    box-shadow: 0 0 20px rgba(0, 255, 0, 0.5);
+}
 @keyframes assignmentAppear {
     0% {
         transform: scale(0.8) translateY(50px);
@@ -697,7 +738,51 @@
         opacity: 0.8;
     }
 }
+/* Add to game_session.css */
+.powerup-indicator {
+    position: absolute;
+    bottom: 140px; /* Above bottom HUD */
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(255, 165, 0, 0.95);
+    border: 2px solid #ffa500;
+    border-radius: 15px;
+    padding: 10px 15px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 0.9rem;
+    font-weight: bold;
+    color: #000;
+    box-shadow: 0 0 20px rgba(255, 165, 0, 0.6);
+    animation: powerupFloat 2s infinite ease-in-out;
+    z-index: 50;
+    white-space: nowrap;
+    min-width: 150px;
+    justify-content: center;
+}
 
+.powerup-icon {
+    font-size: 1.2rem;
+}
+
+.powerup-name {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+}
+
+.powerup-timer {
+    background: rgba(0, 0, 0, 0.3);
+    padding: 2px 6px;
+    border-radius: 8px;
+    color: #fff;
+    font-family: 'Courier New', monospace;
+}
+
+@keyframes powerupFloat {
+    0%, 100% { transform: translateX(-50%) translateY(0px); }
+    50% { transform: translateX(-50%) translateY(-5px); }
+}
 .assignment-title {
     font-size: 1.8rem;
     color: #00ffff;
@@ -857,6 +942,17 @@
     .game-container .score-value, 
     .game-container .players-value {
         font-size: 1.2rem;
+    }
+    .zoom-controls {
+        bottom: 100px;
+        right: 15px;
+        gap: 6px;
+    }
+    
+    .zoom-btn {
+        width: 40px;
+        height: 40px;
+        font-size: 0.8rem;
     }
     
     .game-container .health-bar-container {

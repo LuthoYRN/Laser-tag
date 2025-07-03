@@ -157,6 +157,45 @@ body {
   font-size: 0.8rem;
 }
 
+.sound-toggle {
+	position: absolute;
+  bottom: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: linear-gradient(135deg, rgba(0, 255, 255, 0.2), rgba(255, 0, 255, 0.2));
+  border: 2px solid #00ffff;
+  border-radius: 50%;
+  width: 50px;
+  height: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(10px);
+  font-size: 1.5rem;
+  color: #00ffff;
+}
+
+.sound-toggle:hover {
+	transform: translateX(-50%) scale(1.1);
+  box-shadow: 0 0 20px rgba(0, 255, 255, 0.4);
+  border-color: #ff00ff;
+  color: #ff00ff;
+}
+
+.sound-toggle.muted {
+	border-color: #666;
+  background: linear-gradient(135deg, rgba(100, 100, 100, 0.2), rgba(50, 50, 50, 0.2));
+  color: #666;
+}
+
+.sound-toggle.muted:hover {
+	border-color: #999;
+  color: #999;
+  box-shadow: 0 0 15px rgba(100, 100, 100, 0.3);
+}
+
 /* Mobile optimizations */
 @media (max-width: 480px) {
 .container {
