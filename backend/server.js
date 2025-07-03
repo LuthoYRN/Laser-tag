@@ -20,6 +20,13 @@ const lobbies = new Map(); // lobbyCode -> lobby data
 const players = new Map(); // socketId -> player data
 const countdownTimers = new Map(); // lobbyCode -> countdown interval
 
+const POWERUP_THRESHOLDS = {
+    'W1': { threshold: 500, name: 'Damage Boost I', damageMultiplier: 1.5, duration: 30000 },
+    'W2': { threshold: 1000, name: 'Damage Boost II', damageMultiplier: 2.0, duration: 45000 },
+    'W3': { threshold: 1500, name: 'Damage Boost III', damageMultiplier: 3.0, duration: 60000 },
+    'Health': { threshold: 1000, name: 'Health Pack', healthRestore: 100, instant: true }
+};
+
 // Utility functions
 function generateLobbyCode() {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
@@ -98,7 +105,14 @@ function addPlayerToLobby(lobbyCode, socketId, playerData) {
         eliminations: 0,
         isAlive: true,
         eliminatedAt: null,
-        joinedAt: Date.now()
+        joinedAt: Date.now(),
+        powerupPickups: {
+            'W1': 0,    // Times picked up W1
+            'W2': 0,    // Times picked up W2  
+            'W3': 0,    // Times picked up W3
+            'Health': 0 // Times picked up Health
+        },
+        activePowerups: {}
     };
 
     lobby.players.set(socketId, player);
@@ -375,8 +389,6 @@ io.on('connection', (socket) => {
             }
         }
     });
-
-    // Game Events
     socket.on('qr-scan', (data) => {
         const player = players.get(socket.id);
         if (!player || player.type === 'spectator') return;
@@ -384,95 +396,17 @@ io.on('connection', (socket) => {
         const lobby = lobbies.get(player.lobbyCode);
         if (!lobby || lobby.status !== 'active') return;
 
-        const { targetQrCode } = data;
+        const { targetQrCode, scanType } = data;
         
-        // Find target player by their assigned QR code
-        const targetPlayer = Array.from(lobby.players.values()).find(p => p.assignedQR === targetQrCode);
-        const scannerPlayer = lobby.players.get(socket.id); // Use socket.id, not scannerId from data
-        
-        console.log(`QR Scan attempt: Scanner=${scannerPlayer?.name}, Target QR=${targetQrCode}, Target found=${!!targetPlayer}`);
-        
-        if (!targetPlayer || !scannerPlayer) {
-            console.log(`Scan failed: targetPlayer=${!!targetPlayer}, scannerPlayer=${!!scannerPlayer}`);
-            socket.emit('scan-result', { 
-                success: false, 
-                message: 'Invalid QR code or player not found' 
-            });
-            return;
+        if (scanType === 'powerup') {
+            // Handle powerup claim
+            handlePowerupClaim(player.lobbyCode, socket.id, targetQrCode, data.playerScore);
+        } else {
+            // Handle combat scan (existing logic)
+            handleCombatScan(player.lobbyCode, socket.id, targetQrCode);
         }
-        
-        // Don't allow scanning yourself
-        if (targetPlayer.id === socket.id) {
-            socket.emit('scan-result', { 
-                success: false, 
-                message: 'Cannot scan your own QR code' 
-            });
-            return;
-        }
-        
-        if (!targetPlayer.isAlive) {
-            socket.emit('scan-result', { 
-                success: false, 
-                message: 'Target already eliminated' 
-            });
-            return;
-        }
-        
-        if (!scannerPlayer.isAlive) {
-            socket.emit('scan-result', { 
-                success: false, 
-                message: 'You are eliminated' 
-            });
-            return;
-        }
-        
-        // Apply damage
-        const damage = 10;
-        const pointsEarned = 105;
-        
-        targetPlayer.health = Math.max(0, targetPlayer.health - damage);
-        scannerPlayer.score += pointsEarned;
-        
-        console.log(`Hit registered: ${scannerPlayer.name} hit ${targetPlayer.name} for ${damage} damage. Target health: ${targetPlayer.health}`);
-        
-        // Notify scanner of successful hit
-        socket.emit('scan-result', {
-            success: true,
-            targetPlayerId: targetPlayer.id,
-            targetPlayerName: targetPlayer.name,
-            damage: damage,
-            pointsEarned: pointsEarned,
-            newScore: scannerPlayer.score,
-            scannerId: socket.id
-        });
-
-        if (targetPlayer.health <= 0) {
-            scannerPlayer.eliminations += 1;
-            scannerPlayer.score += 100;
-            //handle elimination
-            handlePlayerElimination(
-                player.lobbyCode, 
-                targetPlayer.id, 
-                socket.id, 
-                scannerPlayer.name
-            );
-        }else {
-            // Notify all players of damage
-            io.to(player.lobbyCode).emit('player-damaged', {
-                playerId: targetPlayer.id,
-                playerName: targetPlayer.name,
-                health: targetPlayer.health,
-                damage: damage,
-                shooterId: socket.id,
-                shooterName: scannerPlayer.name
-            });
-            io.to(player.lobbyCode).emit('lobby-updated', getLobbyState(player.lobbyCode));
-            updateSpectators(player.lobbyCode, 'lobby-updated', getLobbyState(player.lobbyCode));
-        }
-        
-        console.log(`${scannerPlayer.name} scanned ${targetPlayer.name} (${targetQrCode}) - Health: ${targetPlayer.health}`);
     });
-
+   
     socket.on('disconnect', () => {
         console.log(`Player disconnected: ${socket.id}`);
         const lobbyCode = removePlayerFromLobby(socket.id);
@@ -482,6 +416,100 @@ io.on('connection', (socket) => {
     });
 });
 
+function handleCombatScan(lobbyCode, scannerId, targetQrCode) {
+    const lobby = lobbies.get(lobbyCode);
+    if (!lobby) return;
+
+    // Find target player by their assigned QR code
+    const targetPlayer = Array.from(lobby.players.values()).find(p => p.assignedQR === targetQrCode);
+    const scannerPlayer = lobby.players.get(scannerId);
+    
+    console.log(`QR Scan attempt: Scanner=${scannerPlayer?.name}, Target QR=${targetQrCode}, Target found=${!!targetPlayer}`);
+    
+    if (!targetPlayer || !scannerPlayer) {
+        console.log(`Scan failed: targetPlayer=${!!targetPlayer}, scannerPlayer=${!!scannerPlayer}`);
+        io.to(scannerId).emit('scan-result', { 
+            success: false, 
+            message: 'Invalid QR code or player not found' 
+        });
+        return;
+    }
+    
+    // Don't allow scanning yourself
+    if (targetPlayer.id === scannerId) {
+        io.to(scannerId).emit('scan-result', { 
+            success: false, 
+            message: 'Cannot scan your own QR code' 
+        });
+        return;
+    }
+    
+    if (!targetPlayer.isAlive) {
+        io.to(scannerId).emit('scan-result', { 
+            success: false, 
+            message: 'Target already eliminated' 
+        });
+        return;
+    }
+    
+    if (!scannerPlayer.isAlive) {
+        io.to(scannerId).emit('scan-result', { 
+            success: false, 
+            message: 'You are eliminated' 
+        });
+        return;
+    }
+    
+    // Calculate damage with powerup multipliers
+    let damage = 10; // Base damage
+    if (scannerPlayer.activePowerups && scannerPlayer.activePowerups.damage) {
+        damage = Math.floor(damage * scannerPlayer.activePowerups.damage.multiplier);
+    }
+    
+    const pointsEarned = 105;
+    
+    targetPlayer.health = Math.max(0, targetPlayer.health - damage);
+    scannerPlayer.score += pointsEarned;
+    
+    console.log(`Hit registered: ${scannerPlayer.name} hit ${targetPlayer.name} for ${damage} damage. Target health: ${targetPlayer.health}`);
+    
+    // Notify scanner of successful hit
+    io.to(scannerId).emit('scan-result', {
+        success: true,
+        targetPlayerId: targetPlayer.id,
+        targetPlayerName: targetPlayer.name,
+        damage: damage,
+        pointsEarned: pointsEarned,
+        newScore: scannerPlayer.score,
+        scannerId: scannerId
+    });
+
+    if (targetPlayer.health <= 0) {
+        scannerPlayer.eliminations += 1;
+        scannerPlayer.score += 100;
+        //handle elimination
+        handlePlayerElimination(
+            lobbyCode, 
+            targetPlayer.id, 
+            scannerId, 
+            scannerPlayer.name
+        );
+    } else {
+        // Notify all players of damage
+        io.to(lobbyCode).emit('player-damaged', {
+            playerId: targetPlayer.id,
+            playerName: targetPlayer.name,
+            health: targetPlayer.health,
+            damage: damage,
+            shooterId: scannerId,
+            shooterName: scannerPlayer.name
+        });
+        io.to(lobbyCode).emit('lobby-updated', getLobbyState(lobbyCode));
+        updateSpectators(lobbyCode, 'lobby-updated', getLobbyState(lobbyCode));
+    }
+    
+    console.log(`${scannerPlayer.name} scanned ${targetPlayer.name} (${targetQrCode}) - Health: ${targetPlayer.health}`);
+}
 function handlePlayerElimination(lobbyCode, eliminatedPlayerId, shooterId = null, shooterName = 'Unknown', reason = null) {
     const lobby = lobbies.get(lobbyCode);
     if (!lobby) return;
@@ -697,6 +725,98 @@ function checkGameStateAfterPlayerRemoval(lobbyCode) {
             return;
         }
     }
+}
+
+function handlePowerupClaim(lobbyCode, playerId, powerupCode, currentScore) {
+    const lobby = lobbies.get(lobbyCode);
+    if (!lobby) return;
+    
+    const player = lobby.players.get(playerId);
+    const playerSocket = io.sockets.sockets.get(playerId);
+    if (!player || !player.isAlive || !playerSocket) return;
+    
+    const powerup = POWERUP_THRESHOLDS[powerupCode];
+    if (!powerup) {
+        playerSocket.emit('powerup-result', { success: false, message: 'Invalid powerup code' });
+        return;
+    }
+    
+    // Check if player meets threshold
+    if (player.score < powerup.threshold) {
+        playerSocket.emit('powerup-result', { 
+            success: false, 
+            message: `Need ${powerup.threshold} total points to unlock ${powerup.name}. You have ${player.score}.` 
+        });
+        return;
+    }
+    
+    // Calculate how many times they can claim this powerup
+    const timesEligible = Math.floor(player.score / powerup.threshold);
+    const timesClaimed = player.powerupPickups[powerupCode] || 0;
+    
+    if (timesClaimed >= timesEligible) {
+        const nextThreshold = (timesClaimed + 1) * powerup.threshold;
+        const pointsNeeded = nextThreshold - player.score;
+        
+        playerSocket.emit('powerup-result', { 
+            success: false, 
+            message: `Already claimed all available ${powerup.name}s. Need ${pointsNeeded} more points for next one.` 
+        });
+        return;
+    }
+    
+    // Claim the powerup!
+    player.powerupPickups[powerupCode] = timesClaimed + 1;
+    
+    // Apply powerup effect
+    if (powerup.instant) {
+        // Health pack - instant effect
+        const oldHealth = player.health;
+        player.health = Math.min(100, player.health + powerup.healthRestore);
+        const healAmount = player.health - oldHealth;
+        
+        playerSocket.emit('powerup-result', {
+            success: true,
+            powerup: powerup.name,
+            effect: `Restored ${healAmount} HP! Health: ${player.health}%`,
+            timesUsed: player.powerupPickups[powerupCode],
+            instant: true
+        });
+    } else {
+        // Damage boost - timed effect
+        const powerupEndTime = Date.now() + powerup.duration;
+        
+        // Store active powerup (replace existing damage boost)
+        if (!player.activePowerups) player.activePowerups = {};
+        player.activePowerups.damage = {
+            multiplier: powerup.damageMultiplier,
+            endTime: powerupEndTime,
+            name: powerup.name,
+            code: powerupCode
+        };
+        
+        playerSocket.emit('powerup-result', {
+            success: true,
+            powerup: powerup.name,
+            effect: `${powerup.damageMultiplier}x damage for ${powerup.duration/1000}s`,
+            timesUsed: player.powerupPickups[powerupCode],
+            duration: powerup.duration
+        });
+        
+        // Set timer to remove powerup
+        setTimeout(() => {
+            if (player.activePowerups && player.activePowerups.damage && player.activePowerups.damage.code === powerupCode) {
+                delete player.activePowerups.damage;
+                playerSocket.emit('powerup-expired', { type: 'damage', name: powerup.name });
+            }
+        }, powerup.duration);
+    }
+    
+    // Update lobby state
+    io.to(lobbyCode).emit('lobby-updated', getLobbyState(lobbyCode));
+    updateSpectators(lobbyCode, 'lobby-updated', getLobbyState(lobbyCode));
+    
+    console.log(`${player.name} claimed ${powerup.name} (${timesClaimed + 1}/${timesEligible} available)`);
 }
 
 function updateSpectators(lobbyCode, eventType, data) {

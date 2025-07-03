@@ -183,7 +183,7 @@ socket.on('scan-result', (data) => {
         updatePlayerScore(data.newScore);
         triggerShootIndicator();
     } else {
-         showStatusMessage('⚠️ Scan Failed', data.message, 'error');
+        showStatusMessage('⚠️ Scan Failed', data.message, 'error');
     }
 });
 
@@ -1096,7 +1096,7 @@ function startQRScanner() {
         config,
         qrCodeMessage => {
             console.log('QR Code detected:', qrCodeMessage);
-            handleQRScan(qrCodeMessage);
+            handleGameQRScan(qrCodeMessage);
         },
         error => {
             // Silently handle scanning errors
@@ -1293,6 +1293,30 @@ function stopMainGameCamera() {
         console.log('Error stopping camera:', err);
     }
 }
+
+function categorizeQRCode(qrCode) {
+    if (/^P[1-8]$/.test(qrCode)) return 'player';
+    if (/^W[1-3]$/.test(qrCode)) return 'weapon';
+    if (qrCode === 'Health') return 'health';
+    return 'invalid';
+}
+
+function getQRCodeInfo(qrCode) {
+    const category = categorizeQRCode(qrCode);
+    
+    const powerupInfo = {
+        'W1': { name: 'Damage Boost I', threshold: 500, damageMultiplier: 1.5 },
+        'W2': { name: 'Damage Boost II', threshold: 1000, damageMultiplier: 2.0 },
+        'W3': { name: 'Damage Boost III', threshold: 1500, damageMultiplier: 3.0 },
+        'Health': { name: 'Health Pack', threshold: 1000, healthRestore: 100 }
+    };
+    
+    return {
+        category,
+        info: powerupInfo[qrCode] || null
+    };
+}
+
 function stopQRScanner() {
     if (qrScanner) {
         qrScanner.stop().then(() => {
@@ -1311,16 +1335,6 @@ function stopQRScanner() {
     }
 }
 
-function handleQRScan(qrData) {  
-    console.log('QR Code scanned:', qrData);
-    
-    // Send QR assignment to server
-    socket.emit('assign-qr-code', {
-        qrCode: qrData,
-        playerId: socket.id
-    });
-}
-// Replace the handleGameQRScan function in client.js
 let lastGameScanTime = 0;
 
 function handleGameQRScan(qrData) {
@@ -1333,14 +1347,116 @@ function handleGameQRScan(qrData) {
     }
     
     lastGameScanTime = now;
-       
-       
-    console.log('Game QR Code scanned:', qrData);
     
-    // Send scan to server - only need the target QR code
-    socket.emit('qr-scan', {
-        targetQrCode: qrData
-    });
+    const qrInfo = getQRCodeInfo(qrData);
+    console.log('Game QR Code scanned:', qrData, 'Category:', qrInfo.category);
+    
+    // Different handling based on game phase and QR type
+    if (!gameState.gameActive) {
+        // QR Assignment Phase - only accept player codes
+        if (qrInfo.category === 'player') {
+            socket.emit('assign-qr-code', {
+                qrCode: qrData,
+                playerId: socket.id
+            });
+        } else {
+            showStatusMessage('❌ Invalid Code', 'Only player codes (P1-P8) allowed during assignment', 'error');
+        }
+    } else {
+        // Active Game Phase - accept player codes for combat, powerup codes for purchases
+        if (qrInfo.category === 'player') {
+            // Combat scan
+            socket.emit('qr-scan', {
+                targetQrCode: qrData,
+                scanType: 'combat',
+                scanContext: 'gameplay'
+            });
+        } else if (qrInfo.category === 'weapon' || qrInfo.category === 'health') {
+            // Powerup scan
+            const currentScore = parseInt(document.getElementById('playerScore')?.textContent?.replace(/,/g, '') || '0');
+            const threshold = qrInfo.info.threshold;
+            
+            if (currentScore >= threshold) {
+                socket.emit('qr-scan', {
+                    targetQrCode: qrData,
+                    scanType: 'powerup',
+                    scanContext: 'gameplay',
+                    playerScore: currentScore
+                });
+                showStatusMessage('🎁 Claiming Powerup...', `Attempting to claim ${qrInfo.info.name}`, 'info');
+            } else {
+                const needed = threshold - currentScore;
+                showStatusMessage('🔒 Threshold Not Met', `Need ${threshold} total points for ${qrInfo.info.name} (${needed} more needed)`, 'warning');
+            }
+        } else {
+            showStatusMessage('❌ Invalid Code', 'Unknown QR code type', 'error');
+        }
+    }
+}
+
+// Add to client.js - powerup result handlers
+socket.on('powerup-result', (data) => {
+    console.log('Powerup result:', data);
+    
+    if (data.success) {
+        updatePlayerScore(data.newScore);
+        
+        if (data.instant) {
+            // Health pack feedback
+            showStatusMessage('💚 Health Restored!', data.effect, 'success');
+            updatePlayerHealth(100); // Visual update
+        } else {
+            // Damage boost feedback
+            showStatusMessage('⚡ Powerup Activated!', data.effect, 'success');
+            showPowerupIndicator(data.powerup, data.duration);
+        }
+    } else {
+        showStatusMessage('❌ Purchase Failed', data.message, 'error');
+    }
+});
+
+socket.on('powerup-expired', (data) => {
+    showStatusMessage('⏰ Powerup Expired', `${data.type} boost has worn off`, 'warning');
+    hidePowerupIndicator();
+});
+
+function showPowerupIndicator(powerupName, duration) {
+    // Add visual indicator for active powerups
+    const indicator = document.createElement('div');
+    indicator.id = 'powerupIndicator';
+    indicator.className = 'powerup-indicator';
+    indicator.innerHTML = `
+        <div class="powerup-icon">⚡</div>
+        <div class="powerup-name">${powerupName}</div>
+        <div class="powerup-timer" id="powerupTimer">${Math.ceil(duration/1000)}s</div>
+    `;
+    
+    // Position it near the health bar
+    const healthSection = document.querySelector('.health-section');
+    if (healthSection) {
+        healthSection.appendChild(indicator);
+        
+        // Start countdown timer
+        const timer = setInterval(() => {
+            const timerEl = document.getElementById('powerupTimer');
+            if (timerEl) {
+                const remaining = parseInt(timerEl.textContent);
+                if (remaining <= 1) {
+                    clearInterval(timer);
+                    hidePowerupIndicator();
+                } else {
+                    timerEl.textContent = `${remaining - 1}s`;
+                }
+            }
+        }, 1000);
+    }
+}
+
+function hidePowerupIndicator() {
+    const indicator = document.getElementById('powerupIndicator');
+    if (indicator) {
+        indicator.remove();
+    }
 }
 
 function cancelQRScanning() {
@@ -1516,11 +1632,12 @@ function showGameResults(results) {
     const homeButton = document.querySelector('.lobby-button');
     if (homeButton) {
         homeButton.onclick = () => {
-            showScreen('home');
+            //showScreen('home');
             // Reset game state
-            gameState.gameActive = false;
-            gameState.lobbyData = null;
-            gameState.playerType = null;
+            //gameState.gameActive = false;
+            //gameState.lobbyData = null;
+            //gameState.playerType = null;
+            window.location.reload();
         };
     }  
   }
