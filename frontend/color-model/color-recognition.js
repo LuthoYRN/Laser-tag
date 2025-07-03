@@ -1,14 +1,61 @@
 import { WebcamModule } from './webcam-module.js';
 
 class ColorRecognizer {
-    constructor() {
-        this.webcamModule = new WebcamModule('videoElement', 'colorPrediction', 'monitorSection');
-        this.toggleButton = document.getElementById('toggleButton');
-        this.pickColorButton = document.getElementById('pickColorButton');
-        this.colorPicker = document.getElementById('colorPicker');
-        this.colorCountSelect = document.getElementById('colorCountSelect');
-        this.colorValue = document.getElementById('colorValue');
-        this.colorSwatches = document.getElementById('colorSwatches');
+    constructor(containerId) {
+        this.webcamModule = new WebcamModule(containerId);
+
+        // Create control elements
+        this.controls = document.createElement('div');
+        this.controls.className = 'controls';
+
+        this.toggleButton = document.createElement('button');
+        this.toggleButton.id = 'toggleButton';
+        this.toggleButton.textContent = 'Start Camera';
+
+        this.pickColorButton = document.createElement('button');
+        this.pickColorButton.id = 'pickColorButton';
+        this.pickColorButton.textContent = 'Pick Color';
+
+        this.colorSelection = document.createElement('div');
+        this.colorSelection.className = 'color-selection';
+
+        this.colorCountSelect = document.createElement('select');
+        this.colorCountSelect.id = 'colorCountSelect';
+        [2, 4, 6, 8].forEach(count => {
+            const option = document.createElement('option');
+            option.value = count;
+            option.textContent = `${count} Colors`;
+            this.colorCountSelect.appendChild(option);
+        });
+
+        this.colorPicker = document.createElement('input');
+        this.colorPicker.id = 'colorPicker';
+        this.colorPicker.type = 'color';
+        this.colorPicker.value = '#000000';
+
+        this.colorDisplay = document.createElement('div');
+        this.colorDisplay.className = 'color-display';
+
+        this.colorValue = document.createElement('div');
+        this.colorValue.id = 'colorValue';
+        this.colorValue.textContent = 'No colors selected';
+
+        this.colorSwatches = document.createElement('div');
+        this.colorSwatches.id = 'colorSwatches';
+
+        this.colorDisplay.appendChild(this.colorValue);
+        this.colorDisplay.appendChild(this.colorSwatches);
+        this.colorSelection.appendChild(this.colorCountSelect);
+        this.colorSelection.appendChild(this.colorPicker);
+        this.controls.appendChild(this.toggleButton);
+        this.controls.appendChild(this.pickColorButton);
+        this.controls.appendChild(this.colorSelection);
+        this.controls.appendChild(this.colorDisplay);
+
+        // Append controls before the video
+        const container = document.getElementById(containerId);
+        container.insertBefore(this.controls, container.firstChild);
+
         this.initializeEventListeners();
     }
 
@@ -115,7 +162,7 @@ class ColorRecognizer {
     }
 
     updateColorDisplay() {
-        this.colorSwatches.innerHTML = ''; // Clear existing swatches
+        this.colorSwatches.innerHTML = '';
         if (this.webcamModule.selectedColorsHSV.length > 0) {
             const hsvText = this.webcamModule.selectedColorsHSV.map((hsv) => `Color${hsv[0]}${hsv[1]}${hsv[2]}`).join(', ');
             this.colorValue.textContent = hsvText;
@@ -126,9 +173,8 @@ class ColorRecognizer {
                 swatch.style.backgroundColor = `rgb(${r}, ${g}, ${b})`;
                 this.colorSwatches.appendChild(swatch);
             });
-            // Set color picker to last selected color
             const lastHsv = this.webcamModule.selectedColorsHSV[this.webcamModule.selectedColorsHSV.length - 1];
-            const [r, g, b] = this.hsvToRgb(lastHsv[0], lastHsv[1], lastHsv[2]);
+            const [r, g, b] = this.hsvToRgb(lastHsv[0], hsv[1], hsv[2]);
             this.colorPicker.value = `#${((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1).padStart(6, '0')}`;
         } else {
             this.colorValue.textContent = 'No colors selected';
@@ -138,5 +184,5 @@ class ColorRecognizer {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-    new ColorRecognizer();
+    new ColorRecognizer('appContainer');
 });

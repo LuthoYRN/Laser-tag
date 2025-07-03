@@ -81,9 +81,22 @@ h1 {
     flex-wrap: wrap;
 }
 
-.prediction-section {
+.monitor-section > div {
     text-align: center;
-    margin-top: 20px;
+}
+
+.monitor-section > div::before {
+    display: block;
+    font-weight: bold;
+    margin-bottom: 10px;
+}
+
+.monitor-section > div:nth-child(1)::before {
+    content: 'Color Mask';
+}
+
+.monitor-section > div:nth-child(2)::before {
+    content: 'Body Detection';
 }
 
 #colorPrediction {

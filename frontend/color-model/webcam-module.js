@@ -1,8 +1,36 @@
 export class WebcamModule {
-    constructor(videoElementId, outputElementId, monitorSectionId) {
-        this.video = document.getElementById(videoElementId);
-        this.outputElement = document.getElementById(outputElementId);
-        this.monitorSection = document.getElementById(monitorSectionId);
+    constructor(containerId) {
+        this.container = document.getElementById(containerId);
+        if (!this.container) {
+            throw new Error(`Container element with ID "${containerId}" not found`);
+        }
+
+        // Create DOM elements
+        this.video = document.createElement('video');
+        this.video.id = 'videoElement';
+        this.video.autoplay = true;
+
+        this.outputElement = document.createElement('div');
+        this.outputElement.id = 'colorPrediction';
+        this.outputElement.textContent = 'No colors selected';
+
+        this.monitorSection = document.createElement('div');
+        this.monitorSection.id = 'monitorSection';
+        this.monitorSection.className = 'monitor-section';
+
+        this.monitorCanvasMaskedContainer = document.createElement('div');
+        this.monitorCanvasUpperBodyContainer = document.createElement('div');
+        this.monitorSection.appendChild(this.monitorCanvasMaskedContainer);
+        this.monitorSection.appendChild(this.monitorCanvasUpperBodyContainer);
+
+        // Append elements to container
+        const videoContainer = document.createElement('div');
+        videoContainer.className = 'video-container';
+        videoContainer.appendChild(this.video);
+        this.container.appendChild(videoContainer);
+        this.container.appendChild(this.outputElement);
+        this.container.appendChild(this.monitorSection);
+
         this.stream = null;
         this.monitorCanvasMasked = null;
         this.monitorCanvasUpperBody = null;
@@ -11,22 +39,11 @@ export class WebcamModule {
         this.boundingBoxSize = 200;
         this.animationFrameId = null;
         this.tfjsReady = false;
-        this.selectedColorsHSV = []; // Array to store multiple colors
-        this.colorTolerance = { h: 10, s: 40, v: 40 }; // Tolerance for HSV
-        this.colorThreshold = 0.01; // 1% of pixels for color presence
-        this.maxColors = 2; // Default to 2 colors
+        this.selectedColorsHSV = [];
+        this.colorTolerance = { h: 10, s: 40, v: 40 };
+        this.colorThreshold = 0.01;
+        this.maxColors = 2;
         this.detector = null;
-
-        // Validate DOM elements
-        if (!this.video) {
-            throw new Error(`Video element with ID "${videoElementId}" not found`);
-        }
-        if (!this.outputElement) {
-            throw new Error(`Output element with ID "${outputElementId}" not found`);
-        }
-        if (!this.monitorSection) {
-            throw new Error(`Monitor section with ID "${monitorSectionId}" not found`);
-        }
 
         this.loadTensorFlow();
     }
@@ -86,7 +103,7 @@ export class WebcamModule {
 
     setMaxColors(maxColors) {
         this.maxColors = maxColors;
-        this.selectedColorsHSV = []; // Reset colors when changing max
+        this.selectedColorsHSV = [];
     }
 
     createMonitor(id, useFullResolution = false) {
@@ -96,27 +113,22 @@ export class WebcamModule {
             canvas.width = this.video.videoWidth;
             canvas.height = this.video.videoHeight;
         } else {
-            canvas.width = useFullResolution ? 640 : this.boundingBoxSize; // Fallback to ideal width
-            canvas.height = useFullResolution ? 480 : this.boundingBoxSize; // Fallback to ideal height
+            canvas.width = useFullResolution ? 640 : this.boundingBoxSize;
+            canvas.height = useFullResolution ? 480 : this.boundingBoxSize;
         }
         return canvas;
     }
 
     addCenterMarkerAndMonitor() {
-        // Ensure monitorSection has two child containers
-        if (!this.monitorSection.children[0] || !this.monitorSection.children[1]) {
-            throw new Error('Monitor section must contain exactly two child elements for canvases');
-        }
-
-        const existingMarker = document.getElementById('centerMarker');
+        const existingMarker = this.container.querySelector('#centerMarker');
         if (existingMarker) {
             existingMarker.remove();
         }
-        const existingCanvasMasked = document.getElementById('monitorCanvasMasked');
+        const existingCanvasMasked = this.container.querySelector('#monitorCanvasMasked');
         if (existingCanvasMasked) {
             existingCanvasMasked.remove();
         }
-        const existingCanvasUpperBody = document.getElementById('monitorCanvasUpperBody');
+        const existingCanvasUpperBody = this.container.querySelector('#monitorCanvasUpperBody');
         if (existingCanvasUpperBody) {
             existingCanvasUpperBody.remove();
         }
@@ -128,17 +140,13 @@ export class WebcamModule {
         centerMarker.id = 'centerMarker';
         videoContainer.appendChild(centerMarker);
 
-        const monitorCanvasMasked = this.createMonitor('monitorCanvasMasked');
-        const monitorCanvasUpperBody = this.createMonitor('monitorCanvasUpperBody', true);
-        this.monitorCanvasMasked = monitorCanvasMasked;
-        this.monitorCanvasUpperBody = monitorCanvasUpperBody;
-        this.monitorCtxMasked = monitorCanvasMasked.getContext('2d');
-        this.monitorCtxUpperBody = monitorCanvasUpperBody.getContext('2d');
+        this.monitorCanvasMasked = this.createMonitor('monitorCanvasMasked');
+        this.monitorCanvasUpperBody = this.createMonitor('monitorCanvasUpperBody', true);
+        this.monitorCtxMasked = this.monitorCanvasMasked.getContext('2d');
+        this.monitorCtxUpperBody = this.monitorCanvasUpperBody.getContext('2d');
 
-        const maskedContainer = this.monitorSection.children[0];
-        const upperBodyContainer = this.monitorSection.children[1];
-        maskedContainer.appendChild(monitorCanvasMasked);
-        upperBodyContainer.appendChild(monitorCanvasUpperBody);
+        this.monitorCanvasMaskedContainer.appendChild(this.monitorCanvasMasked);
+        this.monitorCanvasUpperBodyContainer.appendChild(this.monitorCanvasUpperBody);
 
         this.updateMonitor();
     }
@@ -153,7 +161,6 @@ export class WebcamModule {
         const cropX = (videoDisplayWidth - this.boundingBoxSize) / 2;
         const cropY = (videoDisplayHeight - this.boundingBoxSize) / 2;
 
-        // Color Mask Canvas (hidden, used for color detection)
         const maskCanvas = document.createElement('canvas');
         maskCanvas.width = this.boundingBoxSize;
         maskCanvas.height = this.boundingBoxSize;
@@ -165,13 +172,12 @@ export class WebcamModule {
         );
         let dominantColor = null;
         const totalPixels = this.boundingBoxSize * this.boundingBoxSize;
-        const pixelThreshold = totalPixels * this.colorThreshold; // 1% of pixels
+        const pixelThreshold = totalPixels * this.colorThreshold;
         if (this.selectedColorsHSV.length > 0) {
             const imageData = maskCtx.getImageData(0, 0, this.boundingBoxSize, this.boundingBoxSize);
             const data = imageData.data;
             const pixelCounts = new Array(this.selectedColorsHSV.length).fill(0);
             
-            // First pass: count matching pixels for each color
             for (let i = 0; i < data.length; i += 4) {
                 const [pixelH, pixelS, pixelV] = this.rgbToHsv(data[i], data[i + 1], data[i + 2]);
                 let matched = false;
@@ -188,14 +194,12 @@ export class WebcamModule {
                     }
                 });
                 if (!matched) {
-                    // Set to black if no color matches
                     data[i] = 0;
                     data[i + 1] = 0;
                     data[i + 2] = 0;
                 }
             }
             maskCtx.putImageData(imageData, 0, 0);
-            // Find the dominant color (highest pixel count, or first if equal)
             let maxCount = 0;
             let dominantIndex = 0;
             pixelCounts.forEach((count, index) => {
@@ -209,13 +213,11 @@ export class WebcamModule {
                 dominantColor = `Color${h}${s}${v}`;
             }
         } else {
-            // Clear to black if no colors selected
             maskCtx.fillStyle = 'black';
             maskCtx.fillRect(0, 0, this.boundingBoxSize, this.boundingBoxSize);
         }
         this.monitorCtxMasked.drawImage(maskCanvas, 0, 0);
 
-        // Body Detection with MoveNet (hidden, used for body detection)
         let bodyDetected = false;
         const fullCanvas = document.createElement('canvas');
         fullCanvas.width = videoDisplayWidth;
@@ -228,7 +230,7 @@ export class WebcamModule {
                 const poses = await this.detector.estimatePoses(this.video);
                 fullCtx.drawImage(this.video, 0, 0, videoDisplayWidth, videoDisplayHeight);
 
-                const upperBodyKeypointIndices = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]; // nose to hips
+                const upperBodyKeypointIndices = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
                 const connections = [
                     [0, 1], [0, 2], [1, 3], [2, 4], [0, 5], [0, 6],
                     [5, 7], [7, 9], [6, 8], [8, 10], [5, 6],
@@ -237,7 +239,7 @@ export class WebcamModule {
 
                 if (poses.length > 0) {
                     const keypoints = poses[0].keypoints;
-                    bodyDetected = upperBodyKeypointIndices.some(i => keypoints[i].score > 0.5); // Waist-up detected if any keypoint has confidence > 0.5
+                    bodyDetected = upperBodyKeypointIndices.some(i => keypoints[i].score > 0.5);
                     upperBodyKeypointIndices.forEach(i => {
                         const kp = keypoints[i];
                         if (kp.score > 0.5) {
@@ -270,7 +272,6 @@ export class WebcamModule {
             this.monitorCtxUpperBody.drawImage(this.video, 0, 0, videoDisplayWidth, videoDisplayHeight);
         }
 
-        // Combined prediction output
         if (bodyDetected && dominantColor) {
             this.outputElement.textContent = dominantColor;
         } else {
@@ -314,18 +315,9 @@ export class WebcamModule {
                 this.animationFrameId = null;
             }
 
-            const centerMarker = document.getElementById('centerMarker');
-            if (centerMarker) {
-                centerMarker.remove();
-            }
-            const monitorCanvasMasked = document.getElementById('monitorCanvasMasked');
-            if (monitorCanvasMasked) {
-                monitorCanvasMasked.remove();
-            }
-            const monitorCanvasUpperBody = document.getElementById('monitorCanvasUpperBody');
-            if (monitorCanvasUpperBody) {
-                monitorCanvasUpperBody.remove();
-            }
+            this.container.querySelector('#centerMarker')?.remove();
+            this.container.querySelector('#monitorCanvasMasked')?.remove();
+            this.container.querySelector('#monitorCanvasUpperBody')?.remove();
             this.outputElement.textContent = '';
         }
     }
