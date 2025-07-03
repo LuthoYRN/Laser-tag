@@ -1,0 +1,1106 @@
+.game-container {
+    position: relative;
+    width: 100%;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+.game-container.hidden{
+    display: none;
+}
+
+/* Camera View */
+.game-container .camera-view {
+    flex: 1;
+    position: relative;
+    background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 50%, #16213e 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    /* Ensure it takes available space between top and bottom HUD */
+    min-height: 0;
+}
+
+.camera-placeholder {
+    width: 100%;
+    height: 100%;
+    background: radial-gradient(circle at center, rgba(0, 255, 255, 0.1) 0%, rgba(0, 0, 0, 0.8) 70%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    color: #00ffff;
+    text-align: center;
+    border: 2px dashed rgba(0, 255, 255, 0.3);
+    /* Remove margin that reduces camera space */
+    margin: 0;
+    border-radius: 10px;
+}
+/* When camera is active, remove the placeholder styling */
+#qrCameraPlaceholder {
+    width: 100% !important;
+    height: 100% !important;
+    position: relative;
+    /* Remove any margins/padding that might interfere */
+    margin: 0;
+    padding: 0;
+    /* Ensure video shows properly */
+    background: transparent;
+}
+#qrCameraPlaceholder video {
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: cover !important;
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    border-radius: 0 !important;
+}
+
+
+#qrModalPlaceholder video {
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: cover;
+    border-radius: 10px;
+}
+
+/* Hide the default Html5Qrcode UI elements we don't need */
+#qrCameraPlaceholder > div:last-child {
+    display: none !important; /* Hide the default scanning region overlay */
+}
+
+/* Ensure the scanning area is properly positioned */
+#qrCameraPlaceholder canvas {
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    z-index: 1 !important;
+}
+
+/* Make sure our crosshair stays on top */
+.crosshair {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 40px;
+    height: 40px;
+    pointer-events: none;
+    z-index: 15 !important;
+    border: 2px solid #ff0000;
+    border-radius: 50%;
+    transition: all 0.3s ease;
+    box-shadow: 0 0 10px #ff0000;
+}
+
+.crosshair::before,
+.crosshair::after {
+    content: '';
+    position: absolute;
+    background: #ff0000;
+    transition: all 0.3s ease;
+}
+
+.crosshair::before {
+    top: 50%;
+    left: 50%;
+    width: 20px;
+    height: 2px;
+    transform: translate(-50%, -50%);
+}
+
+.crosshair::after {
+    left: 50%;
+    top: 50%;
+    width: 2px;
+    height: 20px;
+    transform: translate(-50%, -50%);
+}
+
+/* Pulsing animation for active scanning */
+.crosshair.scanning {
+    animation: crosshairPulse 2s infinite;
+}
+
+@keyframes crosshairPulse {
+    0%, 100% { 
+        transform: translate(-50%, -50%) scale(1);
+        opacity: 1;
+    }
+    50% { 
+        transform: translate(-50%, -50%) scale(1.1);
+        opacity: 0.8;
+    }
+}
+
+/* Top HUD */
+.game-container .top-hud {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    padding: 15px;
+    background: linear-gradient(180deg, rgba(0, 0, 0, 0.8) 0%, transparent 100%);
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 15px;
+    align-items: flex-start;
+    z-index: 20 !important; 
+}
+
+.game-container .timer-section {
+    justify-self: start;
+    text-align: center;
+    background: rgba(0, 0, 0, 0.7);
+    border: 2px solid #ffff00;
+    border-radius: 10px;
+    padding: 8px 15px;
+    backdrop-filter: blur(10px);
+}
+
+.game-container .players-section {
+    justify-self: center;
+    text-align: center;
+    background: rgba(0, 0, 0, 0.7);
+    border: 2px solid #ff00ff;
+    border-radius: 10px;
+    padding: 8px 15px;
+    backdrop-filter: blur(10px);
+}
+
+.game-container .score-section {
+    justify-self: end;
+    text-align: center;
+    background: rgba(0, 0, 0, 0.7);
+    border: 2px solid #00ff00;
+    border-radius: 10px;
+    padding: 8px 15px;
+    backdrop-filter: blur(10px);
+}
+
+.game-container .timer-label {
+    font-size: 0.7rem;
+    color: #ffff00;
+    text-transform: uppercase;
+    margin-bottom: 2px;
+}
+
+.game-container .timer-value {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: #ffffff;
+    font-family: 'Courier New', monospace;
+    text-shadow: 0 0 10px #ffff00;
+}
+
+.game-container .players-label {
+    font-size: 0.7rem;
+    color: #ff00ff;
+    text-transform: uppercase;
+    margin-bottom: 2px;
+}
+
+.game-container .players-value {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: #ffffff;
+    font-family: 'Courier New', monospace;
+    text-shadow: 0 0 10px #ff00ff;
+}
+
+.game-container .score-label {
+    font-size: 0.7rem;
+    color: #00ff00;
+    text-transform: uppercase;
+    margin-bottom: 2px;
+}
+
+.game-container .score-value {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: #ffffff;
+    font-family: 'Courier New', monospace;
+    text-shadow: 0 0 10px #00ff00;
+}
+
+/* Bottom HUD */
+.bottom-hud {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 15px;
+    background: linear-gradient(0deg, rgba(0, 0, 0, 0.8) 0%, transparent 100%);
+    display: flex;
+    justify-content: center;
+    align-items: flex-end;
+    z-index: 20;
+}
+
+.forfeit-button {
+    background: rgba(139, 0, 0, 0.9);
+    border: 2px solid #8b0000;
+    border-radius: 8px;
+    padding: 10px 15px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(10px);
+    color: #ffffff;
+    font-size: 0.6rem;
+    font-weight: bold;
+    text-transform: uppercase;
+}
+
+.forfeit-button:hover {
+    border-color: #ff0000;
+    background: rgba(255, 0, 0, 0.9);
+    box-shadow: 0 0 15px rgba(255, 0, 0, 0.4);
+    transform: translateY(-2px);
+}
+
+.forfeit-icon {
+    font-size: 1.1rem;
+}
+
+.forfeit-text {
+    font-size: 0.8rem;
+    letter-spacing: 0.5px;
+}
+
+/* Forfeit Confirmation Modal */
+.forfeit-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.8);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    backdrop-filter: blur(10px);
+}
+
+.forfeit-modal.show {
+    display: flex;
+}
+
+.forfeit-dialog {
+    background: linear-gradient(135deg, rgba(20, 20, 20, 0.95), rgba(40, 40, 40, 0.95));
+    border: 2px solid #ff0000;
+    border-radius: 15px;
+    padding: 30px;
+    max-width: 400px;
+    width: 90%;
+    text-align: center;
+    box-shadow: 0 0 30px rgba(255, 0, 0, 0.5);
+}
+
+.forfeit-title {
+    font-size: 1.5rem;
+    color: #ff0000;
+    font-weight: bold;
+    margin-bottom: 15px;
+    text-transform: uppercase;
+}
+
+.forfeit-message {
+    color: #ffffff;
+    margin-bottom: 25px;
+    line-height: 1.5;
+}
+
+.forfeit-warning {
+    color: #ffaa00;
+    font-size: 0.9rem;
+    margin-bottom: 25px;
+    font-style: italic;
+}
+
+.forfeit-buttons {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+}
+
+.forfeit-confirm-btn {
+    background: linear-gradient(45deg, #ff0000, #cc0000);
+    border: 2px solid #ff0000;
+    border-radius: 8px;
+    padding: 12px 24px;
+    color: #ffffff;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-transform: uppercase;
+}
+
+.forfeit-confirm-btn:hover {
+    background: linear-gradient(45deg, #cc0000, #990000);
+    box-shadow: 0 0 15px rgba(255, 0, 0, 0.5);
+}
+
+.forfeit-cancel-btn {
+    background: rgba(100, 100, 100, 0.8);
+    border: 2px solid #666;
+    border-radius: 8px;
+    padding: 12px 24px;
+    color: #ffffff;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-transform: uppercase;
+}
+
+.forfeit-cancel-btn:hover {
+    border-color: #00ffff;
+    background: rgba(0, 255, 255, 0.2);
+    box-shadow: 0 0 15px rgba(0, 255, 255, 0.3);
+}
+
+.game-container .health-section {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+}
+
+.game-container .health-label {
+    font-size: 0.8rem;
+    color: #ff0000;
+    text-transform: uppercase;
+    font-weight: bold;
+}
+
+.game-container .health-bar-container {
+    width: 200px;
+    height: 20px;
+    background: rgba(0, 0, 0, 0.7);
+    border: 2px solid #ff0000;
+    border-radius: 12px;
+    overflow: hidden;
+    position: relative;
+}
+
+.game-container .health-bar {
+    height: 100%;
+    background: linear-gradient(90deg, #ff0000 0%, #ff6600 50%, #00ff00 100%);
+    width: 100%;
+    transition: width 0.3s ease;
+    box-shadow: 0 0 15px rgba(255, 0, 0, 0.5);
+}
+
+.game-container .health-bar.low {
+    width: 30%;
+    background: #ff0000;
+    animation: gameHealthPulse 1s infinite;
+}
+
+.game-container .health-bar.medium {
+    width: 60%;
+    background: linear-gradient(90deg, #ff6600 0%, #ffff00 100%);
+}
+
+.game-container .health-bar.high {
+    width: 100%;
+    background: linear-gradient(90deg, #ffff00 0%, #00ff00 100%);
+}
+
+@keyframes gameHealthPulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+
+.game-container .health-text {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 0.7rem;
+    font-weight: bold;
+    color: #ffffff;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+}
+
+/* Shooting Indicator */
+.shoot-indicator {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 100px;
+    height: 100px;
+    border: 3px solid #ff0000;
+    border-radius: 50%;
+    opacity: 0;
+    animation: gameShootPulse 0.3s ease-out;
+    pointer-events: none;
+    z-index: 15;
+}
+
+.shoot-indicator.active {
+    opacity: 1;
+}
+
+@keyframes gameShootPulse {
+    0% {
+        transform: translate(-50%, -50%) scale(0.5);
+        opacity: 1;
+    }
+    100% {
+        transform: translate(-50%, -50%) scale(1.5);
+        opacity: 0;
+    }
+}
+
+/* Hit Indicator */
+.hit-indicator {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(255, 0, 0, 0.3);
+    opacity: 0;
+    pointer-events: none;
+    z-index: 25;
+}
+
+.hit-indicator.active {
+    opacity: 1;
+    animation: gameHitFlash 0.5s ease-out;
+}
+
+@keyframes gameHitFlash {
+    0%, 100% { opacity: 0; }
+    50% { opacity: 0.6; }
+}
+
+/* Status Messages */
+.game-container .status-message {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(0, 0, 0, 0.9);
+    border-radius: 15px;
+    padding: 20px 30px;
+    text-align: center;
+    z-index: 30;
+    display: none;
+}
+
+.game-container .status-message.show {
+    display: block;
+    animation: gameMessageSlide 0.5s ease-out;
+}
+
+@keyframes gameMessageSlide {
+    0% {
+        transform: translate(-50%, -50%) scale(0.8);
+        opacity: 0;
+    }
+    100% {
+        transform: translate(-50%, -50%) scale(1);
+        opacity: 1;
+    }
+}
+
+.game-container .status-title {
+    font-size: 1.5rem;
+    font-weight: bold;
+    margin-bottom: 10px;
+}
+
+.game-container .status-text {
+    font-size: 1rem;
+}
+
+.qr-scanner-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.95);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+    backdrop-filter: blur(15px);
+}
+
+.qr-scanner-modal.show {
+    display: flex;
+}
+
+.qr-scanner-container {
+    background: linear-gradient(135deg, rgba(20, 20, 20, 0.95), rgba(40, 40, 40, 0.95));
+    border: 2px solid #00ffff;
+    border-radius: 20px;
+    padding: 30px;
+    max-width: 400px;
+    width: 90%;
+    text-align: center;
+    box-shadow: 0 0 40px rgba(0, 255, 255, 0.5);
+    animation: scannerSlideIn 0.5s ease-out;
+}
+
+@keyframes scannerSlideIn {
+    0% {
+        transform: scale(0.8) translateY(50px);
+        opacity: 0;
+    }
+    100% {
+        transform: scale(1) translateY(0);
+        opacity: 1;
+    }
+}
+
+.qr-scanner-title {
+    font-size: 1.5rem;
+    color: #00ffff;
+    font-weight: bold;
+    margin-bottom: 20px;
+    text-transform: uppercase;
+    text-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
+}
+
+.qr-scanner-subtitle {
+    color: #aaa;
+    margin-bottom: 25px;
+    font-size: 0.9rem;
+}
+
+.qr-camera-view {
+    width: 100%;
+    /* Make height responsive instead of fixed 250px */
+    height: 60vh; /* 60% of viewport height */
+    min-height: 300px;
+    max-height: 400px;
+    background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 50%, #16213e 100%);
+    border: 2px solid #00ffff;
+    border-radius: 15px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 20px;
+    position: relative;
+    overflow: hidden;
+}
+
+.qr-camera-placeholder {
+    width: 100% !important;
+    height: 100% !important;
+}
+
+.qr-instructions {
+    color: #ffffff;
+    font-size: 0.9rem;
+    margin-bottom: 20px;
+}
+.qr-cancel-button {
+    background: rgba(100, 100, 100, 0.8);
+    border: 2px solid #666;
+    border-radius: 8px;
+    padding: 10px 20px;
+    color: #ffffff;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-transform: uppercase;
+}
+
+.qr-cancel-button:hover {
+    border-color: #ff0000;
+    background: rgba(255, 0, 0, 0.2);
+    box-shadow: 0 0 15px rgba(255, 0, 0, 0.3);
+}
+
+/* Player Assignment Modal */
+.player-assignment-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.95);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 2100;
+    backdrop-filter: blur(15px);
+}
+
+.qr-assignment-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.95);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 1500;
+    backdrop-filter: blur(20px);
+}
+
+.qr-assignment-overlay.show {
+    display: flex;
+}
+
+.assignment-container {
+    background: linear-gradient(135deg, rgba(20, 20, 20, 0.95), rgba(40, 40, 40, 0.95));
+    border: 3px solid #00ffff;
+    border-radius: 20px;
+    padding: 40px;
+    max-width: 400px;
+    width: 90%;
+    text-align: center;
+    box-shadow: 0 0 50px rgba(0, 255, 255, 0.6);
+    animation: assignmentAppear 0.6s ease-out;
+}
+
+/* Add after existing game-session styles */
+.zoom-controls {
+    position: absolute;
+    bottom: 120px; /* Above bottom HUD */
+    right: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    z-index: 25; /* Between camera and status messages */
+}
+
+.zoom-btn {
+    width: 45px;
+    height: 45px;
+    background: rgba(0, 0, 0, 0.8);
+    border: 2px solid #00ffff;
+    border-radius: 50%;
+    color: #00ffff;
+    font-weight: bold;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(10px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.zoom-btn:hover {
+    border-color: #ffffff;
+    color: #ffffff;
+    box-shadow: 0 0 15px rgba(0, 255, 255, 0.4);
+    transform: scale(1.05);
+}
+
+.zoom-btn.active {
+    background: rgba(0, 255, 255, 0.3);
+    border-color: #00ff00;
+    color: #00ff00;
+    box-shadow: 0 0 20px rgba(0, 255, 0, 0.5);
+}
+@keyframes assignmentAppear {
+    0% {
+        transform: scale(0.8) translateY(50px);
+        opacity: 0;
+    }
+    100% {
+        transform: scale(1) translateY(0);
+        opacity: 1;
+    }
+}
+
+.assignment-icon {
+    font-size: 4rem;
+    margin-bottom: 20px;
+    animation: assignmentPulse 2s infinite;
+}
+
+@keyframes assignmentPulse {
+    0%, 100% { 
+        transform: scale(1);
+        opacity: 1;
+    }
+    50% { 
+        transform: scale(1.1);
+        opacity: 0.8;
+    }
+}
+/* Add to game_session.css */
+.powerup-indicator {
+    position: absolute;
+    bottom: 140px; /* Above bottom HUD */
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(255, 165, 0, 0.95);
+    border: 2px solid #ffa500;
+    border-radius: 15px;
+    padding: 10px 15px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 0.9rem;
+    font-weight: bold;
+    color: #000;
+    box-shadow: 0 0 20px rgba(255, 165, 0, 0.6);
+    animation: powerupFloat 2s infinite ease-in-out;
+    z-index: 50;
+    white-space: nowrap;
+    min-width: 150px;
+    justify-content: center;
+}
+
+.powerup-icon {
+    font-size: 1.2rem;
+}
+
+.powerup-name {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+}
+
+.powerup-timer {
+    background: rgba(0, 0, 0, 0.3);
+    padding: 2px 6px;
+    border-radius: 8px;
+    color: #fff;
+    font-family: 'Courier New', monospace;
+}
+
+@keyframes powerupFloat {
+    0%, 100% { transform: translateX(-50%) translateY(0px); }
+    50% { transform: translateX(-50%) translateY(-5px); }
+}
+.assignment-title {
+    font-size: 1.8rem;
+    color: #00ffff;
+    font-weight: bold;
+    margin-bottom: 15px;
+    text-transform: uppercase;
+    text-shadow: 0 0 20px rgba(0, 255, 255, 0.8);
+    letter-spacing: 2px;
+}
+
+.assignment-message {
+    font-size: 1.1rem;
+    color: #ffffff;
+    margin-bottom: 20px;
+    line-height: 1.4;
+}
+
+.assignment-progress {
+    font-size: 1rem;
+    color: #ffff00;
+    font-weight: bold;
+    margin-bottom: 25px;
+    transition: color 0.3s ease;
+}
+
+.assignment-players-status {
+    background: rgba(0, 0, 0, 0.6);
+    border: 2px solid #333;
+    border-radius: 15px;
+    padding: 20px;
+    margin-top: 20px;
+}
+
+.status-text {
+    font-size: 1.2rem;
+    color: #ffffff;
+    margin-bottom: 15px;
+    font-weight: bold;
+}
+
+.status-text span {
+    color: #00ff00;
+    font-family: 'Courier New', monospace;
+}
+
+.progress-bar-container {
+    width: 100%;
+    height: 12px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 6px;
+    overflow: hidden;
+    border: 1px solid #555;
+}
+
+.progress-bar {
+    height: 100%;
+    background: linear-gradient(90deg, #00ffff, #00ff00);
+    width: 0%;
+    transition: width 0.5s ease;
+    box-shadow: 0 0 15px rgba(0, 255, 255, 0.5);
+    position: relative;
+}
+
+.progress-bar::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+    animation: progressShimmer 2s infinite;
+}
+
+@keyframes progressShimmer {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+}
+
+.player-assignment-modal.show {
+    display: flex;
+}
+
+.player-assignment-container {
+    background: linear-gradient(135deg, rgba(0, 255, 0, 0.1), rgba(0, 255, 0, 0.05));
+    border: 3px solid #00ff00;
+    border-radius: 20px;
+    padding: 40px;
+    max-width: 350px;
+    width: 90%;
+    text-align: center;
+    box-shadow: 0 0 50px rgba(0, 255, 0, 0.6);
+    animation: assignmentPulse 0.8s ease-out;
+}
+
+@keyframes assignmentPulse {
+    0% {
+        transform: scale(0.5);
+        opacity: 0;
+    }
+    50% {
+        transform: scale(1.1);
+        opacity: 0.8;
+    }
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+.assignment-icon {
+    font-size: 3rem;
+    margin-bottom: 20px;
+    animation: assignmentSpin 1s ease-out;
+}
+
+@keyframes assignmentSpin {
+    0% { transform: rotate(0deg) scale(0.5); }
+    100% { transform: rotate(360deg) scale(1); }
+}
+
+.assignment-title {
+    font-size: 1.8rem;
+    color: #00ff00;
+    font-weight: bold;
+    margin-bottom: 15px;
+    text-transform: uppercase;
+    text-shadow: 0 0 15px rgba(0, 255, 0, 0.8);
+}
+
+.assignment-player-name {
+    font-size: 1.3rem;
+    color: #ffffff;
+    font-weight: bold;
+    margin-bottom: 10px;
+    font-family: 'Courier New', monospace;
+}
+
+.assignment-subtitle {
+    color: #aaa;
+    font-size: 0.9rem;
+}
+
+/* Mobile optimizations */
+@media (max-width: 768px) {
+    .game-container .top-hud {
+        padding: 10px;
+    }
+    
+    .game-container .timer-section, 
+    .game-container .score-section, 
+    .game-container .players-section {
+        padding: 6px 12px;
+    }
+    
+    .game-container .timer-value, 
+    .game-container .score-value, 
+    .game-container .players-value {
+        font-size: 1.2rem;
+    }
+    .zoom-controls {
+        bottom: 100px;
+        right: 15px;
+        gap: 6px;
+    }
+    
+    .zoom-btn {
+        width: 40px;
+        height: 40px;
+        font-size: 0.8rem;
+    }
+    
+    .game-container .health-bar-container {
+        width: 150px;
+        height: 18px;
+    }
+    
+    .crosshair {
+        width: 30px;
+        height: 30px;
+    }
+   
+    .bottom-hud {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        padding: 15px;
+        background: linear-gradient(0deg, rgba(0, 0, 0, 0.8) 0%, transparent 100%);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 12px;
+        z-index: 20 !important;
+    }
+    .forfeit-button {
+        padding: 8px 12px;  
+    }
+
+    .forfeit-text {
+        font-size: 0.7rem;
+    }
+
+    .forfeit-dialog {
+        padding: 20px;
+        margin: 20px;
+    }
+
+    .forfeit-buttons {
+        flex-direction: column;
+        gap: 10px;
+    }
+    .qr-camera-view {
+        height: 50vh;
+        min-height: 250px;
+    }
+    
+    .qr-scanner-container {
+        padding: 20px 15px;
+        margin: 10px;
+    }
+
+    .player-assignment-container {
+        padding: 30px;
+        margin: 20px;
+    }
+    
+    .assignment-container {
+        padding: 30px 20px;
+        margin: 20px;
+    }
+    
+    .assignment-icon {
+        font-size: 3rem;
+    }
+    
+    .assignment-title {
+        font-size: 1.5rem;
+        letter-spacing: 1px;
+    }
+    
+    .assignment-message {
+        font-size: 1rem;
+    }
+    
+    .assignment-players-status {
+        padding: 15px;
+    }
+    
+    .status-text {
+        font-size: 1.1rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .game-container .top-hud {
+        padding: 8px;
+    }
+    
+    .game-container .timer-section, 
+    .game-container .score-section, 
+    .game-container .players-section {
+        padding: 5px 10px;
+    }
+    
+    .game-container .timer-value, 
+    .game-container .score-value, 
+    .game-container .players-value {
+        font-size: 1rem;
+    }
+    
+    .game-container .health-bar-container {
+        width: 120px;
+        height: 16px;
+    }
+    
+    .bottom-hud {
+        padding: 8px;
+    }
+
+    .forfeit-button {
+        padding: 6px 10px;
+    }
+
+    .forfeit-icon {
+        font-size: 1rem;
+    }
+
+    .forfeit-text {
+        font-size: 0.6rem;
+    }
+    .qr-camera-view {
+        height: 45vh;
+        min-height: 200px;
+    }
+    
+    .qr-scanner-container {
+        padding: 15px 10px;
+        margin: 5px;
+    }
+    .assignment-container {
+        padding: 25px 15px;
+        margin: 15px;
+    }
+    
+    .assignment-icon {
+        font-size: 2.5rem;
+    }
+    
+    .assignment-title {
+        font-size: 1.3rem;
+    }
+    
+    .assignment-message {
+        font-size: 0.9rem;
+    }
+    
+    .status-text {
+        font-size: 1rem;
+    }
+}
