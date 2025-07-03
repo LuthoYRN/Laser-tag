@@ -49,7 +49,7 @@ function createLobby(hostSocketId, settings = {}) {
         players: new Map(),
         spectators: new Set(),
         settings: {
-            numPlayers: settings.numPlayers || 4,
+            numPlayers: /*settings.numPlayers || */2,//ReAdd after
             duration: settings.duration || 15,
             ...settings
         },
