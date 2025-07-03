@@ -326,6 +326,11 @@ export class WebcamModule {
         }
     }
 
+    async scanColor() {
+        //TODO "static" method to scan color and send it back -> Color###
+        return "Color";
+    }
+
     stopCamera() {
         if (this.stream) {
             this.stream.getTracks().forEach(track => track.stop());
