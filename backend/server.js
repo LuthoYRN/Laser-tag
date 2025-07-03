@@ -781,7 +781,9 @@ function handlePowerupClaim(lobbyCode, playerId, powerupCode, currentScore) {
             powerup: powerup.name,
             effect: `Restored ${healAmount} HP! Health: ${player.health}%`,
             timesUsed: player.powerupPickups[powerupCode],
-            instant: true
+            instant: true,
+            newScore: player.score,     
+            newHealth: player.health    
         });
     } else {
         // Damage boost - timed effect
@@ -801,7 +803,9 @@ function handlePowerupClaim(lobbyCode, playerId, powerupCode, currentScore) {
             powerup: powerup.name,
             effect: `${powerup.damageMultiplier}x damage for ${powerup.duration/1000}s`,
             timesUsed: player.powerupPickups[powerupCode],
-            duration: powerup.duration
+            duration: powerup.duration,
+            newScore: player.score,
+            instant:false  
         });
         
         // Set timer to remove powerup

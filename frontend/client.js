@@ -1397,7 +1397,9 @@ socket.on('powerup-result', (data) => {
     console.log('Powerup result:', data);
     
     if (data.success) {
-        updatePlayerScore(data.newScore);
+        if (data.newScore !== undefined) {
+            updatePlayerScore(data.newScore);
+        }
         
         if (data.instant) {
             // Health pack feedback
@@ -1419,22 +1421,22 @@ socket.on('powerup-expired', (data) => {
 });
 
 function showPowerupIndicator(powerupName, duration) {
-    // Add visual indicator for active powerups
+    hidePowerupIndicator();
+    
     const indicator = document.createElement('div');
     indicator.id = 'powerupIndicator';
     indicator.className = 'powerup-indicator';
     indicator.innerHTML = `
-        <div class="powerup-icon">⚡</div>
-        <div class="powerup-name">${powerupName}</div>
-        <div class="powerup-timer" id="powerupTimer">${Math.ceil(duration/1000)}s</div>
+        ⚡
+        ${powerupName}
+        ${Math.ceil(duration/1000)}s
     `;
     
-    // Position it near the health bar
-    const healthSection = document.querySelector('.health-section');
-    if (healthSection) {
-        healthSection.appendChild(indicator);
+    // Append to game container (position: relative) not bottom HUD (position: absolute)
+    const gameContainer = document.querySelector('.game-container');
+    if (gameContainer) {
+        gameContainer.appendChild(indicator);
         
-        // Start countdown timer
         const timer = setInterval(() => {
             const timerEl = document.getElementById('powerupTimer');
             if (timerEl) {
@@ -1445,11 +1447,12 @@ function showPowerupIndicator(powerupName, duration) {
                 } else {
                     timerEl.textContent = `${remaining - 1}s`;
                 }
+            } else {
+                clearInterval(timer);
             }
         }, 1000);
     }
 }
-
 function hidePowerupIndicator() {
     const indicator = document.getElementById('powerupIndicator');
     if (indicator) {
