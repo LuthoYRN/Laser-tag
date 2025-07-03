@@ -341,7 +341,6 @@ function hideQRAssignmentPhase() {
 // Initialize actual game session (after QR assignment)
 function initializeActualGameSession(gameData) {
     console.log('Initializing actual game session with data:', gameData);
-    resetGameState();
     // Initialize player stats
     updatePlayerHealth(100);
     updatePlayerScore(0);
@@ -1292,10 +1291,12 @@ function stopMainGameCamera() {
 }
 
 function categorizeQRCode(qrCode) {
-    if (/^P[1-8]$/.test(qrCode)) return 'player';
+    // First check for powerup codes
     if (/^W[1-3]$/.test(qrCode)) return 'weapon';
     if (qrCode === 'Health') return 'health';
-    return 'invalid';
+    
+    // Anything else is considered a player code during gameplay
+    return 'player';
 }
 
 function getQRCodeInfo(qrCode) {
@@ -1867,34 +1868,6 @@ function updateEliminatedPlayerStats(lobbyData) {
             viewerBadge.textContent = '💀 ELIMINATED';
             viewerBadge.className = 'viewer-badge eliminated';
         }
-    }
-}
-
-function resetGameState() {
-    console.log('🔄 Resetting game state');
-    
-    // Reset UI elements
-    updatePlayerHealth(100);
-    updatePlayerScore(0);
-    document.getElementById('gameTimer').textContent = '--:--';
-    document.getElementById('playersLeft').textContent = '--/--';
-    
-    // Reset game flags
-    gameState.gameActive = false;
-    resetGameZoom();
-    
-    // Clear any modals/overlays
-    document.getElementById('qrAssignmentOverlay')?.classList.remove('show');
-    document.getElementById('qrScannerModal')?.classList.remove('show');
-    document.getElementById('forfeitModal')?.classList.remove('show');
-    
-    // Stop camera if running
-    stopMainGameCamera();
-    
-    // Clear any status messages
-    const statusMessage = document.getElementById('statusMessage');
-    if (statusMessage) {
-        statusMessage.classList.remove('show');
     }
 }
 
