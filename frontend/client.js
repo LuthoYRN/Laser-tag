@@ -10,6 +10,8 @@ let gameState = {
     playerType: null, // 'player' or 'spectator'
     gameActive: false
 };
+let gameZoomLevel = 1;
+let gameCameraStream = null;
 
 // Screen elements mapping
 const screens = {
@@ -1119,9 +1121,7 @@ function startMainGameCamera() {
         return;
     }
     
-    // Clear any existing content
     placeholder.innerHTML = '';
-    
     const mainScanner = new Html5Qrcode("qrCameraPlaceholder");
     
     const screenWidth = window.innerWidth;
@@ -1133,8 +1133,6 @@ function startMainGameCamera() {
         aspectRatio: 1.0
     };
     
-    console.log(`Setting QR box size to: ${qrBoxSize}px for screen width: ${screenWidth}px`);
-    
     placeholder.innerHTML = '<div style="color: #00ffff; text-align: center;">📷<br>Starting Camera...</div>';
     
     mainScanner.start(
@@ -1144,10 +1142,15 @@ function startMainGameCamera() {
             handleGameQRScan(qrCodeMessage);
         },
         error => {
-            // Silently handle scanning errors - don't log every frame
+            // Silent error handling
         }
     ).then(() => {
-        console.log('Main game camera started successfully with QR box size:', qrBoxSize);
+        console.log('Main game camera started successfully');
+        
+        // Get camera stream for zoom control - ADD THIS
+        setTimeout(() => {
+            getGameCameraStream();
+        }, 1000);
         
         const crosshair = document.querySelector('.crosshair');
         if (crosshair) {
@@ -1156,8 +1159,6 @@ function startMainGameCamera() {
         
     }).catch(err => {
         console.error("Main game camera failed to start:", err);
-        
-        // Show error message using status system instead of alert
         showStatusMessage('📷 Camera Error', 'Camera access required - please allow permissions and refresh');
         
         placeholder.innerHTML = `
@@ -1170,6 +1171,75 @@ function startMainGameCamera() {
     });
 }
 
+async function getGameCameraStream() {
+    try {
+        const video = document.querySelector('#qrCameraPlaceholder video');
+        if (video && video.srcObject) {
+            gameCameraStream = video.srcObject;
+            console.log('📹 Game camera stream acquired for zoom control');
+        } else {
+            setTimeout(getGameCameraStream, 500);
+        }
+    } catch (error) {
+        console.log('Could not get game camera stream for zoom:', error);
+    }
+}
+
+async function setGameZoom(zoomLevel) {
+    gameZoomLevel = zoomLevel;
+    
+    // Update button states
+    document.querySelectorAll('.zoom-btn').forEach(btn => {
+        btn.classList.remove('active');
+        if (parseInt(btn.dataset.zoom) === zoomLevel) {
+            btn.classList.add('active');
+        }
+    });
+    
+    // Try hardware zoom first
+    let zoomApplied = false;
+    
+    if (gameCameraStream) {
+        const tracks = gameCameraStream.getVideoTracks();
+        if (tracks.length > 0) {
+            const track = tracks[0];
+            const capabilities = track.getCapabilities();
+            
+            if (capabilities.zoom) {
+                try {
+                    const maxZoom = capabilities.zoom.max;
+                    const minZoom = capabilities.zoom.min;
+                    const targetZoom = Math.min(maxZoom, minZoom + (zoomLevel - 1) * (maxZoom - minZoom) / 4);
+                    
+                    await track.applyConstraints({
+                        advanced: [{ zoom: targetZoom }]
+                    });
+                    
+                    console.log(`🔍 Hardware zoom applied: ${zoomLevel}×`);
+                    zoomApplied = true;
+                    
+                } catch (error) {
+                    console.log('Hardware zoom failed, using digital:', error);
+                }
+            }
+        }
+    }
+    
+    // Apply digital zoom as fallback or enhancement
+    applyGameDigitalZoom(zoomLevel);
+}
+
+function applyGameDigitalZoom(zoomLevel) {
+    const video = document.querySelector('#qrCameraPlaceholder video');
+    
+    if (video) {
+        video.style.transform = `scale(${zoomLevel})`;
+        video.style.transformOrigin = 'center center';
+        console.log(`🔍 Digital zoom applied: ${zoomLevel}×`);
+    }
+}
+
+// Update stopMainGameCamera to reset zoom
 function stopMainGameCamera() {
     try {
         const placeholder = document.getElementById('qrCameraPlaceholder');
@@ -1183,6 +1253,10 @@ function stopMainGameCamera() {
             }
             placeholder.innerHTML = '<div style="color: #00ffff; text-align: center;">📷<br>Camera Stopped</div>';
         }
+        
+        // Reset zoom state
+        gameZoomLevel = 1;
+        gameCameraStream = null;
         
         const crosshair = document.querySelector('.crosshair');
         if (crosshair) {
@@ -1730,3 +1804,4 @@ window.cancelQRScanning = cancelQRScanning;
 window.showForfeitConfirm = showForfeitConfirm;
 window.confirmForfeit = confirmForfeit;
 window.cancelForfeit = cancelForfeit;
+window.setGameZoom = setGameZoom;

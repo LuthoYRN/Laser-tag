@@ -670,6 +670,47 @@
     animation: assignmentAppear 0.6s ease-out;
 }
 
+/* Add after existing game-session styles */
+.zoom-controls {
+    position: absolute;
+    bottom: 120px; /* Above bottom HUD */
+    right: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    z-index: 25; /* Between camera and status messages */
+}
+
+.zoom-btn {
+    width: 45px;
+    height: 45px;
+    background: rgba(0, 0, 0, 0.8);
+    border: 2px solid #00ffff;
+    border-radius: 50%;
+    color: #00ffff;
+    font-weight: bold;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(10px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.zoom-btn:hover {
+    border-color: #ffffff;
+    color: #ffffff;
+    box-shadow: 0 0 15px rgba(0, 255, 255, 0.4);
+    transform: scale(1.05);
+}
+
+.zoom-btn.active {
+    background: rgba(0, 255, 255, 0.3);
+    border-color: #00ff00;
+    color: #00ff00;
+    box-shadow: 0 0 20px rgba(0, 255, 0, 0.5);
+}
 @keyframes assignmentAppear {
     0% {
         transform: scale(0.8) translateY(50px);
@@ -857,6 +898,17 @@
     .game-container .score-value, 
     .game-container .players-value {
         font-size: 1.2rem;
+    }
+    .zoom-controls {
+        bottom: 100px;
+        right: 15px;
+        gap: 6px;
+    }
+    
+    .zoom-btn {
+        width: 40px;
+        height: 40px;
+        font-size: 0.8rem;
     }
     
     .game-container .health-bar-container {
