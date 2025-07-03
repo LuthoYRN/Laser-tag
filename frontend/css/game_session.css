@@ -738,7 +738,47 @@
         opacity: 0.8;
     }
 }
+/* Add to game_session.css */
+.powerup-indicator {
+    position: absolute;
+    top: -60px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(255, 165, 0, 0.9);
+    border: 2px solid #ffa500;
+    border-radius: 15px;
+    padding: 8px 15px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.8rem;
+    font-weight: bold;
+    color: #000;
+    box-shadow: 0 0 15px rgba(255, 165, 0, 0.5);
+    animation: powerupFloat 2s infinite ease-in-out;
+}
 
+.powerup-icon {
+    font-size: 1.2rem;
+}
+
+.powerup-name {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+}
+
+.powerup-timer {
+    background: rgba(0, 0, 0, 0.3);
+    padding: 2px 6px;
+    border-radius: 8px;
+    color: #fff;
+    font-family: 'Courier New', monospace;
+}
+
+@keyframes powerupFloat {
+    0%, 100% { transform: translateX(-50%) translateY(0px); }
+    50% { transform: translateX(-50%) translateY(-5px); }
+}
 .assignment-title {
     font-size: 1.8rem;
     color: #00ffff;
