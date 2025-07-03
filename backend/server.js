@@ -305,7 +305,7 @@ io.on('connection', (socket) => {
             // Check if all players are ready and lobby is in waiting state
             const allReady = Array.from(lobby.players.values()).every(p => p.isReady);
             
-            if (allReady && lobby.players.size >= 2 && lobby.status === 'waiting') { //change back to>=lobby.settings.numPlayers
+            if (allReady && lobby.players.size >=lobby.settings.numPlayers && lobby.status === 'waiting') {
                 startGameCountdown(player.lobbyCode);
             } 
             // Cancel countdown if someone unreadies during countdown
