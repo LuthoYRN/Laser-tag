@@ -90,6 +90,29 @@ export class WebcamModule {
         return [h, s, v];
     }
 
+    setColors(colorsHSV) {
+        if (!Array.isArray(colorsHSV)) {
+            console.error('setColors expects an array of HSV colors');
+            return false;
+        }
+        if (colorsHSV.length > this.maxColors) {
+            alert(`Maximum ${this.maxColors} colors allowed. Provided: ${colorsHSV.length}`);
+            return false;
+        }
+        // Validate each HSV color
+        const validColors = colorsHSV.filter(([h, s, v]) => {
+            return Number.isInteger(h) && Number.isInteger(s) && Number.isInteger(v) &&
+                   h >= 0 && h <= 360 && s >= 0 && s <= 100 && v >= 0 && v <= 100;
+        });
+        if (validColors.length !== colorsHSV.length) {
+            console.error('Invalid HSV colors provided');
+            return false;
+        }
+        this.selectedColorsHSV = validColors;
+        console.log('Set colors (HSV):', this.selectedColorsHSV);
+        return true;
+    }
+
     addColorFromRGB(r, g, b) {
         if (this.selectedColorsHSV.length >= this.maxColors) {
             alert(`Maximum ${this.maxColors} colors selected. Clear existing colors to select new ones.`);

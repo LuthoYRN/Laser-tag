@@ -33,6 +33,15 @@ class ColorRecognizer {
         this.colorPicker.type = 'color';
         this.colorPicker.value = '#000000';
 
+        this.colorInput = document.createElement('input');
+        this.colorInput.id = 'colorInput';
+        this.colorInput.type = 'text';
+        this.colorInput.placeholder = 'Enter HSV (e.g., 505050 or Color505050)';
+
+        this.colorAddButton = document.createElement('button');
+        this.colorAddButton.id = 'colorAddButton';
+        this.colorAddButton.textContent = 'Add HSV Color';
+
         this.colorDisplay = document.createElement('div');
         this.colorDisplay.className = 'color-display';
 
@@ -47,6 +56,8 @@ class ColorRecognizer {
         this.colorDisplay.appendChild(this.colorSwatches);
         this.colorSelection.appendChild(this.colorCountSelect);
         this.colorSelection.appendChild(this.colorPicker);
+        this.colorSelection.appendChild(this.colorInput);
+        this.colorSelection.appendChild(this.colorAddButton);
         this.controls.appendChild(this.toggleButton);
         this.controls.appendChild(this.pickColorButton);
         this.controls.appendChild(this.colorSelection);
@@ -80,6 +91,14 @@ class ColorRecognizer {
         this.colorCountSelect.addEventListener('change', () => {
             this.webcamModule.setMaxColors(parseInt(this.colorCountSelect.value));
             this.updateColorDisplay();
+        });
+        this.colorAddButton.addEventListener('click', () => {
+            this.setColorFromInput();
+        });
+        this.colorInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                this.setColorFromInput();
+            }
         });
     }
 
@@ -130,6 +149,38 @@ class ColorRecognizer {
         return [Math.round(r * 255), Math.round(g * 255), Math.round(b * 255)];
     }
 
+    parseHsvInput(input) {
+        const cleanInput = input.replace(/^Color/, '').trim();
+        if (!/^\d{6}$/.test(cleanInput)) {
+            return null;
+        }
+        const h = parseInt(cleanInput.slice(0, 2), 10);
+        const s = parseInt(cleanInput.slice(2, 4), 10);
+        const v = parseInt(cleanInput.slice(4, 6), 10);
+        if (
+            Number.isInteger(h) && Number.isInteger(s) && Number.isInteger(v) &&
+            h >= 0 && h <= 360 && s >= 0 && s <= 100 && v >= 0 && v <= 100
+        ) {
+            return [h, s, v];
+        }
+        return null;
+    }
+
+    setColorFromInput() {
+        const input = this.colorInput.value;
+        const hsv = this.parseHsvInput(input);
+        if (!hsv) {
+            alert('Invalid HSV format. Use 505050 or Color505050 (H: 0-360, S: 0-100, V: 0-100)');
+            return;
+        }
+        const colors = [...this.webcamModule.selectedColorsHSV, hsv];
+        const success = this.webcamModule.setColors(colors);
+        if (success) {
+            this.updateColorDisplay();
+            this.colorInput.value = '';
+        }
+    }
+
     pickColor() {
         if (!this.webcamModule.stream || this.webcamModule.video.readyState !== 4) {
             alert('Camera is not active or video is not ready.');
@@ -174,7 +225,7 @@ class ColorRecognizer {
                 this.colorSwatches.appendChild(swatch);
             });
             const lastHsv = this.webcamModule.selectedColorsHSV[this.webcamModule.selectedColorsHSV.length - 1];
-            const [r, g, b] = this.hsvToRgb(lastHsv[0], hsv[1], hsv[2]);
+            const [r, g, b] = this.hsvToRgb(lastHsv[0], lastHsv[1], lastHsv[2]);
             this.colorPicker.value = `#${((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1).padStart(6, '0')}`;
         } else {
             this.colorValue.textContent = 'No colors selected';
