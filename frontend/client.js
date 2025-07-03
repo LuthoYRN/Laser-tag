@@ -10,8 +10,83 @@ let gameState = {
     playerType: null, // 'player' or 'spectator'
     gameActive: false
 };
+
+// Sound Management Functions
+function initializeAudio() {
+    // Create audio element for background music
+    backgroundAudio = new Audio('./audio/background-music.mp3'); // You'll need to add your MP3 file here
+    backgroundAudio.loop = true;
+    backgroundAudio.volume = 0.3; // Set to 30% volume
+    
+    // Handle audio loading errors gracefully
+    backgroundAudio.addEventListener('error', (e) => {
+        console.log('Background music file not found - sound toggle disabled');
+        const soundToggle = document.getElementById('soundToggle');
+        if (soundToggle) {
+            soundToggle.style.display = 'none';
+        }
+    });
+    
+    // Initialize sound toggle button
+    const soundToggle = document.getElementById('soundToggle');
+    if (soundToggle) {
+        soundToggle.addEventListener('click', toggleSound);
+        updateSoundToggleUI();
+    }
+}
+
+function toggleSound() {
+    if (isSoundEnabled) {
+        pauseBackgroundMusic();
+    } else {
+        playBackgroundMusic();
+    }
+}
+
+function playBackgroundMusic() {
+    if (backgroundAudio) {
+        backgroundAudio.play().then(() => {
+            isSoundEnabled = true;
+            updateSoundToggleUI();
+            console.log('🎵 Background music started');
+        }).catch(err => {
+            console.log('Could not play background music:', err);
+            // Browser may require user interaction before playing audio
+            showStatusMessage('🎵 Music Ready', 'Click the sound button to enable background music', 'info');
+        });
+    }
+}
+
+function pauseBackgroundMusic() {
+    if (backgroundAudio) {
+        backgroundAudio.pause();
+        isSoundEnabled = false;
+        updateSoundToggleUI();
+        console.log('🔇 Background music paused');
+    }
+}
+
+function updateSoundToggleUI() {
+    const soundToggle = document.getElementById('soundToggle');
+    if (soundToggle) {
+        if (isSoundEnabled) {
+            soundToggle.textContent = '🔊';
+            soundToggle.classList.remove('muted');
+            soundToggle.title = 'Mute Background Music';
+        } else {
+            soundToggle.textContent = '🔇';
+            soundToggle.classList.add('muted');
+            soundToggle.title = 'Play Background Music';
+        }
+    }
+};
+
 let gameZoomLevel = 1;
 let gameCameraStream = null;
+
+// Audio management
+let backgroundAudio = null;
+let isSoundEnabled = false;
 
 // Screen elements mapping
 const screens = {
@@ -1903,7 +1978,10 @@ function updateCameraViewIfActive() {
 // Initialize the application
 document.addEventListener('DOMContentLoaded', () => {
     console.log('🎮 CV Laser Tag Client initialized');
-    
+    // Initialize audio system
+    console.log('🎵 About to initialize audio...');
+    initializeAudio();  // ← HERE
+    console.log('🎵 Audio initialization completed');
     // Initialize all screens
     initializeHome();
     initializeCreateLobby();
