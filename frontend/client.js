@@ -255,6 +255,7 @@ socket.on('game-actually-started', (gameData) => {
 // Initialize QR assignment phase
 function initializeQRAssignmentPhase(data) {
     console.log('Initializing QR assignment phase');
+    resetGameZoom();
     
     // Show QR scanner modal for assignment
     setTimeout(() => {
@@ -1239,6 +1240,33 @@ function applyGameDigitalZoom(zoomLevel) {
     }
 }
 
+function resetGameZoom() {
+    gameZoomLevel = 1;
+    gameCameraStream = null;
+    
+    // Reset zoom button states
+    document.querySelectorAll('.zoom-btn').forEach(btn => {
+        btn.classList.remove('active');
+        if (parseInt(btn.dataset.zoom) === 1) {
+            btn.classList.add('active');
+        }
+    });
+    
+    // Reset any digital zoom transforms on video elements
+    const gameVideo = document.querySelector('#qrCameraPlaceholder video');
+    if (gameVideo) {
+        gameVideo.style.transform = 'scale(1)';
+        gameVideo.style.transformOrigin = 'center center';
+    }
+    
+    const modalVideo = document.querySelector('#qrModalPlaceholder video');
+    if (modalVideo) {
+        modalVideo.style.transform = 'scale(1)';
+        modalVideo.style.transformOrigin = 'center center';
+    }
+    
+    console.log('🔄 Zoom reset to 1×');
+}
 // Update stopMainGameCamera to reset zoom
 function stopMainGameCamera() {
     try {
@@ -1255,8 +1283,7 @@ function stopMainGameCamera() {
         }
         
         // Reset zoom state
-        gameZoomLevel = 1;
-        gameCameraStream = null;
+        resetGameZoom();
         
         const crosshair = document.querySelector('.crosshair');
         if (crosshair) {
@@ -1739,6 +1766,7 @@ function resetGameState() {
     
     // Reset game flags
     gameState.gameActive = false;
+    resetGameZoom();
     
     // Clear any modals/overlays
     document.getElementById('qrAssignmentOverlay')?.classList.remove('show');
