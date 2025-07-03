@@ -1332,7 +1332,6 @@ function stopQRScanner() {
     }
 }
 
-<<<<<<< HEAD
 function handleQRScan(qrData) {  
     console.log('QR Code scanned:', qrData);
     const qrInfo = getQRCodeInfo(qrData);
@@ -1345,8 +1344,6 @@ function handleQRScan(qrData) {
     }
 }
 // Replace the handleGameQRScan function in client.js
-=======
->>>>>>> 440c34f0c556824ce548efac90c1645f0988c4e5
 let lastGameScanTime = 0;
 
 function handleGameQRScan(qrData) {
@@ -1363,22 +1360,7 @@ function handleGameQRScan(qrData) {
     const qrInfo = getQRCodeInfo(qrData);
     console.log('Game QR Code scanned:', qrData, 'Category:', qrInfo.category);
     
-<<<<<<< HEAD
     if (gameState.gameActive) {
-=======
-    // Different handling based on game phase and QR type
-    if (!gameState.gameActive) {
-        // QR Assignment Phase - only accept player codes
-        if (qrInfo.category === 'player') {
-            socket.emit('assign-qr-code', {
-                qrCode: qrData,
-                playerId: socket.id
-            });
-        } else {
-            showStatusMessage('❌ Invalid Code', 'Only player codes (P1-P8) allowed during assignment', 'error');
-        }
-    } else {
->>>>>>> 440c34f0c556824ce548efac90c1645f0988c4e5
         // Active Game Phase - accept player codes for combat, powerup codes for purchases
         if (qrInfo.category === 'player') {
             // Combat scan
